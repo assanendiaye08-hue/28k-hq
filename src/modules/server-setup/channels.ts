@@ -63,7 +63,9 @@ const CATEGORIES: CategoryDef[] = [
     public: false,
     hidden: false,
     channels: [
-      { name: 'resources', type: ChannelType.GuildText },
+      { name: 'tech-resources', type: ChannelType.GuildText },
+      { name: 'business-resources', type: ChannelType.GuildText },
+      { name: 'growth-resources', type: ChannelType.GuildText },
     ],
   },
   {

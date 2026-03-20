@@ -199,6 +199,7 @@ enum XPSource {
   VOICE_SESSION
   WIN_POST
   LESSON_POST
+  RESOURCE_SHARE
 }
 
 /// Per-member schedule preferences for briefs, reminders, and planning.

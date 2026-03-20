@@ -24,7 +24,8 @@ export type XPSource =
   | 'SETUP_BONUS'
   | 'VOICE_SESSION'
   | 'WIN_POST'
-  | 'LESSON_POST';
+  | 'LESSON_POST'
+  | 'RESOURCE_SHARE';
 
 /** Result of an XP award operation. */
 export interface AwardXPResult {
