@@ -26,6 +26,8 @@ const ENCRYPTED_FIELDS: Record<string, string[]> = {
   MemberProfile: ['rawAnswers'],
   CheckIn: ['content'],
   Goal: ['description'],
+  ConversationMessage: ['content'],
+  ConversationSummary: ['summary'],
 };
 
 /** Write operations that may contain data to encrypt. */
