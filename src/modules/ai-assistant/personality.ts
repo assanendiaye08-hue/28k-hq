@@ -62,6 +62,10 @@ export async function buildSystemPrompt(
         take: 5,
         select: { source: true, description: true, createdAt: true },
       },
+      inspirations: {
+        orderBy: { createdAt: 'asc' },
+        select: { name: true, context: true },
+      },
     },
   });
 
@@ -75,6 +79,9 @@ export async function buildSystemPrompt(
 
   // Recent activity section
   sections.push(buildActivitySection(member));
+
+  // Inspiration section (only if member has inspirations)
+  sections.push(buildInspirationSection(member.inspirations));
 
   // Conversation rules
   sections.push(CONVERSATION_RULES);
@@ -198,6 +205,39 @@ function buildActivitySection(member: {
       lines.push(`  - ${type}: ${tx.description}`);
     }
   }
+
+  return lines.join('\n');
+}
+
+// ─── Inspiration Section ──────────────────────────────────────────────────────
+
+/**
+ * Build the inspiration section of the system prompt.
+ *
+ * Returns an empty string when the member has no inspirations,
+ * avoiding prompt clutter. When present, includes guidance for
+ * Jarvis on how to reference inspirations naturally and handle
+ * "what would [person] do?" queries.
+ */
+function buildInspirationSection(
+  inspirations: Array<{ name: string; context: string | null }>,
+): string {
+  if (inspirations.length === 0) return '';
+
+  const lines: string[] = ['--- INSPIRATIONS ---'];
+  lines.push('People this member admires and draws motivation from:');
+  for (const insp of inspirations) {
+    if (insp.context) {
+      lines.push(`- ${insp.name}: "${insp.context}"`);
+    } else {
+      lines.push(`- ${insp.name} (no context provided)`);
+    }
+  }
+
+  lines.push('');
+  lines.push(
+    'When relevant, reference these inspirations naturally. For example, connect their current goal to something an inspiration is known for. If the member asks "what would [name] do?" answer based on what that person is widely known for -- their philosophy, approach, and public record. Don\'t invent private details. Keep inspiration references organic -- not every message needs one.',
+  );
 
   return lines.join('\n');
 }
