@@ -40,6 +40,7 @@ model Member {
   conversationMessages  ConversationMessage[]
   conversationSummary   ConversationSummary?
   notificationPreference NotificationPreference?
+  memberAIBudget        MemberAIBudget?
 }
 
 /// Discord accounts linked to a member identity.
@@ -361,6 +362,37 @@ enum SessionStatus {
 model BotConfig {
   key   String @id
   value String
+}
+
+// ─── Phase 6: Polish and Launch Readiness ───────────────────────────────────
+
+// ─── Phase 7: AI Infrastructure ──────────────────────────────────────────────
+
+/// Per-request token usage tracking for cost visibility and budget enforcement.
+/// Every AI call through the centralized client creates a row here.
+model TokenUsage {
+  id               String   @id @default(cuid())
+  memberId         String   // 'system' for system-level calls (e.g., content filtering)
+  feature          String   // 'chat', 'brief', 'nudge', 'filter', 'categories', 'tags', 'planning', 'summary', 'tagger'
+  model            String   // OpenRouter model ID (e.g., 'x-ai/grok-4.1-fast')
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  estimatedCostUsd Float    // Computed from tokens * model pricing
+  createdAt        DateTime @default(now())
+
+  @@index([memberId, createdAt])
+  @@index([createdAt])
+  @@index([feature])
+}
+
+/// Per-member AI budget override. Null dailyTokenLimit means use default (500K).
+model MemberAIBudget {
+  id              String @id @default(cuid())
+  memberId        String @unique
+  dailyTokenLimit Int    // Override for this member
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
 // ─── Phase 6: Polish and Launch Readiness ───────────────────────────────────
