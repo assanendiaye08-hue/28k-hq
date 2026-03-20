@@ -27,7 +27,7 @@ When a member opens Discord, the environment pulls them into productive action �
 - ✓ Voice session tracking with AFK detection — v1.0
 - ✓ Wins/lessons channels with XP and reactions — v1.0
 - ✓ Valorant-style seasonal system with archives — v1.0
-- ✓ Conversational AI assistant "Ace" (DeepSeek V3.2 + Qwen fallback) — v1.0
+- ✓ Conversational AI assistant "Jarvis" (DeepSeek V3.2 + Qwen fallback) — v1.0
 - ✓ Accountability nudges with configurable intensity — v1.0
 - ✓ Resource sharing channels with AI auto-tagging and threads — v1.0
 - ✓ Lock-in sessions (instant + scheduled, private + public) — v1.0
@@ -38,12 +38,26 @@ When a member opens Discord, the environment pulls them into productive action �
 - ✓ Per-notification-type account routing — v1.0
 - ✓ Bot hardening (restart recovery, member lifecycle, admin logging) — v1.0
 
+## Current Milestone: v1.1 Depth
+
+**Goal:** Make the server deeper and stickier — structured goal planning, focused work sessions, self-reflection, inspiration, progress visibility, and smart reminders.
+
+**Target features:**
+- Productivity timer suite (pomodoro + proportional breaks)
+- Goal system refactor (optional yearly→daily hierarchy, Jarvis-assisted)
+- Self-evaluation/reflection flow with configurable intensity
+- Inspiration system (set people you admire, Jarvis references them naturally)
+- Monthly progress recap (visual summary, shareable)
+- Smart reminders (natural language, urgency tiers, pluggable delivery for future Apple integration)
+
 ### Active
 
 - [ ] Productivity timer suite (pomodoro + proportional breaks)
+- [ ] Goal system refactor (optional depth yearly→daily, flexible hierarchy, Jarvis-assisted)
 - [ ] Self-evaluation/reflection flow with configurable intensity
-- [ ] Idol system ("what would my idol do?")
-- [ ] Enhanced content curation (more personalized, broader sources)
+- [ ] Inspiration system ("what would [inspiration] do?")
+- [ ] Monthly progress recap (visual summary DM, shareable to #wins)
+- [ ] Smart reminders (natural language time-based, urgency tiers, pluggable delivery backend)
 
 ### Out of Scope
 
@@ -56,7 +70,8 @@ When a member opens Discord, the environment pulls them into productive action �
 - **The group**: 10-25 friends from the same city, diverse profiles (FAANG engineers, small biz owners, students, ecom, affiliate). Smart and capable but spending time gaming on Discord instead of building
 - **The founder's angle**: Already a hustler making money online. Wants to pull friends into the same mindset
 - **Key insight**: These are gamers — wired for competition, progression, streaks, leaderboards. The bots tap into that psychology
-- **Current state**: v1.0 shipped — 16,041 LOC TypeScript, 22 slash commands, 12 modules, per-member encryption, AI assistant, auto-feeds. Ready for deployment and real-world testing
+- **Current state**: v1.0 shipped — 16,041 LOC TypeScript, 22 slash commands, 12 modules, per-member encryption, AI assistant "Jarvis", auto-feeds. Starting v1.1 Depth milestone
+- **Future integration**: Apple ecosystem integration planned (APNs, Shortcuts) — build reminder/notification delivery as pluggable backend
 - **Tech stack**: discord.js, Prisma 7, OpenRouter (DeepSeek V3.2 + Qwen 3.5 Plus), node-cron, rss-parser, PM2
 
 ## Constraints
@@ -79,4 +94,4 @@ When a member opens Discord, the environment pulls them into productive action �
 | DM-based private space | True privacy, not just "private" channels | ✓ Good — both DM and channel options available |
 
 ---
-*Last updated: 2026-03-20 after v1.0 milestone*
+*Last updated: 2026-03-20 after v1.1 milestone start*

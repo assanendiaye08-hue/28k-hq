@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 6: Polish and Launch Readiness
+**Current focus:** Milestone v1.1 — defining requirements
 
 ## Current Position
 
-Phase: 6 of 6 (Polish and Launch Readiness)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-03-20 -- Completed 06-03-PLAN.md (Hardening module for unattended operation)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-20 — Milestone v1.1 started
 
 Progress: [██████████████████████] 100%
 
