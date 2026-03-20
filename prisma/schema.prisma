@@ -28,15 +28,17 @@ model Member {
   lastCheckInAt DateTime?
 
   // Relations
-  accounts         DiscordAccount[]
-  profile          MemberProfile?
-  privateSpace     PrivateSpace?
-  checkIns         CheckIn[]
-  goals            Goal[]
-  xpTransactions   XPTransaction[]
-  schedule         MemberSchedule?
-  voiceSessions    VoiceSession[]
-  seasonSnapshots  SeasonSnapshot[]
+  accounts              DiscordAccount[]
+  profile               MemberProfile?
+  privateSpace          PrivateSpace?
+  checkIns              CheckIn[]
+  goals                 Goal[]
+  xpTransactions        XPTransaction[]
+  schedule              MemberSchedule?
+  voiceSessions         VoiceSession[]
+  seasonSnapshots       SeasonSnapshot[]
+  conversationMessages  ConversationMessage[]
+  conversationSummary   ConversationSummary?
 }
 
 /// Discord accounts linked to a member identity.
@@ -208,6 +210,38 @@ model MemberSchedule {
   briefTone      String   @default("coach") // coach, chill, data-first, etc.
   reminderTimes  String[] // Array of HH:mm strings for check-in reminders
   sundayPlanning Boolean  @default(true) // Whether to receive Sunday planning prompt
+
+  accountabilityLevel String @default("medium") // light, medium, heavy
+  nudgeTime           String?                   // HH:mm format for nudge time
+  lastNudgeAt         DateTime?
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ─── Phase 4: AI Assistant ────────────────────────────────────────────────────
+
+/// Individual conversation message between a member and the AI assistant.
+/// Content is encrypted at rest via the encryption extension.
+model ConversationMessage {
+  id        String   @id @default(cuid())
+  memberId  String
+  role      String   // 'user', 'assistant', 'system'
+  content   String   // Encrypted at rest
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+}
+
+/// Rolling conversation summary for a member. Replaces oldest messages
+/// with a compressed summary to stay within the context token budget.
+model ConversationSummary {
+  id           String   @id @default(cuid())
+  memberId     String   @unique
+  summary      String   // Encrypted at rest
+  messageCount Int      // How many messages are summarized into this summary
+  updatedAt    DateTime @updatedAt
 
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
