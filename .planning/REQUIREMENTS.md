@@ -51,6 +51,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **TRUST-01**: `/mydata` command — members can view everything the bot stores about them
 - [ ] **TRUST-02**: Data deletion — members can wipe all their stored data with a command
 - [ ] **TRUST-03**: Owner-blind privacy — private conversations and data members mark as private are not accessible to server admins, only to the member themselves
+- [ ] **TRUST-04**: Per-member data encryption — private data encrypted with per-member keys at rest. Members receive a personal recovery key via DM for independent data export/decryption. Raw database access reveals only encrypted blobs
 
 ## v2 Requirements
 
@@ -82,36 +83,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FNDN-01 | — | Pending |
-| FNDN-02 | — | Pending |
-| FNDN-03 | — | Pending |
-| FNDN-04 | — | Pending |
-| FNDN-05 | — | Pending |
-| FNDN-06 | — | Pending |
-| ENGAGE-01 | — | Pending |
-| ENGAGE-02 | — | Pending |
-| ENGAGE-03 | — | Pending |
-| ENGAGE-04 | — | Pending |
-| ENGAGE-05 | — | Pending |
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
-| COMP-03 | — | Pending |
-| COMP-04 | — | Pending |
-| AI-01 | — | Pending |
-| AI-02 | — | Pending |
-| AI-03 | — | Pending |
-| CONT-01 | — | Pending |
-| CONT-02 | — | Pending |
-| SESS-01 | — | Pending |
-| TRUST-01 | — | Pending |
-| TRUST-02 | — | Pending |
-| TRUST-03 | — | Pending |
+| FNDN-01 | Phase 1: Foundation and Identity | Pending |
+| FNDN-02 | Phase 1: Foundation and Identity | Pending |
+| FNDN-03 | Phase 1: Foundation and Identity | Pending |
+| FNDN-04 | Phase 1: Foundation and Identity | Pending |
+| FNDN-05 | Phase 1: Foundation and Identity | Pending |
+| FNDN-06 | Phase 6: Polish and Launch Readiness | Pending |
+| ENGAGE-01 | Phase 2: Daily Engagement Loop | Pending |
+| ENGAGE-02 | Phase 2: Daily Engagement Loop | Pending |
+| ENGAGE-03 | Phase 2: Daily Engagement Loop | Pending |
+| ENGAGE-04 | Phase 2: Daily Engagement Loop | Pending |
+| ENGAGE-05 | Phase 2: Daily Engagement Loop | Pending |
+| COMP-01 | Phase 3: Competition and Social Proof | Pending |
+| COMP-02 | Phase 3: Competition and Social Proof | Pending |
+| COMP-03 | Phase 3: Competition and Social Proof | Pending |
+| COMP-04 | Phase 3: Competition and Social Proof | Pending |
+| AI-01 | Phase 4: AI Assistant | Pending |
+| AI-02 | Phase 4: AI Assistant | Pending |
+| AI-03 | Phase 4: AI Assistant | Pending |
+| CONT-01 | Phase 5: Content, Sessions, and Trust | Pending |
+| CONT-02 | Phase 6: Polish and Launch Readiness | Pending |
+| SESS-01 | Phase 5: Content, Sessions, and Trust | Pending |
+| TRUST-01 | Phase 5: Content, Sessions, and Trust | Pending |
+| TRUST-02 | Phase 5: Content, Sessions, and Trust | Pending |
+| TRUST-03 | Phase 5: Content, Sessions, and Trust | Pending |
+| TRUST-04 | Phase 1: Foundation and Identity | Pending |
 
 **Coverage:**
-- v1 requirements: 24 total
-- Mapped to phases: 0
-- Unmapped: 24 ⚠️
+- v1 requirements: 25 total
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after initial definition*
+*Last updated: 2026-03-20 after adding TRUST-04 encryption requirement*
