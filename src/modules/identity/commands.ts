@@ -151,6 +151,8 @@ export async function verifyCommand(
       }
     }
 
+    ctx.events.emit('accountLinked', result.memberId, interaction.user.id);
+
     await interaction.editReply({
       embeds: [
         successEmbed(

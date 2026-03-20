@@ -18,6 +18,9 @@ export type BotEventMap = {
   levelUp: [memberId: string, newRank: string, oldRank: string, newTotal: number];
   scheduleUpdated: [memberId: string];
 
+  // Autocomplete interactions
+  autocomplete: [interaction: unknown];
+
   // Phase 3: Competition and Social Proof
   voiceSessionStarted: [memberId: string, channelId: string];
   voiceSessionEnded: [memberId: string, durationMinutes: number, channelId: string];

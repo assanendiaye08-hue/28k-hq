@@ -105,6 +105,10 @@ async function main(): Promise<void> {
 
   // Route interactions to command handlers
   client.on('interactionCreate', async (interaction) => {
+    if (interaction.isAutocomplete()) {
+      events.emit('autocomplete', interaction);
+      return;
+    }
     if (!interaction.isChatInputCommand()) return;
     await commands.handleInteraction(interaction, ctx);
   });
