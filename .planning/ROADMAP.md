@@ -25,7 +25,7 @@ Full details: .planning/milestones/v1.0-ROADMAP.md
 
 **Milestone Goal:** Make the server deeper and stickier -- structured goal planning, focused work sessions, self-reflection, inspiration, progress visibility, and smart reminders.
 
-- [ ] **Phase 7: AI Infrastructure** - Centralize AI client, cost tracking, tiered memory, configurable models
+- [x] **Phase 7: AI Infrastructure** - Centralize AI client, cost tracking, tiered memory, configurable models (completed 2026-03-20)
 - [ ] **Phase 8: Inspiration System** - Members set people they admire, Jarvis references them naturally
 - [ ] **Phase 9: Productivity Timer** - Pomodoro and proportional break timers with XP integration
 - [ ] **Phase 10: Smart Reminders** - Natural language time-based reminders with urgency tiers
@@ -45,7 +45,7 @@ Full details: .planning/milestones/v1.0-ROADMAP.md
   3. When a member exceeds their daily token budget, AI responses gracefully degrade to template fallbacks instead of failing silently or hard-blocking
   4. AI prompts for any member include tiered context -- recent data verbatim, weekly patterns summarized, historical data compressed -- without losing any underlying DB data
   5. Swapping the primary model (e.g., DeepSeek to Grok) requires only a config change, not code changes
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 07-01-PLAN.md -- Centralized AI client with schema, token tracking, budget enforcement, and model routing
@@ -131,7 +131,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 4. AI Assistant | v1.0 | 2/2 | Complete | 2026-03-20 |
 | 5. Content, Sessions, and Trust | v1.0 | 3/3 | Complete | 2026-03-20 |
 | 6. Polish and Launch Readiness | v1.0 | 3/3 | Complete | 2026-03-20 |
-| 7. AI Infrastructure | v1.1 | 0/3 | In progress | - |
+| 7. AI Infrastructure | v1.1 | Complete    | 2026-03-20 | - |
 | 8. Inspiration System | v1.1 | 0/0 | Not started | - |
 | 9. Productivity Timer | v1.1 | 0/0 | Not started | - |
 | 10. Smart Reminders | v1.1 | 0/0 | Not started | - |
