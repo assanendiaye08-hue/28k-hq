@@ -35,6 +35,7 @@ import {
   SESSION_CHANNEL_NAME,
   LOCKIN_ROLE_NAME,
 } from './constants.js';
+import { deliverNotification } from '../notification-router/router.js';
 
 /** In-memory tracking for active sessions. */
 interface ActiveSessionEntry {
@@ -122,15 +123,17 @@ export async function startInstantSession(
     creatorMemberId,
   });
 
-  // DM each invitee (try/catch per invitee -- some may have DMs closed)
+  // DM each invitee via notification routing (respects session_alert preference)
   const creatorName = creatorMember?.displayName ?? 'Someone';
   for (const inviteeId of inviteeDiscordIds) {
     try {
-      const user = await guild.client.users.fetch(inviteeId);
-      const embed = buildSessionInviteEmbed(sessionTitle, creatorName, voiceChannel.id);
-      await user.send({ embeds: [embed] });
+      const inviteeAccount = await db.discordAccount.findUnique({ where: { discordId: inviteeId } });
+      if (inviteeAccount) {
+        const embed = buildSessionInviteEmbed(sessionTitle, creatorName, voiceChannel.id);
+        await deliverNotification(guild.client, db, inviteeAccount.memberId, 'session_alert', { embeds: [embed] });
+      }
     } catch {
-      // DM failed -- user has DMs closed or not fetchable
+      // Delivery failed -- silent
     }
   }
 
@@ -179,14 +182,16 @@ export async function scheduleSession(
     } catch { /* silent */ }
   }
 
-  // DM invitees about the scheduled session
+  // DM invitees about the scheduled session via notification routing
   for (const inviteeId of inviteeDiscordIds) {
     try {
-      const user = await guild.client.users.fetch(inviteeId);
-      const embed = buildSessionAnnouncementEmbed(title, creatorName, visibility, scheduledFor);
-      await user.send({ embeds: [embed] });
+      const inviteeAccount = await db.discordAccount.findUnique({ where: { discordId: inviteeId } });
+      if (inviteeAccount) {
+        const embed = buildSessionAnnouncementEmbed(title, creatorName, visibility, scheduledFor);
+        await deliverNotification(guild.client, db, inviteeAccount.memberId, 'session_alert', { embeds: [embed] });
+      }
     } catch {
-      // DM failed -- silent
+      // Delivery failed -- silent
     }
   }
 
@@ -337,26 +342,26 @@ export async function inviteMidSession(
     await addParticipantPermission(guild, session.voiceChannelId, newDiscordId);
   }
 
-  // DM the invitee
+  // DM the invitee via notification routing
   try {
-    const user = await guild.client.users.fetch(newDiscordId);
-    const creatorAccount = await db.discordAccount.findFirst({
-      where: { memberId: session.creatorMemberId },
-    });
-    let creatorName = 'Someone';
-    if (creatorAccount) {
-      try {
-        const fetchedUser = await guild.client.users.fetch(creatorAccount.discordId);
-        creatorName = fetchedUser.displayName ?? fetchedUser.username;
-      } catch { /* silent */ }
-    }
+    const inviteeAccount = await db.discordAccount.findUnique({ where: { discordId: newDiscordId } });
+    if (inviteeAccount && session.voiceChannelId) {
+      const creatorAccount = await db.discordAccount.findFirst({
+        where: { memberId: session.creatorMemberId },
+      });
+      let creatorName = 'Someone';
+      if (creatorAccount) {
+        try {
+          const fetchedUser = await guild.client.users.fetch(creatorAccount.discordId);
+          creatorName = fetchedUser.displayName ?? fetchedUser.username;
+        } catch { /* silent */ }
+      }
 
-    if (session.voiceChannelId) {
       const embed = buildSessionInviteEmbed(session.title, creatorName, session.voiceChannelId);
-      await user.send({ embeds: [embed] });
+      await deliverNotification(guild.client, db, inviteeAccount.memberId, 'session_alert', { embeds: [embed] });
     }
   } catch {
-    // DM failed -- silent
+    // Delivery failed -- silent
   }
 }
 
