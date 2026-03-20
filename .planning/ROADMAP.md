@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Daily Engagement Loop** - Check-ins, goals, XP engine, rank progression, and morning briefs that make the server a daily habit (completed 2026-03-20)
 - [x] **Phase 3: Competition and Social Proof** - Leaderboards, voice tracking, wins/lessons channels, and seasonal system that make hustling competitive (completed 2026-03-20)
 - [x] **Phase 4: AI Assistant** - Conversational AI per member via OpenRouter, context-aware briefs, and accountability nudges (completed 2026-03-20)
-- [ ] **Phase 5: Content, Sessions, and Trust** - Resource feeds, lock-in sessions, and member data transparency/privacy controls
+- [x] **Phase 5: Content, Sessions, and Trust** - Resource feeds, lock-in sessions, and member data transparency/privacy controls (completed 2026-03-20)
 - [ ] **Phase 6: Polish and Tuning** - Auto-content feeds, notification routing refinement, and end-to-end hardening before launch
 
 ## Phase Details
@@ -97,7 +97,7 @@ Plans:
   3. Member can run `/mydata` and see everything the bot stores about them
   4. Member can wipe all their stored data with a single command
   5. Private conversations and data marked as private are not accessible to server admins -- only to the member themselves
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 05-01-PLAN.md -- Resource sharing channels with AI auto-tagging, discussion threads, and XP rewards
@@ -130,5 +130,5 @@ Note: Phases 3 and 4 can execute in parallel after Phase 2 completes.
 | 2. Daily Engagement Loop | 3/3 | Complete    | 2026-03-20 |
 | 3. Competition and Social Proof | 2/3 | Complete    | 2026-03-20 |
 | 4. AI Assistant | 0/2 | Complete    | 2026-03-20 |
-| 5. Content, Sessions, and Trust | 0/3 | Not started | - |
+| 5. Content, Sessions, and Trust | 0/3 | Complete    | 2026-03-20 |
 | 6. Polish and Launch Readiness | 0/2 | Not started | - |
