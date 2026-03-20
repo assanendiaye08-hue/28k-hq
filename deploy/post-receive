@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# Post-receive git hook for auto-deploy on VPS.
+#
+# Setup on VPS:
+#   1. Create bare repo: git init --bare /var/repo/discord-hustler.git
+#   2. Copy this file to: /var/repo/discord-hustler.git/hooks/post-receive
+#   3. Make executable: chmod +x /var/repo/discord-hustler.git/hooks/post-receive
+#   4. Add remote locally: git remote add deploy user@vps:/var/repo/discord-hustler.git
+#   5. Deploy: git push deploy main
+#
+
+TARGET="/var/www/discord-hustler"
+GIT_DIR="/var/repo/discord-hustler.git"
+BRANCH="main"
+
+while read oldrev newrev ref
+do
+  if [ "$ref" = "refs/heads/$BRANCH" ]; then
+    echo "========================================"
+    echo "  Deploying $BRANCH to production..."
+    echo "========================================"
+
+    echo ""
+    echo "[1/5] Checking out latest code..."
+    git --work-tree="$TARGET" --git-dir="$GIT_DIR" checkout -f "$BRANCH"
+
+    cd "$TARGET" || exit 1
+
+    echo ""
+    echo "[2/5] Installing dependencies..."
+    npm ci --production=false
+
+    echo ""
+    echo "[3/5] Building TypeScript..."
+    npm run build
+
+    echo ""
+    echo "[4/5] Running database migrations..."
+    npx prisma migrate deploy
+
+    echo ""
+    echo "[5/5] Restarting bot..."
+    pm2 restart discord-hustler 2>/dev/null || pm2 start ecosystem.config.cjs
+
+    echo ""
+    echo "========================================"
+    echo "  Deploy complete!"
+    echo "========================================"
+  else
+    echo "Push to $ref ignored (only $BRANCH triggers deploy)"
+  fi
+done
