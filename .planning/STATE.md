@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 4 of 6 (AI Assistant)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-03-20 -- Completed 04-01-PLAN.md (AI assistant core: Ace personality, DM chat, memory, /ask and /wipe-history)
+Phase: 4 of 6 (AI Assistant) -- COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-03-20 -- Completed 04-02-PLAN.md (AI briefs with conversation context, accountability nudges)
 
-Progress: [████████░░] 73%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 5 min
-- Total execution time: 0.95 hours
+- Total execution time: 1.03 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [████████░░] 73%
 | 01-foundation-and-identity | 4 | 23 min | 6 min |
 | 02-daily-engagement-loop | 3 | 17 min | 6 min |
 | 03-competition-and-social-proof | 3 | 13 min | 4 min |
-| 04-ai-assistant | 1 | 4 min | 4 min |
+| 04-ai-assistant | 2 | 9 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (6 min), 03-01 (4 min), 03-02 (4 min), 03-03 (5 min), 04-01 (4 min)
+- Last 5 plans: 03-01 (4 min), 03-02 (4 min), 03-03 (5 min), 04-01 (4 min), 04-02 (5 min)
 - Trend: stable/improving
 
 *Updated after each plan completion*
@@ -48,6 +48,7 @@ Progress: [████████░░] 73%
 | Phase 03 P02 | 4min | 2 tasks | 7 files |
 | Phase 03 P03 | 5min | 2 tasks | 7 files |
 | Phase 04 P01 | 4min | 2 tasks | 8 files |
+| Phase 04 P02 | 5min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,10 @@ Recent decisions affecting current work:
 - [04-01]: DeepSeek V3.2 primary, Qwen 3.5 Plus fallback for AI chat reliability
 - [04-01]: Daily 50-message cap per member checked in member's timezone
 - [04-01]: Conversation messages encrypted at rest via existing encryption extension
+- [04-02]: NUDGE_MARKER prefix on stored nudge messages enables per-day counting without extra DB field
+- [04-02]: Evening nudge sweep at 21:00 UTC is fallback; per-member cron tasks are primary scheduling
+- [04-02]: Default nudge time 21:00 set on first /accountability usage
+- [04-02]: generateBrief extended with db param for conversation history and community pulse loading
 
 ### Pending Todos
 
@@ -120,5 +125,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 04-01-PLAN.md (AI assistant core: Ace personality, DM chat, memory, /ask, /wipe-history)
+Stopped at: Completed 04-02-PLAN.md (AI briefs with conversation context, accountability nudges, phase 4 complete)
 Resume file: None
