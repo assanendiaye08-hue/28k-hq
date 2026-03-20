@@ -117,7 +117,7 @@ async function showOwnProfile(
   ) {
     try {
       const rawAnswers = JSON.parse(profile.rawAnswers) as Record<string, string>;
-      const tags = await extractProfileTags(rawAnswers);
+      const tags = await extractProfileTags(db, member.id, rawAnswers);
 
       await db.memberProfile.update({
         where: { memberId: member.id },

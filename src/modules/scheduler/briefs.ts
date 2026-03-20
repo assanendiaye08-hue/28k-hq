@@ -16,9 +16,8 @@
 import { EmbedBuilder, type Client } from 'discord.js';
 import { TZDate } from '@date-fns/tz';
 import { startOfDay } from 'date-fns';
-import { OpenRouter } from '@openrouter/sdk';
 import type { ExtendedPrismaClient } from '../../db/client.js';
-import { config } from '../../core/config.js';
+import { callAI } from '../../shared/ai-client.js';
 import { BRAND_COLORS } from '../../shared/constants.js';
 import { deliverNotification } from '../notification-router/router.js';
 import { getRankForXP, getNextRankInfo, calculateStreakMultiplier } from '../xp/engine.js';
@@ -38,18 +37,6 @@ const logger = winston.createLogger({
 
 /** In-memory brief cache: memberId -> { date, text }. Prevents regeneration cost. */
 const briefCache = new Map<string, { date: string; text: string }>();
-
-/** Lazy-initialized OpenRouter client. */
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -219,8 +206,6 @@ export async function generateBrief(
   // Try AI generation
   let briefText: string;
   try {
-    const client = getOpenRouterClient();
-
     // Load conversation context for continuity
     const recentMessages = await getRecentMessages(db, memberId, 5);
     const summary = await getSummary(db, memberId);
@@ -260,30 +245,27 @@ export async function generateBrief(
       );
     }
 
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        model: 'deepseek/deepseek-v3.2',
-        messages: [
-          {
-            role: 'system' as const,
-            content: aceSystemPrompt + briefAddendum,
-          },
-          {
-            role: 'user' as const,
-            content: userParts.join('\n\n'),
-          },
-        ],
-        stream: false,
-      },
+    const result = await callAI(db, {
+      memberId,
+      feature: 'brief',
+      messages: [
+        {
+          role: 'system',
+          content: aceSystemPrompt + briefAddendum,
+        },
+        {
+          role: 'user',
+          content: userParts.join('\n\n'),
+        },
+      ],
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (content && typeof content === 'string' && content.length > 10) {
-      briefText = content;
-      logger.debug(`AI brief generated for ${memberId} with full context`);
-    } else {
+    if (result.degraded || !result.content || result.content.length <= 10) {
       briefText = formatTemplateFallback(template);
-      logger.warn(`Empty AI response for ${memberId}, using template fallback`);
+      logger.warn(`AI brief unavailable for ${memberId}, using template fallback`);
+    } else {
+      briefText = result.content;
+      logger.debug(`AI brief generated for ${memberId} with full context`);
     }
   } catch (error) {
     briefText = formatTemplateFallback(template);

@@ -128,7 +128,7 @@ export async function handleResourcePost(
 
   // Fire-and-forget: AI tagging to update thread name with extracted topic
   if (thread) {
-    extractResourceTags(message.content)
+    extractResourceTags(db, message.content)
       .then(async (tags) => {
         if (tags.topic && tags.topic !== 'Resource') {
           try {
