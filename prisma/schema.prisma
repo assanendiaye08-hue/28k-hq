@@ -41,6 +41,7 @@ model Member {
   conversationSummary   ConversationSummary?
   notificationPreference NotificationPreference?
   memberAIBudget        MemberAIBudget?
+  inspirations          Inspiration[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -449,4 +450,21 @@ enum FeedType {
   RSS
   YOUTUBE
   REDDIT
+}
+
+// ─── Phase 8: Inspiration System ──────────────────────────────────────────────
+
+/// A person who inspires a member. Each member can have up to 3 inspirations.
+/// Used by Jarvis to personalize AI interactions with motivational references.
+model Inspiration {
+  id        String   @id @default(cuid())
+  memberId  String
+  name      String   // Name of the person they admire (e.g., "Steve Jobs", "Kobe Bryant")
+  context   String?  // Optional -- why they admire this person
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, name])
+  @@index([memberId])
 }

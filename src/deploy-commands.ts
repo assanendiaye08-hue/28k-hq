@@ -16,6 +16,7 @@
  * Phase 5 data privacy: /mydata, /deletedata
  * Phase 6 commands: /notifications
  * Phase 7 commands: /cost (today, month, set-budget), /admin (set-model)
+ * Phase 8 commands: /inspiration (add, remove, list)
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -43,6 +44,7 @@ import {
 } from './modules/data-privacy/commands.js';
 import { buildNotificationsCommand } from './modules/notification-router/commands.js';
 import { buildCostCommand, buildAdminSetModelCommand } from './modules/ai-admin/commands.js';
+import { buildInspirationCommand } from './modules/inspiration/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -122,6 +124,10 @@ const commands = [
 
   buildCostCommand(),
   buildAdminSetModelCommand(),
+
+  // --- Phase 8 Commands ---
+
+  buildInspirationCommand(),
 ];
 
 // --- Deploy ---
