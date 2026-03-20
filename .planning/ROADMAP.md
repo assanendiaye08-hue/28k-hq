@@ -81,11 +81,11 @@ Plans:
   1. Member can have a natural conversation with an AI assistant in their private space for advice, brainstorming, and general chat
   2. Morning briefs incorporate AI-generated personalization using the member's goals, streak, interests, and recent activity (not just template fill-in)
   3. Member receives an evening nudge if they haven't checked in that day, sent to their preferred account
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md -- Conversational AI core: schema, memory, personality, chat handler, /ask and /wipe-history commands
+- [ ] 04-02-PLAN.md -- AI-powered morning briefs, accountability nudges with configurable intensity, /accountability command
 
 ### Phase 5: Content, Sessions, and Trust
 **Goal**: Members can share and discover resources, schedule co-working sessions, and have full transparency and control over their data
