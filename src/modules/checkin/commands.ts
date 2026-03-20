@@ -24,7 +24,7 @@ import { startOfDay } from 'date-fns';
 import type { ModuleContext } from '../../shared/types.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
 import { successEmbed, errorEmbed } from '../../shared/embeds.js';
-import { deliverToPrivateSpace } from '../../shared/delivery.js';
+import { deliverNotification } from '../notification-router/router.js';
 import { awardXP, calculateCheckinXP } from '../xp/engine.js';
 import { extractCategories } from './ai-categories.js';
 import { updateStreak } from './streak.js';
@@ -250,7 +250,7 @@ async function handleCheckin(
 
   // 13. Also send to private space for history
   try {
-    await deliverToPrivateSpace(client, db, memberId, { embeds: [embed] });
+    await deliverNotification(client, db, memberId, 'general', { embeds: [embed] });
   } catch (error) {
     logger.warn(`Could not deliver check-in to private space for ${memberId}: ${String(error)}`);
   }

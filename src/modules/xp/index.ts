@@ -18,7 +18,7 @@ import type { ExtendedPrismaClient } from '../../db/client.js';
 import { awardXP } from './engine.js';
 import { syncRank, buildLevelUpEmbed } from './rank-sync.js';
 import { XP_AWARDS } from './constants.js';
-import { deliverToPrivateSpace } from '../../shared/delivery.js';
+import { deliverNotification } from '../notification-router/router.js';
 
 const xpModule: Module = {
   name: 'xp',
@@ -69,7 +69,7 @@ const xpModule: Module = {
 
         if (member) {
           const embed = buildLevelUpEmbed(member.displayName, newRank, newTotal);
-          const delivered = await deliverToPrivateSpace(client, db, memberId, {
+          const delivered = await deliverNotification(client, db, memberId, 'level_up', {
             embeds: [embed],
           });
 

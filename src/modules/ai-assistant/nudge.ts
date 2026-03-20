@@ -5,9 +5,9 @@
  * intensity configurable per member (light/medium/heavy). Extended
  * silence triggers a genuine check-in conversation, not nagging.
  *
- * All nudges are DM-only via deliverToPrivateSpace. Multi-account
- * members receive exactly one nudge (deliverToPrivateSpace picks
- * the first linked account automatically).
+ * All nudges are DM-only via deliverNotification. Multi-account
+ * members can route nudges to a specific linked account via
+ * /notifications set, with fallback to the primary account.
  */
 
 import { OpenRouter } from '@openrouter/sdk';
@@ -16,7 +16,7 @@ import { startOfDay, differenceInDays } from 'date-fns';
 import type { Client } from 'discord.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
 import { config } from '../../core/config.js';
-import { deliverToPrivateSpace } from '../../shared/delivery.js';
+import { deliverNotification } from '../notification-router/router.js';
 import { buildSystemPrompt, AI_NAME } from './personality.js';
 import { storeMessage } from './memory.js';
 import winston from 'winston';
@@ -252,8 +252,8 @@ export async function sendNudge(
       nudgeText = `Hey ${member.displayName}, quick nudge -- you haven't checked in today. Use \`/checkin\` when you get a chance.`;
     }
 
-    // Deliver via DM only (deliverToPrivateSpace)
-    const delivered = await deliverToPrivateSpace(client, db, memberId, {
+    // Deliver via notification router (respects per-type account preferences)
+    const delivered = await deliverNotification(client, db, memberId, 'nudge', {
       content: nudgeText,
     });
 
