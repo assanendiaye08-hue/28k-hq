@@ -12,7 +12,7 @@
  * Protected data (never trimmed regardless of tier):
  * - Member display name, work style, current focus, timezone, accountability level
  * - All active goals at any level
- * - Inspirations (when added in Phase 8)
+ * - Inspirations (names and context of people the member admires)
  * - Personal details from profile (interests, learning areas)
  * - Reflection breakthroughs (when added in Phase 12)
  *
@@ -163,6 +163,10 @@ export async function assembleContext(
         orderBy: { startedAt: 'desc' },
         take: 3,
         select: { durationMinutes: true, channelId: true, startedAt: true },
+      },
+      inspirations: {
+        orderBy: { createdAt: 'asc' },
+        select: { name: true, context: true },
       },
     },
   });
@@ -493,6 +497,7 @@ function buildMemberContext(member: {
     channelId: string;
     startedAt: Date;
   }>;
+  inspirations: Array<{ name: string; context: string | null }>;
 }): string {
   const lines: string[] = [];
 
@@ -545,6 +550,17 @@ function buildMemberContext(member: {
       const date = vs.startedAt.toISOString().split('T')[0];
       const duration = vs.durationMinutes ?? 0;
       lines.push(`  - ${date}: ${duration} min`);
+    }
+  }
+
+  if (member.inspirations.length > 0) {
+    lines.push('\nInspirations:');
+    for (const insp of member.inspirations) {
+      if (insp.context) {
+        lines.push(`  - ${insp.name}: ${insp.context}`);
+      } else {
+        lines.push(`  - ${insp.name}`);
+      }
     }
   }
 
