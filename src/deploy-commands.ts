@@ -10,6 +10,7 @@
  *
  * Phase 1 commands: /setup, /profile, /link, /verify, /unlink
  * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal, /settings
+ * Phase 3 commands: /leaderboard
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -22,6 +23,7 @@ import {
   buildCompletegoalCommand,
 } from './modules/goals/commands.js';
 import { buildSettingsCommand } from './modules/scheduler/commands.js';
+import { buildLeaderboardCommand } from './modules/leaderboard/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -69,6 +71,10 @@ const commands = [
   // --- Phase 2 Scheduler Command ---
 
   buildSettingsCommand(),
+
+  // --- Phase 3 Slash Commands ---
+
+  buildLeaderboardCommand(),
 ];
 
 // --- Deploy ---
