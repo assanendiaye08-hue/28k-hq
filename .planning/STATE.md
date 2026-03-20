@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 4: AI Assistant
+**Current focus:** Phase 5: Content Sessions and Trust
 
 ## Current Position
 
-Phase: 4 of 6 (AI Assistant) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-03-20 -- Completed 04-02-PLAN.md (AI briefs with conversation context, accountability nudges)
+Phase: 5 of 6 (Content Sessions and Trust)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-20 -- Completed 05-01-PLAN.md (Resources module with AI tagging, threads, and XP)
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 5 min
-- Total execution time: 1.03 hours
+- Total execution time: 1.08 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [████████░░] 80%
 | 02-daily-engagement-loop | 3 | 17 min | 6 min |
 | 03-competition-and-social-proof | 3 | 13 min | 4 min |
 | 04-ai-assistant | 2 | 9 min | 5 min |
+| 05-content-sessions-and-trust | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (4 min), 03-02 (4 min), 03-03 (5 min), 04-01 (4 min), 04-02 (5 min)
+- Last 5 plans: 03-03 (5 min), 04-01 (4 min), 04-02 (5 min), 05-01 (3 min)
 - Trend: stable/improving
 
 *Updated after each plan completion*
@@ -49,6 +50,7 @@ Progress: [████████░░] 80%
 | Phase 03 P03 | 5min | 2 tasks | 7 files |
 | Phase 04 P01 | 4min | 2 tasks | 8 files |
 | Phase 04 P02 | 5min | 2 tasks | 8 files |
+| Phase 05 P01 | 3min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -113,6 +115,9 @@ Recent decisions affecting current work:
 - [04-02]: Evening nudge sweep at 21:00 UTC is fallback; per-member cron tasks are primary scheduling
 - [04-02]: Default nudge time 21:00 set on first /accountability usage
 - [04-02]: generateBrief extended with db param for conversation history and community pulse loading
+- [Phase 05-01]: RESOURCE_SHARE XP type added to both Prisma enum and engine TypeScript type union
+- [Phase 05-01]: Fire-and-forget AI tagging updates thread name asynchronously after creation
+- [Phase 05-01]: Single cooldown map per member across all 3 resource channels (not per-channel)
 
 ### Pending Todos
 
@@ -125,5 +130,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 04-02-PLAN.md (AI briefs with conversation context, accountability nudges, phase 4 complete)
+Stopped at: Completed 05-01-PLAN.md (Resources module with AI tagging, threads, XP rewards)
 Resume file: None
