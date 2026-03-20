@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 7 of 13 (AI Infrastructure)
-Plan: --
-Status: Ready to plan
-Last activity: 2026-03-20 -- v1.1 roadmap created (7 phases, 26 requirements)
+Plan: 2 of 3
+Status: Executing
+Last activity: 2026-03-20 -- Completed 07-01 (AI client foundation)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v1.1)
+Progress: [██░░░░░░░░░░░░░░░░░░] 5% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18 (all v1.0)
+- Total plans completed: 19 (18 v1.0 + 1 v1.1)
 - Average duration: 5 min
-- Total execution time: 1.40 hours
+- Total execution time: 1.50 hours
 
 **By Phase (v1.0):**
 
@@ -34,8 +34,14 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v1.
 | 05-content-sessions-and-trust | 3 | 11 min | 4 min |
 | 06-polish-and-launch-readiness | 3 | 12 min | 4 min |
 
+**By Phase (v1.1):**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 07-ai-infrastructure | 1/3 | 6 min | 6 min |
+
 **Recent Trend:**
-- Last 5 plans: 05-03 (3 min), 06-01 (5 min), 06-02 (3 min), 06-03 (4 min)
+- Last 5 plans: 06-01 (5 min), 06-02 (3 min), 06-03 (4 min), 07-01 (6 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -50,6 +56,9 @@ Recent decisions affecting current work:
 - [v1.1 Roadmap]: Inspiration system early (Phase 8) -- tiny scope, enriches all subsequent AI interactions
 - [v1.1 Roadmap]: Goal hierarchy late (Phase 11) -- highest risk, modifies existing data model across 4 modules
 - [v1.1 Roadmap]: Monthly recap last (Phase 13) -- read-only aggregator, richer with all data sources in place
+- [07-01]: Token usage stored fire-and-forget to never block AI response delivery
+- [07-01]: responseFormat typed as generic object in AICallOptions, cast inside callAI for SDK compatibility
+- [07-01]: Used ChatResponse import from @openrouter/sdk/models for proper overload resolution
 
 ### Pending Todos
 
@@ -62,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: v1.1 roadmap created -- Phase 7 ready to plan
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
