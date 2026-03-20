@@ -27,8 +27,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Competition
 
 - [ ] **COMP-01**: Multi-dimensional leaderboards — weekly rankings by XP, voice hours, and streaks
-- [ ] **COMP-02**: Voice session tracking — track time spent in co-working voice channels ("hours locked in")
-- [ ] **COMP-03**: Wins/lessons channels — bot detects posts in #wins and #lessons, awards XP, reacts
+- [x] **COMP-02**: Voice session tracking — track time spent in co-working voice channels ("hours locked in")
+- [x] **COMP-03**: Wins/lessons channels — bot detects posts in #wins and #lessons, awards XP, reacts
 - [ ] **COMP-04**: Seasonal system — Valorant-style seasons with leaderboard resets. Past seasons archived and viewable anytime
 
 ### AI Assistant
@@ -95,8 +95,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENGAGE-04 | Phase 2: Daily Engagement Loop | Complete |
 | ENGAGE-05 | Phase 2: Daily Engagement Loop | Complete |
 | COMP-01 | Phase 3: Competition and Social Proof | Pending |
-| COMP-02 | Phase 3: Competition and Social Proof | Pending |
-| COMP-03 | Phase 3: Competition and Social Proof | Pending |
+| COMP-02 | Phase 3: Competition and Social Proof | Complete |
+| COMP-03 | Phase 3: Competition and Social Proof | Complete |
 | COMP-04 | Phase 3: Competition and Social Proof | Pending |
 | AI-01 | Phase 4: AI Assistant | Pending |
 | AI-02 | Phase 4: AI Assistant | Pending |

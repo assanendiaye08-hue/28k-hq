@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 2: Daily Engagement Loop
+**Current focus:** Phase 3: Competition and Social Proof
 
 ## Current Position
 
-Phase: 2 of 6 (Daily Engagement Loop)
-Plan: 3 of 3 in current phase (COMPLETE)
-Status: Phase Complete
-Last activity: 2026-03-20 -- Completed 02-03-PLAN.md (Scheduler module with morning briefs, Sunday planning, /settings command)
+Phase: 3 of 6 (Competition and Social Proof)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-20 -- Completed 03-01-PLAN.md (Schema extensions, voice tracker, wins/lessons modules)
 
-Progress: [█████░░░░░] 47%
+Progress: [██████░░░░] 53%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 6 min
-- Total execution time: 0.67 hours
+- Total plans completed: 8
+- Average duration: 5 min
+- Total execution time: 0.73 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [█████░░░░░] 47%
 |-------|-------|-------|----------|
 | 01-foundation-and-identity | 4 | 23 min | 6 min |
 | 02-daily-engagement-loop | 3 | 17 min | 6 min |
+| 03-competition-and-social-proof | 1 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (5 min), 01-04 (7 min), 02-01 (5 min), 02-02 (6 min), 02-03 (6 min)
-- Trend: stable
+- Last 5 plans: 01-04 (7 min), 02-01 (5 min), 02-02 (6 min), 02-03 (6 min), 03-01 (4 min)
+- Trend: stable/improving
 
 *Updated after each plan completion*
 | Phase 01 P01 | 5min | 2 tasks | 17 files |
@@ -42,6 +43,7 @@ Progress: [█████░░░░░] 47%
 | Phase 02 P01 | 5min | 2 tasks | 9 files |
 | Phase 02 P02 | 6min | 2 tasks | 8 files |
 | Phase 02 P03 | 6min | 2 tasks | 6 files |
+| Phase 03 P01 | 4min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -85,6 +87,10 @@ Recent decisions affecting current work:
 - [02-03]: Brief tone descriptions map to natural language for richer AI system prompts
 - [02-03]: Sunday planning reminder time parsing supports both HH:mm and am/pm formats with deduplication
 - [02-03]: Interest tag cleanup runs at 4:00 AM UTC (low-traffic time)
+- [03-01]: Voice sessions use in-memory Map for active tracking with DB persistence on end
+- [03-01]: Self-mute and self-deafen continue tracking (deep focus); only server-deafen pauses
+- [03-01]: Lessons award 35 XP vs wins 30 XP to encourage vulnerability in sharing failures
+- [03-01]: Session reconstruction on bot ready uses startedAt=now (no credit for bot downtime)
 
 ### Pending Todos
 
@@ -97,5 +103,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 02-03-PLAN.md (Scheduler module with morning briefs, Sunday planning, /settings command) -- Phase 2 COMPLETE
+Stopped at: Completed 03-01-PLAN.md (Schema extensions, voice tracker, wins/lessons modules)
 Resume file: None
