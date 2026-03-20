@@ -217,7 +217,14 @@ export async function handleSetup(
       );
     }
 
-    // 4k: Emit memberSetupComplete event
+    // 4k: Create default MemberSchedule so briefs and nudges start immediately
+    await db.memberSchedule.create({
+      data: {
+        memberId: memberRecord.id,
+      },
+    });
+
+    // 4l: Emit memberSetupComplete event
     events.emit('memberSetupComplete', memberRecord.id, interaction.user.id);
 
     logger.info(
