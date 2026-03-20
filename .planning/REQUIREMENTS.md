@@ -10,9 +10,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Foundation
 
 - [x] **FNDN-01**: Bot framework deployed on member's VPS with reliable uptime and auto-deploy via git push
-- [ ] **FNDN-02**: Discord server structure — channel categories, roles, permissions, and onboarding flow for new members
+- [x] **FNDN-02**: Discord server structure — channel categories, roles, permissions, and onboarding flow for new members
 - [ ] **FNDN-03**: Member profiles — fluid/customizable interests and focus areas, not rigid lanes. Feels tailor-made per person
-- [ ] **FNDN-04**: Per-member private space — member chooses DM (fully private) or private server channel (more integrated) for personal tracking and AI interaction
+- [x] **FNDN-04**: Per-member private space — member chooses DM (fully private) or private server channel (more integrated) for personal tracking and AI interaction
 - [ ] **FNDN-05**: Multi-account identity system — link multiple Discord accounts to one member profile. XP/streaks/data count once per identity
 - [ ] **FNDN-06**: Per-notification-type account routing — members choose which linked account receives briefs, nudges, etc.
 
@@ -84,9 +84,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FNDN-01 | Phase 1: Foundation and Identity | Complete |
-| FNDN-02 | Phase 1: Foundation and Identity | Pending |
+| FNDN-02 | Phase 1: Foundation and Identity | Complete |
 | FNDN-03 | Phase 1: Foundation and Identity | Pending |
-| FNDN-04 | Phase 1: Foundation and Identity | Pending |
+| FNDN-04 | Phase 1: Foundation and Identity | Complete |
 | FNDN-05 | Phase 1: Foundation and Identity | Pending |
 | FNDN-06 | Phase 6: Polish and Launch Readiness | Pending |
 | ENGAGE-01 | Phase 2: Daily Engagement Loop | Pending |

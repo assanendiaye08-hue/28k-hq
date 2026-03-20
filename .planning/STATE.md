@@ -10,32 +10,33 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 1 of 6 (Foundation and Identity)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Executing
-Last activity: 2026-03-20 -- Completed 01-02-PLAN.md (Database schema, encryption, deployment pipeline)
+Last activity: 2026-03-20 -- Completed 01-03-PLAN.md (Server structure, onboarding flow, private spaces)
 
-Progress: [██░░░░░░░░] 12%
+Progress: [██░░░░░░░░] 18%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 6 min
-- Total execution time: 0.18 hours
+- Total plans completed: 3
+- Average duration: 5 min
+- Total execution time: 0.27 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-and-identity | 2 | 11 min | 6 min |
+| 01-foundation-and-identity | 3 | 16 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (6 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (5 min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 01 P01 | 5min | 2 tasks | 17 files |
 | Phase 01 P02 | 6min | 2 tasks | 9 files |
+| Phase 01 P03 | 5min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -59,6 +60,10 @@ Recent decisions affecting current work:
 - [01-02]: MemberProfile currentFocus and workStyle are nullable (may not exist during initial setup)
 - [01-02]: Encryption extension uses async $allOperations with inferred types for Prisma 7 compatibility
 - [01-02]: Recovery key format: DHKEY-<base64url> with human-readable prefix
+- [01-03]: Used plan-specified channel layout (WELCOME, THE GRIND, RESOURCES, VOICE, PRIVATE SPACES) over constants.ts SERVER_CATEGORIES
+- [01-03]: DM conversation with awaitMessages instead of modals -- feels like talking to a person, not filling a form
+- [01-03]: Space preference parsing: "2", "channel", "server" -> CHANNEL; everything else -> DM
+- [01-03]: Recovery key hash (SHA-256) stored in Member record; actual key sent once via DM only
 
 ### Pending Todos
 
@@ -71,5 +76,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 01-02-PLAN.md
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
