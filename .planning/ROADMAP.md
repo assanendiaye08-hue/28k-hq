@@ -50,12 +50,12 @@ Plans:
   3. Member earns XP from check-ins and completed goals, and can see their total XP
   4. Member's Discord role automatically updates when they level up through XP thresholds
   5. Member receives a morning brief in their private space with their goals, streak status, rank, and recent activity
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md -- Schema extensions, XP engine, rank/role sync, and shared delivery utility
+- [ ] 02-02-PLAN.md -- Check-in command with AI categories and streak tracking, goal commands with expiry flow
+- [ ] 02-03-PLAN.md -- Scheduler module with morning briefs, check-in reminders, and Sunday planning sessions
 
 ### Phase 3: Competition and Social Proof
 **Goal**: Members compete on visible leaderboards, earn XP from voice co-working and sharing wins, and play within a seasonal system that keeps competition fresh
