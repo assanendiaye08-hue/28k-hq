@@ -28,6 +28,7 @@ const ENCRYPTED_FIELDS: Record<string, string[]> = {
   Goal: ['description'],
   ConversationMessage: ['content'],
   ConversationSummary: ['summary'],
+  LockInSession: ['title'],
 };
 
 /** Write operations that may contain data to encrypt. */
@@ -58,11 +59,18 @@ function extractMemberId(args: Record<string, unknown>): string | null {
   if (data?.memberId && typeof data.memberId === 'string') {
     return data.memberId;
   }
+  // Also check creatorMemberId (used by LockInSession)
+  if (data?.creatorMemberId && typeof data.creatorMemberId === 'string') {
+    return data.creatorMemberId;
+  }
 
   // memberId in where clause
   const where = args.where as Record<string, unknown> | undefined;
   if (where?.memberId && typeof where.memberId === 'string') {
     return where.memberId;
+  }
+  if (where?.creatorMemberId && typeof where.creatorMemberId === 'string') {
+    return where.creatorMemberId;
   }
 
   // For upsert: check create and update sub-objects
@@ -70,10 +78,16 @@ function extractMemberId(args: Record<string, unknown>): string | null {
   if (create?.memberId && typeof create.memberId === 'string') {
     return create.memberId;
   }
+  if (create?.creatorMemberId && typeof create.creatorMemberId === 'string') {
+    return create.creatorMemberId;
+  }
 
   const update = (args as Record<string, unknown>).update as Record<string, unknown> | undefined;
   if (update?.memberId && typeof update.memberId === 'string') {
     return update.memberId;
+  }
+  if (update?.creatorMemberId && typeof update.creatorMemberId === 'string') {
+    return update.creatorMemberId;
   }
 
   return null;
@@ -202,12 +216,15 @@ function extractMemberIdFromResult(result: unknown): string | null {
   if (typeof result === 'object' && !Array.isArray(result)) {
     const obj = result as Record<string, unknown>;
     if (typeof obj.memberId === 'string') return obj.memberId;
+    // Also check creatorMemberId (used by LockInSession)
+    if (typeof obj.creatorMemberId === 'string') return obj.creatorMemberId;
   }
 
   // Array of results -- use first item's memberId (all should be same member)
   if (Array.isArray(result) && result.length > 0) {
     const first = result[0] as Record<string, unknown>;
     if (typeof first?.memberId === 'string') return first.memberId;
+    if (typeof first?.creatorMemberId === 'string') return first.creatorMemberId;
   }
 
   return null;
