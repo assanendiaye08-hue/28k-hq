@@ -51,7 +51,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **TRUST-01**: `/mydata` command — members can view everything the bot stores about them
 - [ ] **TRUST-02**: Data deletion — members can wipe all their stored data with a command
 - [ ] **TRUST-03**: Owner-blind privacy — private conversations and data members mark as private are not accessible to server admins, only to the member themselves
-- [ ] **TRUST-04**: Per-member data encryption — private data encrypted with per-member keys at rest. Members receive a personal recovery key via DM for independent data export/decryption. Raw database access reveals only encrypted blobs
+- [x] **TRUST-04**: Per-member data encryption — private data encrypted with per-member keys at rest. Members receive a personal recovery key via DM for independent data export/decryption. Raw database access reveals only encrypted blobs
 
 ## v2 Requirements
 
@@ -107,7 +107,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRUST-01 | Phase 5: Content, Sessions, and Trust | Pending |
 | TRUST-02 | Phase 5: Content, Sessions, and Trust | Pending |
 | TRUST-03 | Phase 5: Content, Sessions, and Trust | Pending |
-| TRUST-04 | Phase 1: Foundation and Identity | Pending |
+| TRUST-04 | Phase 1: Foundation and Identity | Complete |
 
 **Coverage:**
 - v1 requirements: 25 total
