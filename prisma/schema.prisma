@@ -1,6 +1,6 @@
 // Discord Hustler - Prisma Schema
-// All Phase 1 models for member identity, profiles, private spaces,
-// account linking, and interest tags.
+// Phase 1: member identity, profiles, private spaces, account linking, interest tags.
+// Phase 2: check-ins, goals, XP transactions, member schedules.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,17 +14,27 @@ datasource db {
 /// Core identity -- one per real person.
 /// All linked Discord accounts point to the same Member.
 model Member {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   displayName     String
-  encryptionSalt  String   // Random 16-byte hex for per-member key derivation
-  recoveryKeyHash String   // Hash of recovery key (to verify, not to decrypt)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  encryptionSalt  String    // Random 16-byte hex for per-member key derivation
+  recoveryKeyHash String    // Hash of recovery key (to verify, not to decrypt)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Phase 2: XP and streak tracking
+  totalXp       Int       @default(0)
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastCheckInAt DateTime?
 
   // Relations
-  accounts     DiscordAccount[]
-  profile      MemberProfile?
-  privateSpace PrivateSpace?
+  accounts       DiscordAccount[]
+  profile        MemberProfile?
+  privateSpace   PrivateSpace?
+  checkIns       CheckIn[]
+  goals          Goal[]
+  xpTransactions XPTransaction[]
+  schedule       MemberSchedule?
 }
 
 /// Discord accounts linked to a member identity.
@@ -102,4 +112,97 @@ model InterestTag {
   memberCount Int      @default(0)
   createdAt   DateTime @default(now())
   lastUsedAt  DateTime @default(now())
+}
+
+// ─── Phase 2: Daily Engagement Loop ───────────────────────────────────────────
+
+/// Daily check-in record. Content is encrypted; categories are cleartext for queries.
+model CheckIn {
+  id           String   @id @default(cuid())
+  memberId     String
+  content      String   // Encrypted -- what the member did
+  effortRating Int?     // Optional 1-5 effort self-rating
+  categories   String[] // AI-extracted categories (cleartext for queries)
+  xpAwarded    Int      @default(0)
+  dayIndex     Int      // Which check-in this is today (1st, 2nd, etc.)
+  createdAt    DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+}
+
+/// Goal with measurable or free-text tracking.
+/// Title stays cleartext for display; description is encrypted.
+model Goal {
+  id           String     @id @default(cuid())
+  memberId     String
+  title        String     // Goal title (cleartext for display)
+  description  String?    // Encrypted -- detailed description
+  type         GoalType   // MEASURABLE or FREETEXT
+  targetValue  Int?       // For measurable goals (e.g., 5 cold emails)
+  currentValue Int        @default(0) // Current progress
+  unit         String?    // Unit of measurement (e.g., "emails", "pages")
+  status       GoalStatus @default(ACTIVE)
+  deadline     DateTime   // When the goal expires
+  xpAwarded    Int        @default(0) // XP given on completion
+  createdAt    DateTime   @default(now())
+  completedAt  DateTime?
+  extendedAt   DateTime?  // If member chose to extend
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, status])
+  @@index([deadline, status])
+}
+
+/// Goal type -- measurable with numeric tracking or free-text qualitative.
+enum GoalType {
+  MEASURABLE
+  FREETEXT
+}
+
+/// Goal lifecycle status.
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  MISSED
+  EXTENDED
+}
+
+/// Immutable XP transaction log. Every XP award is recorded here.
+/// Member.totalXp is the cached sum for fast reads.
+model XPTransaction {
+  id          String   @id @default(cuid())
+  memberId    String
+  amount      Int      // XP amount (always positive)
+  source      XPSource // What triggered this award
+  description String   // Human-readable description
+  createdAt   DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+  @@index([source])
+}
+
+/// XP source enum -- what activity triggered the XP award.
+enum XPSource {
+  CHECKIN
+  GOAL_COMPLETE
+  STREAK_BONUS
+  SETUP_BONUS
+}
+
+/// Per-member schedule preferences for briefs, reminders, and planning.
+model MemberSchedule {
+  id             String   @id @default(cuid())
+  memberId       String   @unique
+  timezone       String   @default("UTC") // IANA timezone string
+  briefTime      String?  // HH:mm format for morning brief (null = no brief)
+  briefTone      String   @default("coach") // coach, chill, data-first, etc.
+  reminderTimes  String[] // Array of HH:mm strings for check-in reminders
+  sundayPlanning Boolean  @default(true) // Whether to receive Sunday planning prompt
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }

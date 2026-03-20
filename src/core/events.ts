@@ -5,9 +5,18 @@ import type { IEventBus } from '../shared/types.js';
  * This is for internal module-to-module communication, NOT Discord events.
  */
 export type BotEventMap = {
+  // Phase 1: Foundation and Identity
   memberSetupComplete: [memberId: string, discordId: string];
   accountLinked: [memberId: string, newDiscordId: string];
   profileUpdated: [memberId: string];
+
+  // Phase 2: Daily Engagement Loop
+  checkinComplete: [memberId: string, checkinId: string, dayIndex: number];
+  goalCompleted: [memberId: string, goalId: string, goalType: string];
+  goalProgressUpdated: [memberId: string, goalId: string, newValue: number];
+  xpAwarded: [memberId: string, amount: number, newTotal: number, source: string];
+  levelUp: [memberId: string, newRank: string, oldRank: string, newTotal: number];
+  scheduleUpdated: [memberId: string];
 };
 
 export type BotEvent = keyof BotEventMap;
