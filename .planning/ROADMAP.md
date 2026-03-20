@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation and Identity** - Bot framework, server structure, member profiles with multi-account identity, private spaces, and per-member data encryption
 - [x] **Phase 2: Daily Engagement Loop** - Check-ins, goals, XP engine, rank progression, and morning briefs that make the server a daily habit (completed 2026-03-20)
-- [ ] **Phase 3: Competition and Social Proof** - Leaderboards, voice tracking, wins/lessons channels, and seasonal system that make hustling competitive
+- [x] **Phase 3: Competition and Social Proof** - Leaderboards, voice tracking, wins/lessons channels, and seasonal system that make hustling competitive (completed 2026-03-20)
 - [ ] **Phase 4: AI Assistant** - Conversational AI per member via OpenRouter, context-aware briefs, and accountability nudges
 - [ ] **Phase 5: Content, Sessions, and Trust** - Resource feeds, lock-in sessions, and member data transparency/privacy controls
 - [ ] **Phase 6: Polish and Tuning** - Auto-content feeds, notification routing refinement, and end-to-end hardening before launch
@@ -66,12 +66,12 @@ Plans:
   2. Time spent in co-working voice channels is automatically tracked and awards XP
   3. Posts in #wins and #lessons are detected by the bot, awarded XP, and reacted to
   4. Seasons run on a defined cycle with leaderboard resets, and past seasons are archived and viewable anytime
-**Plans:** 2/3 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md -- Schema extensions, voice tracker, and wins/lessons modules
 - [x] 03-02-PLAN.md -- Leaderboard module with channel sync and /leaderboard command
-- [ ] 03-03-PLAN.md -- Seasonal system with hall-of-fame and /season command
+- [x] 03-03-PLAN.md -- Seasonal system with hall-of-fame and /season command
 
 ### Phase 4: AI Assistant
 **Goal**: Each member has a personal AI assistant in their private space that knows their goals, history, and context -- powered by OpenRouter
