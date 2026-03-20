@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 7 of 13 (AI Infrastructure)
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Executing
-Last activity: 2026-03-20 -- Completed 07-01 (AI client foundation)
+Last activity: 2026-03-20 -- Completed 07-02 (AI call site migration)
 
-Progress: [██░░░░░░░░░░░░░░░░░░] 5% (v1.1)
+Progress: [███░░░░░░░░░░░░░░░░░] 10% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19 (18 v1.0 + 1 v1.1)
+- Total plans completed: 20 (18 v1.0 + 2 v1.1)
 - Average duration: 5 min
-- Total execution time: 1.50 hours
+- Total execution time: 1.65 hours
 
 **By Phase (v1.0):**
 
@@ -38,10 +38,10 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 5% (v1.
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 07-ai-infrastructure | 1/3 | 6 min | 6 min |
+| 07-ai-infrastructure | 2/3 | 15 min | 8 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-01 (5 min), 06-02 (3 min), 06-03 (4 min), 07-01 (6 min)
+- Last 5 plans: 06-02 (3 min), 06-03 (4 min), 07-01 (6 min), 07-02 (9 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -59,6 +59,9 @@ Recent decisions affecting current work:
 - [07-01]: Token usage stored fire-and-forget to never block AI response delivery
 - [07-01]: responseFormat typed as generic object in AICallOptions, cast inside callAI for SDK compatibility
 - [07-01]: Used ChatResponse import from @openrouter/sdk/models for proper overload resolution
+- [07-02]: Context budget upgraded from 100K to 1.4M tokens for Grok 4.1 Fast's 2M window
+- [07-02]: System-level AI calls (filter, tagger) use memberId='system' for budget bypass
+- [07-02]: Functions needing db/memberId had signatures expanded with all callers updated
 
 ### Pending Todos
 
@@ -71,5 +74,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
