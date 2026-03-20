@@ -8,6 +8,7 @@
 import {
   SlashCommandBuilder,
   AttachmentBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ModuleContext } from '../../shared/types.js';
@@ -144,6 +145,99 @@ export async function handleWipeHistory(
       content: "Something went wrong while exporting your history. Try again.",
     });
   }
+}
+
+// ─── /accountability Command ─────────────────────────────────────────────────────
+
+/** Level descriptions for user confirmation messages. */
+const ACCOUNTABILITY_DESCRIPTIONS: Record<string, string> = {
+  light: "Chill mode -- I'll nudge you if you miss 2+ days. Max 1 nudge/day.",
+  medium: "Standard mode -- I'll check in if you miss a day. Max 2 nudges/day.",
+  heavy: "Full accountability -- I'm on you same-day if you skip. Max 3 nudges/day.",
+};
+
+/**
+ * Build the /accountability slash command definition.
+ */
+export function buildAccountabilityCommand(): SlashCommandBuilder {
+  return new SlashCommandBuilder()
+    .setName('accountability')
+    .setDescription('Set your accountability nudge intensity')
+    .addStringOption((opt) =>
+      opt
+        .setName('level')
+        .setDescription('How hard should Ace push you?')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Light (gentle, miss 2+ days)', value: 'light' },
+          { name: 'Medium (direct, miss 1 day)', value: 'medium' },
+          { name: 'Heavy (full accountability, same-day)', value: 'heavy' },
+        ),
+    ) as SlashCommandBuilder;
+}
+
+/**
+ * Handle the /accountability slash command.
+ */
+export async function handleAccountability(
+  interaction: ChatInputCommandInteraction,
+  ctx: ModuleContext,
+): Promise<void> {
+  const db = ctx.db as ExtendedPrismaClient;
+  const { events } = ctx;
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  // Resolve Discord ID to member
+  const account = await db.discordAccount.findUnique({
+    where: { discordId: interaction.user.id },
+  });
+
+  if (!account) {
+    await interaction.editReply({
+      content: 'You need to run /setup first.',
+    });
+    return;
+  }
+
+  const memberId = account.memberId;
+  const level = interaction.options.getString('level', true);
+
+  // Upsert MemberSchedule with new accountability level
+  // Also set default nudge time if not already set
+  await db.memberSchedule.upsert({
+    where: { memberId },
+    update: {
+      accountabilityLevel: level,
+      // Set default nudge time on first /accountability usage if not set
+      nudgeTime: undefined, // Keep existing nudgeTime; set below if null
+    },
+    create: {
+      memberId,
+      timezone: 'UTC',
+      accountabilityLevel: level,
+      nudgeTime: '21:00', // Default evening nudge time
+    },
+  });
+
+  // Ensure nudgeTime is set for existing schedules that had none
+  const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
+  if (schedule && !schedule.nudgeTime) {
+    await db.memberSchedule.update({
+      where: { memberId },
+      data: { nudgeTime: '21:00' },
+    });
+  }
+
+  // Emit scheduleUpdated so scheduler rebuilds with new nudge settings
+  events.emit('scheduleUpdated', memberId);
+
+  const description = ACCOUNTABILITY_DESCRIPTIONS[level] ?? ACCOUNTABILITY_DESCRIPTIONS.medium;
+  await interaction.editReply({
+    content: `Accountability set to **${level}**. ${description}\n\nUse \`/settings nudge-time\` to change when I send nudges (default: 9:00 PM).`,
+  });
+
+  ctx.logger.info(`[ai-assistant] Accountability set to ${level} for ${memberId}`);
 }
 
 // ─── Utilities ─────────────────────────────────────────────────────────────────

@@ -1,17 +1,16 @@
 /**
- * Hybrid AI+template morning brief generation.
+ * Hybrid AI+template morning brief generation with full AI context.
  *
  * The morning brief is the daily hook -- a personalized message that shows
- * a member's goals, streak, rank, and today's agenda, delivered in their
- * preferred tone at their chosen time.
+ * a member's goals, streak, rank, and today's agenda, delivered in Ace's
+ * voice with references to ongoing conversations and community highlights.
  *
- * Approach (Pattern 5 from research):
+ * Approach:
  * 1. Build a structured template from real data
- * 2. Pass to DeepSeek V3.2 via OpenRouter with member's tone preference
- * 3. Fall back to clean template formatting if AI fails
- *
- * Important: Morning brief does NOT include community pulse (who's active,
- * who checked in) -- that is Phase 3 per user decision.
+ * 2. Load conversation history and summary from memory service
+ * 3. Gather community pulse (who's active, voice sessions, wins/lessons)
+ * 4. Pass to DeepSeek V3.2 via OpenRouter with Ace personality
+ * 5. Fall back to clean template formatting if AI fails
  */
 
 import { EmbedBuilder, type Client } from 'discord.js';
@@ -23,6 +22,8 @@ import { config } from '../../core/config.js';
 import { BRAND_COLORS } from '../../shared/constants.js';
 import { deliverToPrivateSpace } from '../../shared/delivery.js';
 import { getRankForXP, getNextRankInfo, calculateStreakMultiplier } from '../xp/engine.js';
+import { getRecentMessages, getSummary } from '../ai-assistant/memory.js';
+import { buildSystemPrompt, AI_NAME } from '../ai-assistant/personality.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -34,9 +35,6 @@ const logger = winston.createLogger({
   ),
   transports: [new winston.transports.Console()],
 });
-
-/** Daily AI call cap per member (per research pitfall #4). */
-const DAILY_AI_CALL_CAP = 5;
 
 /** In-memory brief cache: memberId -> { date, text }. Prevents regeneration cost. */
 const briefCache = new Map<string, { date: string; text: string }>();
@@ -71,6 +69,14 @@ export interface MemberBriefData {
   lastCheckInCategories: string[];
 }
 
+/** Community pulse data for AI context. */
+export interface CommunityPulse {
+  todayCheckInCount: number;
+  weeklyVoiceMinutes: number;
+  recentWinsCount: number;
+  recentLessonsCount: number;
+}
+
 /** Structured template data for AI or fallback rendering. */
 interface BriefTemplate {
   greeting: string;
@@ -79,6 +85,53 @@ interface BriefTemplate {
   goalsSummary: string[];
   todayReminders: string;
   milestoneApproaching: string | null;
+}
+
+// ─── Community Pulse ─────────────────────────────────────────────────────────────
+
+/**
+ * Gather community-wide activity metrics for the AI brief.
+ *
+ * - Count members who checked in today (across all members)
+ * - Get total voice minutes this week across server
+ * - Count wins and lessons posts in last 24 hours
+ */
+export async function getCommunityPulse(db: ExtendedPrismaClient): Promise<CommunityPulse> {
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const [todayCheckInCount, voiceAgg, recentWinsCount, recentLessonsCount] = await Promise.all([
+    // Members who checked in today
+    db.checkIn.groupBy({
+      by: ['memberId'],
+      where: { createdAt: { gte: todayStart } },
+    }).then((groups) => groups.length),
+
+    // Total voice minutes this week
+    db.voiceSession.aggregate({
+      _sum: { durationMinutes: true },
+      where: { startedAt: { gte: weekStart }, durationMinutes: { not: null } },
+    }),
+
+    // Wins in last 24 hours
+    db.xPTransaction.count({
+      where: { source: 'WIN_POST', createdAt: { gte: dayAgo } },
+    }),
+
+    // Lessons in last 24 hours
+    db.xPTransaction.count({
+      where: { source: 'LESSON_POST', createdAt: { gte: dayAgo } },
+    }),
+  ]);
+
+  return {
+    todayCheckInCount,
+    weeklyVoiceMinutes: voiceAgg._sum.durationMinutes ?? 0,
+    recentWinsCount,
+    recentLessonsCount,
+  };
 }
 
 // ─── Template Building ──────────────────────────────────────────────────────────
@@ -137,20 +190,18 @@ export function buildBriefTemplate(data: MemberBriefData): BriefTemplate {
 // ─── Brief Generation ───────────────────────────────────────────────────────────
 
 /**
- * Generate a morning brief using hybrid AI+template approach.
+ * Generate a morning brief using hybrid AI+template approach with full AI context.
  *
  * 1. Check cache -- if already generated today, return cached
  * 2. Build template from real data
- * 3. Try AI generation with member's tone preference
- * 4. Fall back to template formatting if AI fails
- *
- * @param memberData - Assembled member data for brief generation
- * @param memberId - For caching purposes
- * @returns The brief text (3-5 sentences)
+ * 3. Load conversation history and community pulse
+ * 4. Try AI generation with Ace personality
+ * 5. Fall back to template formatting if AI fails
  */
 export async function generateBrief(
   memberData: MemberBriefData,
   memberId: string,
+  db: ExtendedPrismaClient,
 ): Promise<string> {
   // Check cache
   const todayKey = new TZDate(new Date(), memberData.timezone)
@@ -170,13 +221,44 @@ export async function generateBrief(
   try {
     const client = getOpenRouterClient();
 
-    const toneDescriptions: Record<string, string> = {
-      coach: 'a motivational coach -- direct, encouraging, focused on action',
-      chill: 'a chill friend -- casual, supportive, low-pressure',
-      'data-first': 'a data analyst -- stats-forward, minimal fluff, numbers speak',
-    };
+    // Load conversation context for continuity
+    const recentMessages = await getRecentMessages(db, memberId, 5);
+    const summary = await getSummary(db, memberId);
+    const summarySnippet = summary ? summary.slice(0, 500) : null;
 
-    const toneDesc = toneDescriptions[memberData.briefTone] ?? toneDescriptions.coach;
+    // Get community pulse
+    const pulse = await getCommunityPulse(db);
+
+    // Build Ace system prompt layered with brief-specific addendum
+    const aceSystemPrompt = await buildSystemPrompt(db, memberId);
+    const briefAddendum = `\n\nWrite a morning brief for this member. Keep it 3-6 sentences. Include their personal stats, reference any ongoing conversations or commitments they mentioned, add a community highlight if something interesting happened. Make it feel like their personal operator catching them up.`;
+
+    // Build user message with full context
+    const userParts: string[] = [
+      `Member data:\n${JSON.stringify(template)}`,
+    ];
+
+    if (summarySnippet) {
+      userParts.push(`Conversation summary:\n${summarySnippet}`);
+    }
+
+    if (recentMessages.length > 0) {
+      const msgText = recentMessages
+        .map((m) => `${m.role}: ${m.content}`)
+        .join('\n');
+      userParts.push(`Recent conversation:\n${msgText}`);
+    }
+
+    userParts.push(
+      `Community pulse: ${pulse.todayCheckInCount} members checked in today, ${pulse.weeklyVoiceMinutes} voice minutes this week, ${pulse.recentWinsCount} wins and ${pulse.recentLessonsCount} lessons posted in last 24h.`,
+    );
+
+    // Empty state nudge
+    if (memberData.activeGoals.length === 0) {
+      userParts.push(
+        `IMPORTANT: This member has no goals set. Include a nudge: "You don't have any goals locked in yet. Use /setgoal to set one -- even something small gets the ball rolling."`,
+      );
+    }
 
     const completion = await client.chat.send({
       chatGenerationParams: {
@@ -184,11 +266,11 @@ export async function generateBrief(
         messages: [
           {
             role: 'system' as const,
-            content: `You are ${toneDesc} morning brief writer for a productivity Discord server. Keep it to 3-5 sentences. Be concise, warm, and motivating. Use the data provided -- never invent facts. Do not use emojis excessively.`,
+            content: aceSystemPrompt + briefAddendum,
           },
           {
             role: 'user' as const,
-            content: `Write a morning brief for this member:\n${JSON.stringify(template)}`,
+            content: userParts.join('\n\n'),
           },
         ],
         stream: false,
@@ -198,7 +280,7 @@ export async function generateBrief(
     const content = completion.choices[0]?.message?.content;
     if (content && typeof content === 'string' && content.length > 10) {
       briefText = content;
-      logger.debug(`AI brief generated for ${memberId} (${memberData.briefTone} tone)`);
+      logger.debug(`AI brief generated for ${memberId} with full context`);
     } else {
       briefText = formatTemplateFallback(template);
       logger.warn(`Empty AI response for ${memberId}, using template fallback`);
@@ -226,7 +308,7 @@ function formatTemplateFallback(template: BriefTemplate): string {
   if (template.goalsSummary.length > 0) {
     lines.push(`Active goals: ${template.goalsSummary.join('; ')}.`);
   } else {
-    lines.push('No active goals -- use /setgoal to set one.');
+    lines.push("No active goals -- use /setgoal to set one. Even something small gets the ball rolling.");
   }
 
   lines.push(template.todayReminders);
@@ -316,8 +398,8 @@ export async function sendBrief(
       lastCheckInCategories: lastCheckIn?.categories ?? [],
     };
 
-    // Generate brief
-    const briefText = await generateBrief(memberData, memberId);
+    // Generate brief with full AI context
+    const briefText = await generateBrief(memberData, memberId, db);
 
     // Build branded embed (amber/gold)
     const embed = new EmbedBuilder()

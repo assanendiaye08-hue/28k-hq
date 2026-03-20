@@ -20,6 +20,8 @@ import {
   handleAsk,
   buildWipeHistoryCommand,
   handleWipeHistory,
+  buildAccountabilityCommand,
+  handleAccountability,
   splitMessage,
 } from './commands.js';
 import { handleChat } from './chat.js';
@@ -34,6 +36,7 @@ const aiAssistantModule: Module = {
     // 1. Register slash commands
     ctx.commands.register('ask', buildAskCommand(), handleAsk);
     ctx.commands.register('wipe-history', buildWipeHistoryCommand(), handleWipeHistory);
+    ctx.commands.register('accountability', buildAccountabilityCommand(), handleAccountability);
 
     // 2. Listen for DM messages
     client.on('messageCreate', async (message) => {
