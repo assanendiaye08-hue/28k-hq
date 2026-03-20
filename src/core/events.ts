@@ -17,6 +17,14 @@ export type BotEventMap = {
   xpAwarded: [memberId: string, amount: number, newTotal: number, source: string];
   levelUp: [memberId: string, newRank: string, oldRank: string, newTotal: number];
   scheduleUpdated: [memberId: string];
+
+  // Phase 3: Competition and Social Proof
+  voiceSessionStarted: [memberId: string, channelId: string];
+  voiceSessionEnded: [memberId: string, durationMinutes: number, channelId: string];
+  winPosted: [memberId: string, messageId: string];
+  lessonPosted: [memberId: string, messageId: string];
+  seasonEnded: [seasonNumber: number];
+  seasonStarted: [seasonNumber: number];
 };
 
 export type BotEvent = keyof BotEventMap;

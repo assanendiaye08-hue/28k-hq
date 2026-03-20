@@ -24,6 +24,7 @@ export function createClient(): Client {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.DirectMessages,
       GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildVoiceStates, // Phase 3: voice session tracking (non-privileged)
     ],
     partials: [
       Partials.Channel,
