@@ -55,6 +55,8 @@ export const SERVER_CATEGORIES = {
       { name: 'wins', description: 'Share your wins -- big or small' },
       { name: 'lessons', description: 'Share what you learned (especially from Ls)' },
       { name: 'questions', description: 'Ask the group anything' },
+      { name: 'leaderboard', description: 'Live leaderboards -- updated every 15 minutes' },
+      { name: 'hall-of-fame', description: 'Permanent season standings -- the legends live here' },
     ],
   },
   hustle: {
