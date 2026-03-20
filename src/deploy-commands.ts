@@ -12,6 +12,7 @@
  * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal, /settings
  * Phase 3 commands: /leaderboard, /season
  * Phase 4 commands: /ask, /wipe-history, /accountability
+ * Phase 5: resources module (no new commands -- passive messageCreate handler)
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
