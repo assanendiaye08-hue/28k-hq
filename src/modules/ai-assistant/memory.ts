@@ -1,13 +1,26 @@
 /**
  * Conversation memory service for the AI assistant.
  *
- * Handles message storage, retrieval, context assembly, rolling
+ * Handles message storage, retrieval, tiered context assembly, rolling
  * summarization, history export, and history deletion.
+ *
+ * Context tiers:
+ * - Hot (0-7 days): Messages included verbatim -- most valuable for continuity
+ * - Warm (8-30 days): Weekly pattern summaries -- condensed but meaningful
+ * - Cold (30+ days): Monthly compressed rolling summary via AI
+ *
+ * Protected data (never trimmed regardless of tier):
+ * - Member display name, work style, current focus, timezone, accountability level
+ * - All active goals at any level
+ * - Inspirations (when added in Phase 8)
+ * - Personal details from profile (interests, learning areas)
+ * - Reflection breakthroughs (when added in Phase 12)
  *
  * Token budget management ensures we stay within Grok 4.1 Fast's
  * 2M context window (~70% budget = 1.4M tokens).
  */
 
+import { subDays, startOfWeek, format } from 'date-fns';
 import type { ExtendedPrismaClient } from '../../db/client.js';
 import { callAI } from '../../shared/ai-client.js';
 import winston from 'winston';
@@ -24,7 +37,7 @@ const logger = winston.createLogger({
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-/** Maximum recent messages to load. */
+/** Maximum recent messages to load for hot tier. */
 export const RECENT_MESSAGE_CAP = 50;
 
 /** Token budget for full context (~70% of Grok 4.1 Fast 2M window). */
@@ -35,6 +48,17 @@ export const OUTPUT_RESERVE = 4_000;
 
 /** Tokens reserved for system prompt and member context. */
 export const SYSTEM_PROMPT_RESERVE = 50_000;
+
+// ─── Tier Boundaries ──────────────────────────────────────────────────────────
+
+/** Hot tier: last 7 days -- data included verbatim. */
+export const HOT_WINDOW_DAYS = 7;
+
+/** Warm tier: days 8-30 -- weekly summaries. */
+export const WARM_WINDOW_DAYS = 30;
+
+/** Cold tier: 30+ days -- monthly compressed summary. */
+export const COLD_THRESHOLD_DAYS = 30;
 
 // ─── Token Estimation ──────────────────────────────────────────────────────────
 
@@ -92,18 +116,29 @@ export async function getSummary(
 
 // ─── Context Assembly ──────────────────────────────────────────────────────────
 
-/** Assembled conversation context for the AI. */
+/** Assembled conversation context for the AI with tiered data. */
 export interface AssembledContext {
+  /** Cold tier: monthly compressed rolling summary (30+ days). */
   summary: string | null;
+  /** Warm tier: weekly pattern summaries (days 8-30). */
+  weeklySummaries: string[];
+  /** Hot tier: recent messages included verbatim (last 7 days). */
   recentMessages: Array<{ role: string; content: string }>;
+  /** Protected: always verbatim, never trimmed. */
   memberContext: string;
 }
 
 /**
- * Assemble the full conversation context for a member.
+ * Assemble the full tiered conversation context for a member.
  *
  * Loads member profile, goals, schedule, recent check-ins, voice sessions,
- * conversation summary, and recent messages. Applies token budget trimming.
+ * and conversation data organized into hot/warm/cold tiers.
+ * Protected data (memberContext) is never trimmed.
+ *
+ * Trimming priority (when over token budget):
+ * 1. Warm tier weekly summaries are trimmed first (lower priority)
+ * 2. Hot tier messages trimmed next (oldest first, keep min 10)
+ * 3. If still over budget, trigger compressSummary()
  */
 export async function assembleContext(
   db: ExtendedPrismaClient,
@@ -132,85 +167,162 @@ export async function assembleContext(
     },
   });
 
-  // 2. Build member context string
+  // 2. Build protected member context string (never trimmed)
   const memberContext = buildMemberContext(member);
 
-  // 3. Load conversation summary
+  // 3. Load cold tier: existing rolling summary (30+ days compressed)
   const summary = await getSummary(db, memberId);
 
-  // 4. Load recent messages
-  let recentMessages = await getRecentMessages(db, memberId, RECENT_MESSAGE_CAP);
+  // 4. Load hot tier: messages from the last HOT_WINDOW_DAYS (verbatim)
+  const now = new Date();
+  const hotCutoff = subDays(now, HOT_WINDOW_DAYS);
+  const warmCutoff = subDays(now, WARM_WINDOW_DAYS);
 
-  // 5. Estimate token count and trim if needed
+  let hotMessages = await db.conversationMessage.findMany({
+    where: {
+      memberId,
+      createdAt: { gte: hotCutoff },
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { role: true, content: true, createdAt: true },
+  });
+
+  // 5. Load warm tier: messages from days HOT_WINDOW_DAYS+1 to WARM_WINDOW_DAYS
+  const warmMessages = await db.conversationMessage.findMany({
+    where: {
+      memberId,
+      createdAt: {
+        gte: warmCutoff,
+        lt: hotCutoff,
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { role: true, content: true, createdAt: true },
+  });
+
+  // 6. Build warm tier weekly summaries (no AI calls -- simple text heuristic)
+  let weeklySummaries = buildWeeklySummaries(warmMessages);
+
+  // 7. Token budget trimming
   const availableBudget = CONTEXT_BUDGET - OUTPUT_RESERVE - SYSTEM_PROMPT_RESERVE;
-  let totalTokens =
-    estimateTokens(memberContext) +
-    estimateTokens(summary ?? '') +
-    recentMessages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
 
-  // Trim oldest recent messages first
-  while (totalTokens > availableBudget && recentMessages.length > 10) {
-    const removed = recentMessages.shift();
+  // memberContext is protected -- count but never trim
+  const protectedTokens = estimateTokens(memberContext);
+  const coldTokens = estimateTokens(summary ?? '');
+
+  let warmTokens = weeklySummaries.reduce((sum, s) => sum + estimateTokens(s), 0);
+  let hotTokens = hotMessages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+
+  let totalTokens = protectedTokens + coldTokens + warmTokens + hotTokens;
+
+  // Step 1: Trim warm summaries first (lower priority than hot messages)
+  while (totalTokens > availableBudget && weeklySummaries.length > 0) {
+    const removed = weeklySummaries.shift();
     if (removed) {
-      totalTokens -= estimateTokens(removed.content);
+      warmTokens -= estimateTokens(removed);
+      totalTokens = protectedTokens + coldTokens + warmTokens + hotTokens;
     }
   }
 
-  // 6. If still over budget after trimming to 10 messages, trigger compression
+  // Step 2: Trim oldest hot messages (keep minimum 10)
+  while (totalTokens > availableBudget && hotMessages.length > 10) {
+    const removed = hotMessages.shift();
+    if (removed) {
+      hotTokens -= estimateTokens(removed.content);
+      totalTokens = protectedTokens + coldTokens + warmTokens + hotTokens;
+    }
+  }
+
+  // Step 3: If still over budget, trigger compression and reload summary
   if (totalTokens > availableBudget) {
     await compressSummary(db, memberId);
-    // Reload summary after compression
     const newSummary = await getSummary(db, memberId);
     return {
       summary: newSummary,
-      recentMessages: recentMessages.map(({ role, content }) => ({ role, content })),
+      weeklySummaries,
+      recentMessages: hotMessages.map(({ role, content }) => ({ role, content })),
       memberContext,
     };
   }
 
   return {
     summary,
-    recentMessages: recentMessages.map(({ role, content }) => ({ role, content })),
+    weeklySummaries,
+    recentMessages: hotMessages.map(({ role, content }) => ({ role, content })),
     memberContext,
   };
+}
+
+// ─── Warm Tier: Weekly Summaries ────────────────────────────────────────────────
+
+/**
+ * Build weekly summary strings from warm-tier messages.
+ *
+ * Groups messages by ISO week and creates a short heuristic summary
+ * for each week. Uses text truncation -- no AI calls (avoids expense
+ * and recursion).
+ */
+function buildWeeklySummaries(
+  messages: Array<{ role: string; content: string; createdAt: Date }>,
+): string[] {
+  if (messages.length === 0) return [];
+
+  // Group messages by week
+  const weekBuckets = new Map<string, Array<{ role: string; content: string }>>();
+
+  for (const msg of messages) {
+    const weekStart = startOfWeek(msg.createdAt, { weekStartsOn: 1 }); // Monday
+    const weekKey = format(weekStart, 'yyyy-MM-dd');
+    if (!weekBuckets.has(weekKey)) {
+      weekBuckets.set(weekKey, []);
+    }
+    weekBuckets.get(weekKey)!.push({ role: msg.role, content: msg.content });
+  }
+
+  // Build summaries per week
+  const summaries: string[] = [];
+  for (const [weekKey, msgs] of weekBuckets) {
+    const concatenated = msgs.map((m) => m.content).join(' ');
+    const preview = concatenated.slice(0, 200) + (concatenated.length > 200 ? '...' : '');
+    summaries.push(`Week of ${weekKey}: ${msgs.length} exchanges -- ${preview}`);
+  }
+
+  return summaries;
 }
 
 // ─── Summary Compression ───────────────────────────────────────────────────────
 
 /**
- * Compress older conversation messages into a rolling summary.
+ * Compress conversation messages older than WARM_WINDOW_DAYS into a rolling summary.
  *
- * 1. Load all messages NOT in the recent 50
+ * Only compresses cold-tier messages (30+ days old). Messages within the warm
+ * window (8-30 days) stay as messages for warm-tier assembly.
+ *
+ * 1. Load messages older than WARM_WINDOW_DAYS
  * 2. Prepend existing summary if any
  * 3. Call centralized AI client to compress into a concise summary
  * 4. Upsert the ConversationSummary record
- * 5. Delete the messages that were summarized
+ * 5. Delete the compressed messages
  */
 export async function compressSummary(
   db: ExtendedPrismaClient,
   memberId: string,
 ): Promise<void> {
   try {
-    // Load recent message IDs to exclude
-    const recentMessages = await db.conversationMessage.findMany({
-      where: { memberId },
-      orderBy: { createdAt: 'desc' },
-      take: RECENT_MESSAGE_CAP,
-      select: { id: true },
-    });
-    const recentIds = new Set(recentMessages.map((m) => m.id));
+    const warmCutoff = subDays(new Date(), WARM_WINDOW_DAYS);
 
-    // Load all messages for this member
-    const allMessages = await db.conversationMessage.findMany({
-      where: { memberId },
+    // Load only messages older than the warm window (cold tier)
+    const coldMessages = await db.conversationMessage.findMany({
+      where: {
+        memberId,
+        createdAt: { lt: warmCutoff },
+      },
       orderBy: { createdAt: 'asc' },
       select: { id: true, role: true, content: true },
     });
 
-    // Filter out recent messages -- only compress older ones
-    const olderMessages = allMessages.filter((m) => !recentIds.has(m.id));
-    if (olderMessages.length === 0) {
-      logger.debug(`No older messages to compress for ${memberId}`);
+    if (coldMessages.length === 0) {
+      logger.debug(`No cold-tier messages to compress for ${memberId}`);
       return;
     }
 
@@ -222,7 +334,7 @@ export async function compressSummary(
     }
     parts.push(
       'Messages to summarize:\n' +
-      olderMessages.map((m) => `${m.role}: ${m.content}`).join('\n'),
+      coldMessages.map((m) => `${m.role}: ${m.content}`).join('\n'),
     );
 
     const textToSummarize = parts.join('\n\n');
@@ -256,7 +368,7 @@ export async function compressSummary(
       where: { memberId },
       select: { messageCount: true },
     });
-    const newMessageCount = (existingRecord?.messageCount ?? 0) + olderMessages.length;
+    const newMessageCount = (existingRecord?.messageCount ?? 0) + coldMessages.length;
 
     // Upsert the summary
     await db.conversationSummary.upsert({
@@ -272,14 +384,14 @@ export async function compressSummary(
       },
     });
 
-    // Delete the compressed messages
-    const olderIds = olderMessages.map((m) => m.id);
+    // Delete the compressed cold-tier messages
+    const coldIds = coldMessages.map((m) => m.id);
     await db.conversationMessage.deleteMany({
-      where: { id: { in: olderIds } },
+      where: { id: { in: coldIds } },
     });
 
     logger.info(
-      `Compressed ${olderMessages.length} messages for ${memberId} (total summarized: ${newMessageCount})`,
+      `Compressed ${coldMessages.length} cold-tier messages for ${memberId} (total summarized: ${newMessageCount})`,
     );
   } catch (error) {
     logger.error(`Failed to compress summary for ${memberId}: ${String(error)}`);
@@ -345,6 +457,9 @@ export async function wipeHistory(
 
 /**
  * Build a readable member context string for the system prompt.
+ *
+ * This is PROTECTED DATA -- included verbatim regardless of tier,
+ * never compressed or trimmed by the token budget loop.
  */
 function buildMemberContext(member: {
   displayName: string;
