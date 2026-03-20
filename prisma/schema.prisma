@@ -200,6 +200,7 @@ enum XPSource {
   WIN_POST
   LESSON_POST
   RESOURCE_SHARE
+  SESSION_HOST
 }
 
 /// Per-member schedule preferences for briefs, reminders, and planning.
@@ -297,6 +298,61 @@ model SeasonSnapshot {
 
   @@unique([seasonId, memberId, dimension])
   @@index([seasonId])
+}
+
+// ─── Phase 5: Lock-In Sessions ──────────────────────────────────────────────
+
+/// Member-initiated co-working session. Instant (/lockin) or scheduled (/schedule-session).
+/// creatorMemberId is a plain string (no relation to Member) -- session records are communal,
+/// not personal data, and persist even if the creator deletes their data.
+model LockInSession {
+  id              String            @id @default(cuid())
+  creatorMemberId String
+  voiceChannelId  String?           // Discord voice channel ID (null if scheduled but not started)
+  textChannelId   String?           // Discord text channel for session announcements (for public sessions)
+  title           String            // What the session is about
+  visibility      SessionVisibility
+  status          SessionStatus     @default(PENDING)
+  scheduledFor    DateTime?         // Null for instant sessions
+  startedAt       DateTime?
+  endedAt         DateTime?
+  durationMinutes Int?
+
+  participants    SessionParticipant[]
+
+  @@index([status])
+  @@index([creatorMemberId])
+  @@index([scheduledFor])
+}
+
+/// Participant in a lock-in session. Tracks join/leave for attendance summaries.
+/// No Member relation -- session records are communal (not personal data).
+model SessionParticipant {
+  id        String    @id @default(cuid())
+  sessionId String
+  memberId  String
+  role      String    @default("participant") // "creator" or "participant"
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+
+  session LockInSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, memberId])
+  @@index([memberId])
+}
+
+/// Session visibility -- public (anyone can join) or private (invite-only).
+enum SessionVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+/// Session lifecycle status.
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 /// Key-value config store for persistent bot state.

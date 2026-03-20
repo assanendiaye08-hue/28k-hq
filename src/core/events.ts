@@ -28,6 +28,10 @@ export type BotEventMap = {
   lessonPosted: [memberId: string, messageId: string];
   seasonEnded: [seasonNumber: number];
   seasonStarted: [seasonNumber: number];
+
+  // Phase 5: Lock-In Sessions
+  sessionStarted: [sessionId: string, creatorMemberId: string];
+  sessionEnded: [sessionId: string, durationMinutes: number];
 };
 
 export type BotEvent = keyof BotEventMap;
