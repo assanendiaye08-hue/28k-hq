@@ -56,6 +56,7 @@ const CATEGORIES: CategoryDef[] = [
       { name: 'wins', type: ChannelType.GuildText },
       { name: 'lessons', type: ChannelType.GuildText },
       { name: 'accountability', type: ChannelType.GuildText },
+      { name: 'sessions', type: ChannelType.GuildText },
     ],
   },
   {
