@@ -59,14 +59,6 @@ export const SERVER_CATEGORIES = {
       { name: 'hall-of-fame', description: 'Permanent season standings -- the legends live here' },
     ],
   },
-  hustle: {
-    name: 'Hustle Zones',
-    channels: [
-      { name: 'freelancing', description: 'Coding, design, editing -- skills for hire' },
-      { name: 'ecom', description: 'Dropshipping, ecom, product businesses' },
-      { name: 'content', description: 'Content creation, social media, personal brand' },
-    ],
-  },
   voice: {
     name: 'Lock In',
     channels: [
