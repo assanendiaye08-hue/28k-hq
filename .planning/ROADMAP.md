@@ -66,11 +66,12 @@ Plans:
   2. Time spent in co-working voice channels is automatically tracked and awards XP
   3. Posts in #wins and #lessons are detected by the bot, awarded XP, and reacted to
   4. Seasons run on a defined cycle with leaderboard resets, and past seasons are archived and viewable anytime
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md -- Schema extensions, voice tracker, and wins/lessons modules
+- [ ] 03-02-PLAN.md -- Leaderboard module with channel sync and /leaderboard command
+- [ ] 03-03-PLAN.md -- Seasonal system with hall-of-fame and /season command
 
 ### Phase 4: AI Assistant
 **Goal**: Each member has a personal AI assistant in their private space that knows their goals, history, and context -- powered by OpenRouter
@@ -127,7 +128,7 @@ Note: Phases 3 and 4 can execute in parallel after Phase 2 completes.
 |-------|----------------|--------|-----------|
 | 1. Foundation and Identity | 4/4 | Complete    | 2026-03-20 |
 | 2. Daily Engagement Loop | 1/3 | Complete    | 2026-03-20 |
-| 3. Competition and Social Proof | 0/2 | Not started | - |
+| 3. Competition and Social Proof | 0/3 | Not started | - |
 | 4. AI Assistant | 0/2 | Not started | - |
 | 5. Content, Sessions, and Trust | 0/3 | Not started | - |
 | 6. Polish and Launch Readiness | 0/2 | Not started | - |
