@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 6 of 6 (Polish and Launch Readiness)
-Plan: 1 of 3 in current phase
-Status: In Progress
-Last activity: 2026-03-20 -- Completed 06-01-PLAN.md (Notification router, schema migration, lane cleanup)
+Plan: 3 of 3 in current phase
+Status: Complete
+Last activity: 2026-03-20 -- Completed 06-03-PLAN.md (Hardening module for unattended operation)
 
-Progress: [████████████████████] 95%
+Progress: [██████████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 18
 - Average duration: 5 min
-- Total execution time: 1.29 hours
+- Total execution time: 1.40 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [████████████████████] 95%
 | 03-competition-and-social-proof | 3 | 13 min | 4 min |
 | 04-ai-assistant | 2 | 9 min | 5 min |
 | 05-content-sessions-and-trust | 3 | 11 min | 4 min |
-| 06-polish-and-launch-readiness | 1 | 5 min | 5 min |
+| 06-polish-and-launch-readiness | 3 | 12 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (3 min), 05-02 (5 min), 05-03 (3 min), 06-01 (5 min)
+- Last 5 plans: 05-03 (3 min), 06-01 (5 min), 06-02 (3 min), 06-03 (4 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -55,6 +55,8 @@ Progress: [████████████████████] 95%
 | Phase 05 P02 | 5min | 2 tasks | 12 files |
 | Phase 05 P03 | 3min | 2 tasks | 7 files |
 | Phase 06 P01 | 5min | 2 tasks | 16 files |
+| Phase 06 P02 | 3min | 2 tasks | 7 files |
+| Phase 06 P03 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -133,6 +135,14 @@ Recent decisions affecting current work:
 - [Phase 06-01]: NotificationType string union (not Prisma enum) for lightweight type safety
 - [Phase 06-01]: General notifications skip preference lookup for efficiency
 - [Phase 06-01]: auto-feed channel added alongside resource channels (not replacing) per research
+- [Phase 06-02]: Sequential AI classification (not parallel) to respect OpenRouter rate limits
+- [Phase 06-02]: Link-based deduplication (FeedPost.link) for cross-restart safety
+- [Phase 06-02]: Per-source approval rates in AI prompts for feedback-driven learning
+- [Phase 06-02]: 4 daily cron cycles each posting top 1 item for 2-4 items/day spread
+- [Phase 06-03]: GuildMemberRemove handler accepts GuildMember | PartialGuildMember for type safety
+- [Phase 06-03]: Recovery uses updateMany for bulk goal resolution instead of per-record updates
+- [Phase 06-03]: Rejoin timeout defaults to restore (non-destructive) rather than requiring explicit choice
+- [Phase 06-03]: Both onboarding and hardening guildMemberAdd handlers fire independently -- dual DMs acceptable
 
 ### Pending Todos
 
@@ -145,5 +155,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 06-01-PLAN.md (Notification router, schema migration, lane cleanup)
+Stopped at: Completed 06-02-PLAN.md (Auto-content feed system)
 Resume file: None

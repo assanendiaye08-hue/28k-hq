@@ -40,7 +40,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Content
 
 - [x] **CONT-01**: Resource sharing channels — organized by interest area, members can post and discuss
-- [ ] **CONT-02**: Auto-feeds — bot posts relevant content from RSS/APIs into appropriate channels
+- [x] **CONT-02**: Auto-feeds — bot posts relevant content from RSS/APIs into appropriate channels
 
 ### Sessions
 
@@ -102,7 +102,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-02 | Phase 4: AI Assistant | Complete |
 | AI-03 | Phase 4: AI Assistant | Complete |
 | CONT-01 | Phase 5: Content, Sessions, and Trust | Complete |
-| CONT-02 | Phase 6: Polish and Launch Readiness | Pending |
+| CONT-02 | Phase 6: Polish and Launch Readiness | Complete |
 | SESS-01 | Phase 5: Content, Sessions, and Trust | Complete |
 | TRUST-01 | Phase 5: Content, Sessions, and Trust | Complete |
 | TRUST-02 | Phase 5: Content, Sessions, and Trust | Complete |
