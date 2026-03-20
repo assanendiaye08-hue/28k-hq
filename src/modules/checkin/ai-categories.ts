@@ -11,8 +11,8 @@
  * -- a check-in must NEVER be blocked by an AI failure.
  */
 
-import { OpenRouter } from '@openrouter/sdk';
-import { config } from '../../core/config.js';
+import type { ExtendedPrismaClient } from '../../db/client.js';
+import { callAI } from '../../shared/ai-client.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -37,18 +37,6 @@ export interface CategoryResult {
   goalHints: GoalHint[];
 }
 
-/** Lazy-initialized OpenRouter client. */
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
-
 /**
  * Extract activity categories and goal hints from check-in text using AI.
  *
@@ -58,66 +46,65 @@ function getOpenRouterClient(): OpenRouter {
  * @param text - The member's free-text check-in description
  * @returns Categories and optional goal hints; fallback on AI failure
  */
-export async function extractCategories(text: string): Promise<CategoryResult> {
+export async function extractCategories(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  text: string,
+): Promise<CategoryResult> {
   try {
-    const client = getOpenRouterClient();
-
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        model: 'deepseek/deepseek-v3.2',
-        messages: [
-          {
-            role: 'system' as const,
-            content: `Extract 1-3 activity categories from this check-in. Categories should be concise (1-3 words).
+    const result = await callAI(db, {
+      memberId,
+      feature: 'categories',
+      messages: [
+        {
+          role: 'system',
+          content: `Extract 1-3 activity categories from this check-in. Categories should be concise (1-3 words).
 Examples: "coding", "cold outreach", "content creation", "learning", "client work", "design".
 Also determine if any numeric goals are mentioned (e.g., "sent 5 emails" -> goalHint: { count: 5, unit: "emails" }).`,
-          },
-          {
-            role: 'user' as const,
-            content: text,
-          },
-        ],
-        responseFormat: {
-          type: 'json_schema' as const,
-          jsonSchema: {
-            name: 'checkin_categories',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                categories: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                goalHints: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      count: { type: 'number' },
-                      unit: { type: 'string' },
-                    },
-                    required: ['count', 'unit'],
-                    additionalProperties: false,
+        },
+        {
+          role: 'user',
+          content: text,
+        },
+      ],
+      responseFormat: {
+        type: 'json_schema' as const,
+        jsonSchema: {
+          name: 'checkin_categories',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              categories: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              goalHints: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    count: { type: 'number' },
+                    unit: { type: 'string' },
                   },
+                  required: ['count', 'unit'],
+                  additionalProperties: false,
                 },
               },
-              required: ['categories', 'goalHints'],
-              additionalProperties: false,
             },
+            required: ['categories', 'goalHints'],
+            additionalProperties: false,
           },
         },
-        stream: false,
       },
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content || typeof content !== 'string') {
-      logger.warn('Empty response from OpenRouter, using fallback categories');
+    if (result.degraded || !result.content) {
+      logger.warn('AI unavailable, using fallback categories');
       return fallbackResult();
     }
 
-    const parsed = JSON.parse(content) as CategoryResult;
+    const parsed = JSON.parse(result.content) as CategoryResult;
 
     logger.debug(
       `Extracted categories: ${JSON.stringify({

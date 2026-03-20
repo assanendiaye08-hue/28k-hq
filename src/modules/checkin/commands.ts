@@ -114,7 +114,7 @@ async function handleCheckin(
   // 5. AI category extraction
   const activityText = interaction.options.getString('activity', true);
   const effortRating = interaction.options.getInteger('effort');
-  const { categories } = await extractCategories(activityText);
+  const { categories } = await extractCategories(db, memberId, activityText);
 
   // 6. Create CheckIn record (content encrypted by Prisma extension)
   const checkIn = await db.checkIn.create({

@@ -27,9 +27,8 @@ import {
   subWeeks,
   startOfDay,
 } from 'date-fns';
-import { OpenRouter } from '@openrouter/sdk';
 import type { ExtendedPrismaClient } from '../../db/client.js';
-import { config } from '../../core/config.js';
+import { callAI } from '../../shared/ai-client.js';
 import { BRAND_COLORS } from '../../shared/constants.js';
 import type { IEventBus } from '../../shared/types.js';
 import winston from 'winston';
@@ -46,18 +45,6 @@ const logger = winston.createLogger({
 
 /** Timeout for each response during planning session (5 minutes). */
 const PLANNING_TIMEOUT_MS = 5 * 60 * 1000;
-
-/** Lazy-initialized OpenRouter client. */
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
 
 /** Goal extracted from natural language by AI. */
 interface ExtractedGoal {
@@ -178,7 +165,7 @@ export async function runPlanningSession(
     }
 
     // Parse goals from natural language using AI
-    const extractedGoals = await extractGoalsFromText(goalsResponse);
+    const extractedGoals = await extractGoalsFromText(db, memberId, goalsResponse);
 
     // Calculate end of this week (Sunday 23:59 in member's timezone)
     const thisWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -324,61 +311,60 @@ async function sendTimeoutMessage(dm: DMChannel): Promise<void> {
  * Extract structured goals from natural language using AI.
  * Falls back to a single free-text goal on failure.
  */
-async function extractGoalsFromText(text: string): Promise<ExtractedGoal[]> {
+async function extractGoalsFromText(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  text: string,
+): Promise<ExtractedGoal[]> {
   try {
-    const client = getOpenRouterClient();
-
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        model: 'deepseek/deepseek-v3.2',
-        messages: [
-          {
-            role: 'system' as const,
-            content: `Extract goals from this text. For each goal, determine if it's measurable (has a number and unit) or free-text. Return as JSON array. Max 5 goals.`,
-          },
-          {
-            role: 'user' as const,
-            content: text,
-          },
-        ],
-        responseFormat: {
-          type: 'json_schema' as const,
-          jsonSchema: {
-            name: 'extracted_goals',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                goals: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      title: { type: 'string' },
-                      type: { type: 'string', enum: ['measurable', 'freetext'] },
-                      target: { type: ['number', 'null'] },
-                      unit: { type: ['string', 'null'] },
-                    },
-                    required: ['title', 'type', 'target', 'unit'],
-                    additionalProperties: false,
+    const result = await callAI(db, {
+      memberId,
+      feature: 'planning',
+      messages: [
+        {
+          role: 'system',
+          content: `Extract goals from this text. For each goal, determine if it's measurable (has a number and unit) or free-text. Return as JSON array. Max 5 goals.`,
+        },
+        {
+          role: 'user',
+          content: text,
+        },
+      ],
+      responseFormat: {
+        type: 'json_schema' as const,
+        jsonSchema: {
+          name: 'extracted_goals',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              goals: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    type: { type: 'string', enum: ['measurable', 'freetext'] },
+                    target: { type: ['number', 'null'] },
+                    unit: { type: ['string', 'null'] },
                   },
+                  required: ['title', 'type', 'target', 'unit'],
+                  additionalProperties: false,
                 },
               },
-              required: ['goals'],
-              additionalProperties: false,
             },
+            required: ['goals'],
+            additionalProperties: false,
           },
         },
-        stream: false,
       },
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content || typeof content !== 'string') {
+    if (result.degraded || !result.content) {
       return [{ title: text, type: 'freetext' }];
     }
 
-    const parsed = JSON.parse(content) as { goals: ExtractedGoal[] };
+    const parsed = JSON.parse(result.content) as { goals: ExtractedGoal[] };
 
     // Limit to 5 goals
     const goals = parsed.goals.slice(0, 5);

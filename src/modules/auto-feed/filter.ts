@@ -11,9 +11,8 @@
  * AI can learn from member upvote/downvote reactions over time.
  */
 
-import { OpenRouter } from '@openrouter/sdk';
-import { config } from '../../core/config.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
+import { callAI } from '../../shared/ai-client.js';
 import {
   MIN_RELEVANCE_SCORE,
   MAX_POSTS_PER_CYCLE,
@@ -31,18 +30,6 @@ const logger = winston.createLogger({
   ),
   transports: [new winston.transports.Console()],
 });
-
-/** Lazy-initialized OpenRouter client. */
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
 
 /**
  * Build per-source feedback context for the AI prompt.
@@ -115,7 +102,6 @@ export async function filterItems(
   logger.debug(`Filtering ${newItems.length} new items (${items.length - newItems.length} duplicates skipped)`);
 
   // Step 2: Classify each item via AI (sequential to respect rate limits)
-  const client = getOpenRouterClient();
   const classified: Array<FeedItem & { filter: FilterResult }> = [];
   let aiFailures = 0;
 
@@ -124,49 +110,46 @@ export async function filterItems(
       // Get per-source feedback for prompt context
       const feedbackContext = await getSourceFeedback(db, item.sourceName);
 
-      const completion = await client.chat.send({
-        chatGenerationParams: {
-          model: 'deepseek/deepseek-v3.2',
-          messages: [
-            {
-              role: 'system' as const,
-              content: `You are a content curator for a productivity Discord server. Members are diverse: FAANG engineers, small business owners, students, ecom operators, content creators, designers. Classify each content item. A "keep" item must be: ACTIONABLE (provides a concrete technique, tool, strategy, or resource), RELEVANT (useful to at least one member type), NOT garbage (no clickbait, no fluff, no obvious self-promotion). Return a JSON classification.${feedbackContext ? `\n\n${feedbackContext}` : ''}`,
-            },
-            {
-              role: 'user' as const,
-              content: `Classify this content:\nTitle: ${item.title}\nSource: ${item.sourceName}\nSummary: ${item.content.slice(0, 500)}`,
-            },
-          ],
-          responseFormat: {
-            type: 'json_schema' as const,
-            jsonSchema: {
-              name: 'content_filter',
-              strict: true,
-              schema: {
-                type: 'object',
-                properties: {
-                  keep: { type: 'boolean' },
-                  relevanceScore: { type: 'number' },
-                  category: { type: 'string' },
-                  reason: { type: 'string' },
-                },
-                required: ['keep', 'relevanceScore', 'category', 'reason'],
-                additionalProperties: false,
+      const result = await callAI(db, {
+        memberId: 'system',
+        feature: 'filter',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a content curator for a productivity Discord server. Members are diverse: FAANG engineers, small business owners, students, ecom operators, content creators, designers. Classify each content item. A "keep" item must be: ACTIONABLE (provides a concrete technique, tool, strategy, or resource), RELEVANT (useful to at least one member type), NOT garbage (no clickbait, no fluff, no obvious self-promotion). Return a JSON classification.${feedbackContext ? `\n\n${feedbackContext}` : ''}`,
+          },
+          {
+            role: 'user',
+            content: `Classify this content:\nTitle: ${item.title}\nSource: ${item.sourceName}\nSummary: ${item.content.slice(0, 500)}`,
+          },
+        ],
+        responseFormat: {
+          type: 'json_schema' as const,
+          jsonSchema: {
+            name: 'content_filter',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                keep: { type: 'boolean' },
+                relevanceScore: { type: 'number' },
+                category: { type: 'string' },
+                reason: { type: 'string' },
               },
+              required: ['keep', 'relevanceScore', 'category', 'reason'],
+              additionalProperties: false,
             },
           },
-          stream: false,
         },
       });
 
-      const content = completion.choices[0]?.message?.content;
-      if (!content || typeof content !== 'string') {
-        logger.warn(`Empty AI response for "${item.title}", skipping`);
+      if (result.degraded || !result.content) {
+        logger.warn(`AI unavailable for "${item.title}", skipping`);
         aiFailures++;
         continue;
       }
 
-      const filter = JSON.parse(content) as FilterResult;
+      const filter = JSON.parse(result.content) as FilterResult;
 
       // Step 3: Only keep items that pass the quality threshold
       if (filter.keep && filter.relevanceScore >= MIN_RELEVANCE_SCORE) {

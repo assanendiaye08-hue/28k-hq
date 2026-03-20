@@ -3,13 +3,13 @@
  *
  * Takes raw natural language profile answers and extracts structured tags
  * (interests, goals, learningAreas, workStyle, currentFocus) using
- * Claude Sonnet via OpenRouter's structured output API.
+ * DeepSeek V3.2 via OpenRouter's structured output API.
  *
  * Falls back to basic text splitting if OpenRouter is unavailable.
  */
 
-import { OpenRouter } from '@openrouter/sdk';
-import { config } from '../../core/config.js';
+import type { ExtendedPrismaClient } from '../../db/client.js';
+import { callAI } from '../../shared/ai-client.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -34,21 +34,6 @@ export interface ProfileTags {
 }
 
 /**
- * Initialize the OpenRouter client lazily (only when first used).
- * Avoids errors if OPENROUTER_API_KEY is not set during import.
- */
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
-
-/**
  * Extract structured profile tags from raw natural language answers.
  *
  * Uses OpenRouter structured output (json_schema) with strict: true
@@ -60,18 +45,18 @@ function getOpenRouterClient(): OpenRouter {
  * @returns Structured profile tags
  */
 export async function extractProfileTags(
+  db: ExtendedPrismaClient,
+  memberId: string,
   rawAnswers: Record<string, string>,
 ): Promise<ProfileTags> {
   try {
-    const client = getOpenRouterClient();
-
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        model: 'anthropic/claude-sonnet-4-20250514',
-        messages: [
-          {
-            role: 'system' as const,
-            content: `You extract structured profile tags from natural language answers about a person's interests, goals, and work style.
+    const result = await callAI(db, {
+      memberId,
+      feature: 'tags',
+      messages: [
+        {
+          role: 'system',
+          content: `You extract structured profile tags from natural language answers about a person's interests, goals, and work style.
 
 Rules:
 - Extract concise tags (1-3 words each)
@@ -81,58 +66,54 @@ Rules:
 - Determine a single workStyle summary (1-5 words)
 - If an answer is vague or missing, still produce reasonable tags from available context
 - Tags should be lowercase unless they are proper nouns`,
-          },
-          {
-            role: 'user' as const,
-            content: `Extract structured profile tags from these answers:\n${JSON.stringify(rawAnswers, null, 2)}`,
-          },
-        ],
-        responseFormat: {
-          type: 'json_schema' as const,
-          jsonSchema: {
-            name: 'profile_tags',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                interests: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                currentFocus: { type: 'string' },
-                goals: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                learningAreas: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                workStyle: { type: 'string' },
+        },
+        {
+          role: 'user',
+          content: `Extract structured profile tags from these answers:\n${JSON.stringify(rawAnswers, null, 2)}`,
+        },
+      ],
+      responseFormat: {
+        type: 'json_schema' as const,
+        jsonSchema: {
+          name: 'profile_tags',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              interests: {
+                type: 'array',
+                items: { type: 'string' },
               },
-              required: [
-                'interests',
-                'currentFocus',
-                'goals',
-                'learningAreas',
-                'workStyle',
-              ],
-              additionalProperties: false,
+              currentFocus: { type: 'string' },
+              goals: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              learningAreas: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              workStyle: { type: 'string' },
             },
+            required: [
+              'interests',
+              'currentFocus',
+              'goals',
+              'learningAreas',
+              'workStyle',
+            ],
+            additionalProperties: false,
           },
         },
-        stream: false,
       },
     });
 
-    // Parse the structured output from the response
-    const content = completion.choices[0]?.message?.content;
-    if (!content || typeof content !== 'string') {
-      logger.warn('Empty response from OpenRouter, falling back to basic extraction');
+    if (result.degraded || !result.content) {
+      logger.warn('AI unavailable, falling back to basic extraction');
       return fallbackExtraction(rawAnswers);
     }
 
-    const tags = JSON.parse(content) as ProfileTags;
+    const tags = JSON.parse(result.content) as ProfileTags;
 
     logger.debug(
       `Extracted profile tags: ${JSON.stringify({
@@ -146,7 +127,7 @@ Rules:
 
     return tags;
   } catch (error) {
-    logger.error(`OpenRouter tag extraction failed: ${String(error)}`);
+    logger.error(`AI tag extraction failed: ${String(error)}`);
     return fallbackExtraction(rawAnswers);
   }
 }

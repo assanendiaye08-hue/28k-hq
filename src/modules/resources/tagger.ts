@@ -10,8 +10,8 @@
  * Falls back to { topic: 'Resource', tags: [] } if AI is unavailable.
  */
 
-import { OpenRouter } from '@openrouter/sdk';
-import { config } from '../../core/config.js';
+import type { ExtendedPrismaClient } from '../../db/client.js';
+import { callAI } from '../../shared/ai-client.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -31,20 +31,6 @@ export interface ResourceTags {
 }
 
 /**
- * Lazy-initialized OpenRouter client (avoids errors if key not set at import time).
- */
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
-
-/**
  * Extract a topic title and interest tags from a resource post's message text.
  *
  * Uses OpenRouter structured output (json_schema) with strict: true
@@ -54,18 +40,17 @@ function getOpenRouterClient(): OpenRouter {
  * @returns Topic title (5-10 words) and 2-4 interest tags
  */
 export async function extractResourceTags(
+  db: ExtendedPrismaClient,
   messageContent: string,
 ): Promise<ResourceTags> {
   try {
-    const client = getOpenRouterClient();
-
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        model: 'deepseek/deepseek-v3.2',
-        messages: [
-          {
-            role: 'system' as const,
-            content: `You extract a topic title and interest tags from a resource post shared in a Discord server.
+    const result = await callAI(db, {
+      memberId: 'system',
+      feature: 'tagger',
+      messages: [
+        {
+          role: 'system',
+          content: `You extract a topic title and interest tags from a resource post shared in a Discord server.
 
 Rules:
 - Extract a concise topic title (5-10 words) summarizing what the resource is about
@@ -73,44 +58,41 @@ Rules:
 - Tags should describe the subject area, technology, or skill involved
 - If the message is too short or vague, return topic "Resource" and empty tags
 - Do NOT attempt to visit or analyze any URLs -- only use the message text`,
-          },
-          {
-            role: 'user' as const,
-            content: `Extract topic and tags from this resource post:\n\n${messageContent}`,
-          },
-        ],
-        responseFormat: {
-          type: 'json_schema' as const,
-          jsonSchema: {
-            name: 'resource_tags',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                topic: { type: 'string' },
-                tags: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
+        },
+        {
+          role: 'user',
+          content: `Extract topic and tags from this resource post:\n\n${messageContent}`,
+        },
+      ],
+      responseFormat: {
+        type: 'json_schema' as const,
+        jsonSchema: {
+          name: 'resource_tags',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              topic: { type: 'string' },
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
               },
-              required: ['topic', 'tags'],
-              additionalProperties: false,
             },
+            required: ['topic', 'tags'],
+            additionalProperties: false,
           },
         },
-        stream: false,
       },
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content || typeof content !== 'string') {
-      logger.warn('Empty response from OpenRouter, using fallback');
+    if (result.degraded || !result.content) {
+      logger.warn('AI unavailable, using fallback');
       return { topic: 'Resource', tags: [] };
     }
 
-    const result = JSON.parse(content) as ResourceTags;
-    logger.debug(`Extracted resource tags: topic="${result.topic}", tags=[${result.tags.join(', ')}]`);
-    return result;
+    const parsed = JSON.parse(result.content) as ResourceTags;
+    logger.debug(`Extracted resource tags: topic="${parsed.topic}", tags=[${parsed.tags.join(', ')}]`);
+    return parsed;
   } catch (error) {
     logger.error(`Resource tag extraction failed: ${String(error)}`);
     return { topic: 'Resource', tags: [] };

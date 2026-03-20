@@ -75,7 +75,7 @@ async function handleSetupComplete(
     const rawAnswers = JSON.parse(profile.rawAnswers) as Record<string, string>;
 
     // Extract structured tags via AI
-    const tags = await extractProfileTags(rawAnswers);
+    const tags = await extractProfileTags(db, memberId, rawAnswers);
 
     // Update the profile with extracted tags
     await db.memberProfile.update({
