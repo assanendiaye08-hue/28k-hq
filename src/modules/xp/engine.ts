@@ -17,7 +17,14 @@ import { RANK_PROGRESSION } from '../../shared/constants.js';
 import { XP_AWARDS, STREAK_CONFIG } from './constants.js';
 
 /** XP source enum values matching the Prisma XPSource enum. */
-export type XPSource = 'CHECKIN' | 'GOAL_COMPLETE' | 'STREAK_BONUS' | 'SETUP_BONUS';
+export type XPSource =
+  | 'CHECKIN'
+  | 'GOAL_COMPLETE'
+  | 'STREAK_BONUS'
+  | 'SETUP_BONUS'
+  | 'VOICE_SESSION'
+  | 'WIN_POST'
+  | 'LESSON_POST';
 
 /** Result of an XP award operation. */
 export interface AwardXPResult {

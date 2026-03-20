@@ -37,6 +37,16 @@ export const XP_AWARDS = {
     } as Record<number, number>,
   },
   setupBonus: 50, // One-time bonus for completing /setup
+
+  // Phase 3: Voice sessions and wins/lessons
+  voice: {
+    xpPer3Minutes: 1, // 1 XP per 3 minutes in voice co-work
+    dailyCap: 200, // Maximum voice XP per day
+    minSessionMinutes: 5, // Sessions shorter than this don't count
+  },
+  win: 30, // XP for posting in #wins
+  lesson: 35, // XP for posting in #lessons (slightly higher to encourage vulnerability)
+  winsLessonsCooldownMs: 2 * 60 * 60 * 1000, // 2-hour cooldown per type per member
 } as const;
 
 /**

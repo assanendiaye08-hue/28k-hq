@@ -28,13 +28,15 @@ model Member {
   lastCheckInAt DateTime?
 
   // Relations
-  accounts       DiscordAccount[]
-  profile        MemberProfile?
-  privateSpace   PrivateSpace?
-  checkIns       CheckIn[]
-  goals          Goal[]
-  xpTransactions XPTransaction[]
-  schedule       MemberSchedule?
+  accounts         DiscordAccount[]
+  profile          MemberProfile?
+  privateSpace     PrivateSpace?
+  checkIns         CheckIn[]
+  goals            Goal[]
+  xpTransactions   XPTransaction[]
+  schedule         MemberSchedule?
+  voiceSessions    VoiceSession[]
+  seasonSnapshots  SeasonSnapshot[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -192,6 +194,9 @@ enum XPSource {
   GOAL_COMPLETE
   STREAK_BONUS
   SETUP_BONUS
+  VOICE_SESSION
+  WIN_POST
+  LESSON_POST
 }
 
 /// Per-member schedule preferences for briefs, reminders, and planning.
@@ -205,4 +210,63 @@ model MemberSchedule {
   sundayPlanning Boolean  @default(true) // Whether to receive Sunday planning prompt
 
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ─── Phase 3: Competition and Social Proof ──────────────────────────────────
+
+/// Voice co-working session. Tracked from join to leave in "Lock In" voice channels.
+/// Duration excludes paused time (AFK channel, server-deafen).
+model VoiceSession {
+  id              String    @id @default(cuid())
+  memberId        String
+  channelId       String    // Discord voice channel ID
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationMinutes Int?
+  seasonId        String?
+
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  season  Season? @relation(fields: [seasonId], references: [id])
+
+  @@index([memberId, startedAt])
+  @@index([seasonId])
+}
+
+/// Competitive season -- Valorant-style with archived past seasons.
+/// Only one season is active at a time.
+model Season {
+  id        String    @id @default(cuid())
+  number    Int       @unique
+  startedAt DateTime
+  endedAt   DateTime?
+  active    Boolean   @default(true)
+
+  voiceSessions VoiceSession[]
+  snapshots     SeasonSnapshot[]
+
+  @@index([active])
+}
+
+/// Season-end snapshot for a member in a specific dimension (xp, voice, streaks).
+/// Preserves leaderboard positions after season ends for historical display.
+model SeasonSnapshot {
+  id        String @id @default(cuid())
+  seasonId  String
+  memberId  String
+  dimension String // "xp", "voice", "streaks"
+  position  Int
+  value     Int
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, memberId, dimension])
+  @@index([seasonId])
+}
+
+/// Key-value config store for persistent bot state.
+/// Stores leaderboard message IDs, feature flags, and other runtime config.
+model BotConfig {
+  key   String @id
+  value String
 }
