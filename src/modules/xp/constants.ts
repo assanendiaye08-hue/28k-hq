@@ -51,6 +51,9 @@ export const XP_AWARDS = {
   // Phase 5: Resource sharing
   resourceShare: 15, // XP for posting a resource (lower effort than wins/lessons)
   resourceShareCooldownMs: 4 * 60 * 60 * 1000, // 4-hour cooldown per member
+
+  // Phase 5: Session hosting bonus
+  sessionHost: 10, // Small bonus for hosting a session with 2+ participants (not time-based)
 } as const;
 
 /**
