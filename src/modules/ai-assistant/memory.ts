@@ -4,13 +4,12 @@
  * Handles message storage, retrieval, context assembly, rolling
  * summarization, history export, and history deletion.
  *
- * Token budget management ensures we stay within DeepSeek V3.2's
- * 164K context window (~70% budget = 100K tokens).
+ * Token budget management ensures we stay within Grok 4.1 Fast's
+ * 2M context window (~70% budget = 1.4M tokens).
  */
 
-import { OpenRouter } from '@openrouter/sdk';
-import { config } from '../../core/config.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
+import { callAI } from '../../shared/ai-client.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -28,33 +27,20 @@ const logger = winston.createLogger({
 /** Maximum recent messages to load. */
 export const RECENT_MESSAGE_CAP = 50;
 
-/** Token budget for full context (~70% of DeepSeek 164K window). */
-export const CONTEXT_BUDGET = 100_000;
+/** Token budget for full context (~70% of Grok 4.1 Fast 2M window). */
+export const CONTEXT_BUDGET = 1_400_000;
 
 /** Tokens reserved for model output generation. */
 export const OUTPUT_RESERVE = 4_000;
 
 /** Tokens reserved for system prompt and member context. */
-export const SYSTEM_PROMPT_RESERVE = 20_000;
+export const SYSTEM_PROMPT_RESERVE = 50_000;
 
 // ─── Token Estimation ──────────────────────────────────────────────────────────
 
 /** Simple token count approximation: ~4 chars per token. */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
-}
-
-// ─── OpenRouter Client ─────────────────────────────────────────────────────────
-
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
 }
 
 // ─── Message Storage ───────────────────────────────────────────────────────────
@@ -196,7 +182,7 @@ export async function assembleContext(
  *
  * 1. Load all messages NOT in the recent 50
  * 2. Prepend existing summary if any
- * 3. Call DeepSeek to compress into a concise summary
+ * 3. Call centralized AI client to compress into a concise summary
  * 4. Upsert the ConversationSummary record
  * 5. Delete the messages that were summarized
  */
@@ -241,31 +227,29 @@ export async function compressSummary(
 
     const textToSummarize = parts.join('\n\n');
 
-    // Call DeepSeek to compress
-    const client = getOpenRouterClient();
-    const completion = await client.chat.send({
-      chatGenerationParams: {
-        model: 'deepseek/deepseek-v3.2',
-        messages: [
-          {
-            role: 'system' as const,
-            content:
-              'Compress this conversation history into a concise summary preserving key facts, commitments, preferences, and ongoing topics. Keep it under 2000 words.',
-          },
-          {
-            role: 'user' as const,
-            content: textToSummarize,
-          },
-        ],
-        stream: false,
-      },
+    // Call centralized AI client to compress
+    const result = await callAI(db, {
+      memberId,
+      feature: 'summary',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Compress this conversation history into a concise summary preserving key facts, commitments, preferences, and ongoing topics. Keep it under 2000 words.',
+        },
+        {
+          role: 'user',
+          content: textToSummarize,
+        },
+      ],
     });
 
-    const summaryText = completion.choices[0]?.message?.content;
-    if (!summaryText || typeof summaryText !== 'string') {
-      logger.warn(`Empty compression result for ${memberId}`);
+    if (result.degraded || !result.content) {
+      logger.warn(`Summary compression skipped for ${memberId} -- AI degraded or unavailable`);
       return;
     }
+
+    const summaryText = result.content;
 
     // Count total summarized messages (existing + newly compressed)
     const existingRecord = await db.conversationSummary.findUnique({

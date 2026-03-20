@@ -10,12 +10,11 @@
  * /notifications set, with fallback to the primary account.
  */
 
-import { OpenRouter } from '@openrouter/sdk';
 import { TZDate } from '@date-fns/tz';
 import { startOfDay, differenceInDays } from 'date-fns';
 import type { Client } from 'discord.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
-import { config } from '../../core/config.js';
+import { callAI } from '../../shared/ai-client.js';
 import { deliverNotification } from '../notification-router/router.js';
 import { buildSystemPrompt, AI_NAME } from './personality.js';
 import { storeMessage } from './memory.js';
@@ -62,19 +61,6 @@ export const ACCOUNTABILITY_LEVELS: Record<string, {
     tone: 'accountability partner',
   },
 };
-
-// ─── OpenRouter Client ──────────────────────────────────────────────────────────
-
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
 
 // ─── Should Nudge Check ─────────────────────────────────────────────────────────
 
@@ -201,55 +187,47 @@ export async function sendNudge(
 
     // Build nudge message via AI
     let nudgeText: string;
-    try {
-      const aiClient = getOpenRouterClient();
-      const aceSystemPrompt = await buildSystemPrompt(db, memberId);
 
-      let nudgeInstruction: string;
-      if (isExtendedSilence) {
-        // Extended silence -- genuine check-in, not nagging
-        const goalNames = member.goals.map((g) => g.title).join(', ') || 'their goals';
-        nudgeInstruction = `This member has been quiet for ${daysSinceCheckIn} days. Send a genuine check-in -- not a productivity nag. Something like: "Hey ${member.displayName}, it's been ${daysSinceCheckIn} days. No pressure, but I want to check in -- are you still locked in on ${goalNames}, or do you want to adjust? You can always use /accountability light or just tell me to back off." Keep it real and human. 2-3 sentences max.`;
-      } else {
-        // Normal nudge based on level tone
-        const streakInfo = member.currentStreak > 0
-          ? `Their ${member.currentStreak}-day streak is at risk.`
-          : 'They have no active streak.';
-        const goalInfo = member.goals.length > 0
-          ? `Active goals: ${member.goals.map((g) => g.title).join(', ')}.`
-          : 'No active goals set.';
-        nudgeInstruction = `Send a ${levelConfig.tone} accountability nudge. ${streakInfo} ${goalInfo} Days since last check-in: ${daysSinceCheckIn ?? 'never'}. Keep it to 1-3 sentences. Remind them to use /checkin.`;
-      }
+    const aceSystemPrompt = await buildSystemPrompt(db, memberId);
 
-      const completion = await aiClient.chat.send({
-        chatGenerationParams: {
-          model: 'deepseek/deepseek-v3.2',
-          messages: [
-            {
-              role: 'system' as const,
-              content: aceSystemPrompt + '\n\nYou are sending an accountability nudge via DM.',
-            },
-            {
-              role: 'user' as const,
-              content: nudgeInstruction,
-            },
-          ],
-          stream: false,
+    let nudgeInstruction: string;
+    if (isExtendedSilence) {
+      // Extended silence -- genuine check-in, not nagging
+      const goalNames = member.goals.map((g) => g.title).join(', ') || 'their goals';
+      nudgeInstruction = `This member has been quiet for ${daysSinceCheckIn} days. Send a genuine check-in -- not a productivity nag. Something like: "Hey ${member.displayName}, it's been ${daysSinceCheckIn} days. No pressure, but I want to check in -- are you still locked in on ${goalNames}, or do you want to adjust? You can always use /accountability light or just tell me to back off." Keep it real and human. 2-3 sentences max.`;
+    } else {
+      // Normal nudge based on level tone
+      const streakInfo = member.currentStreak > 0
+        ? `Their ${member.currentStreak}-day streak is at risk.`
+        : 'They have no active streak.';
+      const goalInfo = member.goals.length > 0
+        ? `Active goals: ${member.goals.map((g) => g.title).join(', ')}.`
+        : 'No active goals set.';
+      nudgeInstruction = `Send a ${levelConfig.tone} accountability nudge. ${streakInfo} ${goalInfo} Days since last check-in: ${daysSinceCheckIn ?? 'never'}. Keep it to 1-3 sentences. Remind them to use /checkin.`;
+    }
+
+    const result = await callAI(db, {
+      memberId,
+      feature: 'nudge',
+      messages: [
+        {
+          role: 'system',
+          content: aceSystemPrompt + '\n\nYou are sending an accountability nudge via DM.',
         },
-      });
+        {
+          role: 'user',
+          content: nudgeInstruction,
+        },
+      ],
+    });
 
-      const content = completion.choices[0]?.message?.content;
-      if (content && typeof content === 'string' && content.length > 5) {
-        nudgeText = content;
-      } else {
-        // Fallback text
-        nudgeText = isExtendedSilence
-          ? `Hey ${member.displayName}, it's been a while. No pressure -- just checking in. Use \`/checkin\` when you're ready, or \`/accountability light\` if you want me to ease up.`
-          : `Hey ${member.displayName}, you haven't checked in today. Use \`/checkin\` to log your progress and keep your streak alive.`;
-      }
-    } catch (error) {
-      logger.warn(`AI nudge generation failed for ${memberId}: ${String(error)}`);
-      nudgeText = `Hey ${member.displayName}, quick nudge -- you haven't checked in today. Use \`/checkin\` when you get a chance.`;
+    if (result.degraded || !result.content || result.content.length <= 5) {
+      // Fallback text
+      nudgeText = isExtendedSilence
+        ? `Hey ${member.displayName}, it's been a while. No pressure -- just checking in. Use \`/checkin\` when you're ready, or \`/accountability light\` if you want me to ease up.`
+        : `Hey ${member.displayName}, you haven't checked in today. Use \`/checkin\` to log your progress and keep your streak alive.`;
+    } else {
+      nudgeText = result.content;
     }
 
     // Deliver via notification router (respects per-type account preferences)
