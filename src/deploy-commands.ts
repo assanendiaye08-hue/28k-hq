@@ -14,6 +14,7 @@
  * Phase 4 commands: /ask, /wipe-history, /accountability
  * Phase 5: resources module (passive messageCreate handler) + /lockin, /schedule-session, /endsession, /invite-session
  * Phase 5 data privacy: /mydata, /deletedata
+ * Phase 6 commands: /notifications
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -39,6 +40,7 @@ import {
   buildMydataCommand,
   buildDeletedataCommand,
 } from './modules/data-privacy/commands.js';
+import { buildNotificationsCommand } from './modules/notification-router/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -109,6 +111,10 @@ const commands = [
 
   buildMydataCommand(),
   buildDeletedataCommand(),
+
+  // --- Phase 6 Commands ---
+
+  buildNotificationsCommand(),
 ];
 
 // --- Deploy ---

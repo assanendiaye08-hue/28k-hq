@@ -31,7 +31,7 @@ import {
   isTrackedChannel,
 } from './tracker.js';
 import { buildSessionSummaryEmbed } from './embeds.js';
-import { deliverToPrivateSpace } from '../../shared/delivery.js';
+import { deliverNotification } from '../notification-router/router.js';
 
 const voiceTrackerModule: Module = {
   name: 'voice-tracker',
@@ -91,7 +91,7 @@ const voiceTrackerModule: Module = {
                 result.durationMinutes,
                 result.xpAwarded,
               );
-              await deliverToPrivateSpace(ctx.client, db, memberId, { embeds: [embed] });
+              await deliverNotification(ctx.client, db, memberId, 'general', { embeds: [embed] });
             }
             if (result?.leveledUp) {
               ctx.events.emit('levelUp', memberId, result.newRank!, result.oldRank!, 0);
@@ -132,7 +132,7 @@ const voiceTrackerModule: Module = {
                 result.durationMinutes,
                 result.xpAwarded,
               );
-              await deliverToPrivateSpace(ctx.client, db, memberId, { embeds: [embed] });
+              await deliverNotification(ctx.client, db, memberId, 'general', { embeds: [embed] });
             }
             if (result?.leveledUp) {
               ctx.events.emit('levelUp', memberId, result.newRank!, result.oldRank!, 0);

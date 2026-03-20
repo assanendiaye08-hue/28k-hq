@@ -12,7 +12,7 @@
 
 import type { Client } from 'discord.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
-import { deliverToPrivateSpace } from '../../shared/delivery.js';
+import { deliverNotification } from '../notification-router/router.js';
 import { infoEmbed } from '../../shared/embeds.js';
 
 /**
@@ -48,7 +48,7 @@ export async function checkExpiredGoals(
         `Your goal **"${goal.title}"** has passed its deadline.\n\nWould you like to extend it? Use \`/setgoal\` to create a new goal or check \`/goals\` for your active goals.`,
       );
 
-      await deliverToPrivateSpace(client, db, goal.memberId, {
+      await deliverNotification(client, db, goal.memberId, 'general', {
         embeds: [embed],
       });
 

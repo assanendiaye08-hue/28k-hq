@@ -20,7 +20,7 @@ import { OpenRouter } from '@openrouter/sdk';
 import type { ExtendedPrismaClient } from '../../db/client.js';
 import { config } from '../../core/config.js';
 import { BRAND_COLORS } from '../../shared/constants.js';
-import { deliverToPrivateSpace } from '../../shared/delivery.js';
+import { deliverNotification } from '../notification-router/router.js';
 import { getRankForXP, getNextRankInfo, calculateStreakMultiplier } from '../xp/engine.js';
 import { getRecentMessages, getSummary } from '../ai-assistant/memory.js';
 import { buildSystemPrompt, AI_NAME } from '../ai-assistant/personality.js';
@@ -415,7 +415,7 @@ export async function sendBrief(
       .setTimestamp();
 
     // Deliver to private space
-    const delivered = await deliverToPrivateSpace(client, db, memberId, {
+    const delivered = await deliverNotification(client, db, memberId, 'brief', {
       embeds: [embed],
     });
 
@@ -476,7 +476,7 @@ export async function sendCheckinReminder(
     // Build a friendly, personal assistant-style reminder
     const reminderText = `Hey ${member.displayName}, you said you'd check in around now. How's it going? Use \`/checkin\` when you're ready.`;
 
-    const delivered = await deliverToPrivateSpace(client, db, memberId, {
+    const delivered = await deliverNotification(client, db, memberId, 'brief', {
       content: reminderText,
     });
 
