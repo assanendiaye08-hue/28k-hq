@@ -1,0 +1,24 @@
+/**
+ * PM2 ecosystem configuration for production deployment.
+ *
+ * Usage:
+ *   pm2 start ecosystem.config.cjs        # Start the bot
+ *   pm2 restart discord-hustler            # Restart after deploy
+ *   pm2 logs discord-hustler               # View logs
+ *   pm2 monit                              # Monitor in real-time
+ */
+module.exports = {
+  apps: [
+    {
+      name: 'discord-hustler',
+      script: './dist/index.js',
+      env: {
+        NODE_ENV: 'production',
+      },
+      max_restarts: 10,
+      restart_delay: 5000,
+      watch: false, // Deploy hook handles restarts, not file watching
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+    },
+  ],
+};
