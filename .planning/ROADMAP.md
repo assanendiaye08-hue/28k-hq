@@ -32,12 +32,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Member can choose between DM-based or private-channel-based personal space, and the bot communicates with them there
   5. Member can link multiple Discord accounts to a single identity so XP and data are unified across accounts
   6. Private member data is encrypted at rest with per-member keys; member receives a personal recovery key via DM; raw DB access reveals only encrypted blobs
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md -- Project scaffolding, bot core, module loader, command router
+- [ ] 01-02-PLAN.md -- Database schema, per-member encryption, deployment pipeline
+- [ ] 01-03-PLAN.md -- Server structure, onboarding flow, private spaces
+- [ ] 01-04-PLAN.md -- AI profile extraction, visibility controls, account linking
 
 ### Phase 2: Daily Engagement Loop
 **Goal**: Members have a reason to open Discord every day -- they check in, track goals, earn XP, see their rank progress, and receive a personalized morning brief
@@ -124,7 +125,7 @@ Note: Phases 3 and 4 can execute in parallel after Phase 2 completes.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Identity | 0/3 | Not started | - |
+| 1. Foundation and Identity | 0/4 | Planning complete | - |
 | 2. Daily Engagement Loop | 0/3 | Not started | - |
 | 3. Competition and Social Proof | 0/2 | Not started | - |
 | 4. AI Assistant | 0/2 | Not started | - |
