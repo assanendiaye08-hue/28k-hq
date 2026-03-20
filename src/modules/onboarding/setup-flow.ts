@@ -56,7 +56,7 @@ const QUESTIONS: SetupQuestion[] = [
   {
     key: 'interests',
     question:
-      "What areas are you most into? (coding, content creation, ecom, freelancing, design, whatever)",
+      "What areas are you most into? (coding, design, marketing, writing, business, or whatever you're into)",
   },
   {
     key: 'goals',

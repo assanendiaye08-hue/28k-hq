@@ -39,6 +39,7 @@ model Member {
   seasonSnapshots       SeasonSnapshot[]
   conversationMessages  ConversationMessage[]
   conversationSummary   ConversationSummary?
+  notificationPreference NotificationPreference?
 }
 
 /// Discord accounts linked to a member identity.
@@ -360,4 +361,60 @@ enum SessionStatus {
 model BotConfig {
   key   String @id
   value String
+}
+
+// ─── Phase 6: Polish and Launch Readiness ───────────────────────────────────
+
+/// Per-member notification routing preferences.
+/// Members with multiple linked accounts can choose which account
+/// receives each notification type. Null = fall back to primary (default).
+model NotificationPreference {
+  id                    String  @id @default(cuid())
+  memberId              String  @unique
+  briefAccountId        String? // Discord account ID for morning briefs
+  nudgeAccountId        String? // Discord account ID for accountability nudges
+  sessionAlertAccountId String? // Discord account ID for session invites
+  levelUpAccountId      String? // Discord account ID for level-up alerts
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+/// Content feed source (RSS, YouTube, Reddit) for auto-feed curation.
+model FeedSource {
+  id        String   @id @default(cuid())
+  name      String
+  type      FeedType
+  url       String
+  active    Boolean  @default(true)
+  channelId String?  // Discord channel ID for posting
+  createdAt DateTime @default(now())
+
+  posts FeedPost[]
+}
+
+/// Individual post from a feed source, tracked for deduplication and voting.
+model FeedPost {
+  id             String   @id @default(cuid())
+  sourceId       String
+  externalId     String   // External ID from the source (RSS GUID, YouTube video ID, etc.)
+  title          String
+  link           String
+  category       String?
+  relevanceScore Int?
+  upvotes        Int      @default(0)
+  downvotes      Int      @default(0)
+  messageId      String?  // Discord message ID for the posted embed
+  postedAt       DateTime @default(now())
+
+  source FeedSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, externalId])
+  @@index([postedAt])
+}
+
+/// Feed source type enum.
+enum FeedType {
+  RSS
+  YOUTUBE
+  REDDIT
 }

@@ -1,11 +1,16 @@
 /**
  * Private Space Delivery Utility
  *
- * Reusable function to deliver messages to a member's private space.
+ * Low-level function to deliver messages to a member's private space.
  * Handles both space types (DM and private channel) transparently.
  *
- * Used by: check-in responses, goal updates, morning briefs,
- * reminders, level-up notifications -- all Phase 2 features.
+ * NOTE: For typed notifications (briefs, nudges, level-ups, session alerts),
+ * callers should prefer `deliverNotification` from the notification-router
+ * module. It routes to the member's preferred account per notification type,
+ * falling back to this function when no preference is set.
+ *
+ * This function remains the fallback for notification-router and is used
+ * directly by non-recurring deliveries (e.g., /mydata file export).
  */
 
 import { Client, TextChannel, type EmbedBuilder } from 'discord.js';
