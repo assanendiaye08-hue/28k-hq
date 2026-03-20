@@ -1,0 +1,67 @@
+import type { IEventBus } from '../shared/types.js';
+
+/**
+ * Predefined event types for cross-module communication.
+ * This is for internal module-to-module communication, NOT Discord events.
+ */
+export type BotEventMap = {
+  memberSetupComplete: [memberId: string, discordId: string];
+  accountLinked: [memberId: string, newDiscordId: string];
+  profileUpdated: [memberId: string];
+};
+
+export type BotEvent = keyof BotEventMap;
+
+type EventHandler = (...args: unknown[]) => void;
+
+/**
+ * Simple typed event bus for cross-module communication.
+ *
+ * Modules can emit events (e.g., "memberSetupComplete") and other modules
+ * can listen for them. This decouples modules from each other -- the onboarding
+ * module doesn't need to import the profile module to notify it.
+ */
+export class EventBus implements IEventBus {
+  private handlers = new Map<string, Set<EventHandler>>();
+
+  /**
+   * Register a handler for an event.
+   */
+  on(event: string, handler: (...args: unknown[]) => void): void {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set());
+    }
+    this.handlers.get(event)!.add(handler);
+  }
+
+  /**
+   * Remove a handler for an event.
+   */
+  off(event: string, handler: (...args: unknown[]) => void): void {
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      handlers.delete(handler);
+      if (handlers.size === 0) {
+        this.handlers.delete(event);
+      }
+    }
+  }
+
+  /**
+   * Emit an event, calling all registered handlers.
+   * Handlers are called synchronously in registration order.
+   * Errors in handlers are caught and logged to prevent cascade failures.
+   */
+  emit(event: string, ...args: unknown[]): void {
+    const handlers = this.handlers.get(event);
+    if (!handlers) return;
+
+    for (const handler of handlers) {
+      try {
+        handler(...args);
+      } catch (error) {
+        console.error(`Error in event handler for "${event}":`, error);
+      }
+    }
+  }
+}
