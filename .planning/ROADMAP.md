@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation and Identity** - Bot framework, server structure, member profiles with multi-account identity, private spaces, and per-member data encryption
 - [x] **Phase 2: Daily Engagement Loop** - Check-ins, goals, XP engine, rank progression, and morning briefs that make the server a daily habit (completed 2026-03-20)
 - [x] **Phase 3: Competition and Social Proof** - Leaderboards, voice tracking, wins/lessons channels, and seasonal system that make hustling competitive (completed 2026-03-20)
-- [ ] **Phase 4: AI Assistant** - Conversational AI per member via OpenRouter, context-aware briefs, and accountability nudges
+- [x] **Phase 4: AI Assistant** - Conversational AI per member via OpenRouter, context-aware briefs, and accountability nudges (completed 2026-03-20)
 - [ ] **Phase 5: Content, Sessions, and Trust** - Resource feeds, lock-in sessions, and member data transparency/privacy controls
 - [ ] **Phase 6: Polish and Tuning** - Auto-content feeds, notification routing refinement, and end-to-end hardening before launch
 
@@ -81,7 +81,7 @@ Plans:
   1. Member can have a natural conversation with an AI assistant in their private space for advice, brainstorming, and general chat
   2. Morning briefs incorporate AI-generated personalization using the member's goals, streak, interests, and recent activity (not just template fill-in)
   3. Member receives an evening nudge if they haven't checked in that day, sent to their preferred account
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 04-01-PLAN.md -- Conversational AI core: schema, memory, personality, chat handler, /ask and /wipe-history commands
@@ -129,6 +129,6 @@ Note: Phases 3 and 4 can execute in parallel after Phase 2 completes.
 | 1. Foundation and Identity | 4/4 | Complete    | 2026-03-20 |
 | 2. Daily Engagement Loop | 3/3 | Complete    | 2026-03-20 |
 | 3. Competition and Social Proof | 2/3 | Complete    | 2026-03-20 |
-| 4. AI Assistant | 0/2 | Not started | - |
+| 4. AI Assistant | 0/2 | Complete    | 2026-03-20 |
 | 5. Content, Sessions, and Trust | 0/3 | Not started | - |
 | 6. Polish and Launch Readiness | 0/2 | Not started | - |
