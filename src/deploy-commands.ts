@@ -9,10 +9,18 @@
  * register/update slash commands with Discord, then exits.
  *
  * Phase 1 commands: /setup, /profile, /link, /verify, /unlink
+ * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
 import { config } from './core/config.js';
+import { buildCheckinCommand } from './modules/checkin/commands.js';
+import {
+  buildSetgoalCommand,
+  buildGoalsCommand,
+  buildProgressCommand,
+  buildCompletegoalCommand,
+} from './modules/goals/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -48,6 +56,14 @@ const commands = [
   new SlashCommandBuilder()
     .setName('unlink')
     .setDescription('Unlink a Discord account from your identity'),
+
+  // --- Phase 2 Slash Commands ---
+
+  buildCheckinCommand(),
+  buildSetgoalCommand(),
+  buildGoalsCommand(),
+  buildProgressCommand(),
+  buildCompletegoalCommand(),
 ];
 
 // --- Deploy ---
