@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 3: Competition and Social Proof
+**Current focus:** Phase 4: AI Assistant
 
 ## Current Position
 
-Phase: 3 of 6 (Competition and Social Proof)
-Plan: 3 of 3 in current phase (PHASE COMPLETE)
-Status: Phase Complete
-Last activity: 2026-03-20 -- Completed 03-03-PLAN.md (Seasonal system with auto-bootstrap, hall-of-fame, and /season command)
+Phase: 4 of 6 (AI Assistant)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-03-20 -- Completed 04-01-PLAN.md (AI assistant core: Ace personality, DM chat, memory, /ask and /wipe-history)
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 73%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 5 min
-- Total execution time: 0.88 hours
+- Total execution time: 0.95 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [███████░░░] 67%
 | 01-foundation-and-identity | 4 | 23 min | 6 min |
 | 02-daily-engagement-loop | 3 | 17 min | 6 min |
 | 03-competition-and-social-proof | 3 | 13 min | 4 min |
+| 04-ai-assistant | 1 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (6 min), 02-03 (6 min), 03-01 (4 min), 03-02 (4 min), 03-03 (5 min)
+- Last 5 plans: 02-03 (6 min), 03-01 (4 min), 03-02 (4 min), 03-03 (5 min), 04-01 (4 min)
 - Trend: stable/improving
 
 *Updated after each plan completion*
@@ -46,6 +47,7 @@ Progress: [███████░░░] 67%
 | Phase 03 P01 | 4min | 2 tasks | 12 files |
 | Phase 03 P02 | 4min | 2 tasks | 7 files |
 | Phase 03 P03 | 5min | 2 tasks | 7 files |
+| Phase 04 P01 | 4min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -101,6 +103,11 @@ Recent decisions affecting current work:
 - [03-03]: Snapshot-based archival captures every member at season end for permanent display
 - [03-03]: Champion role stored in BotConfig with 7-day expiry for daily cleanup
 - [03-03]: Season module auto-discovered alphabetically after leaderboard by loader convention
+- [04-01]: Per-member promise chain lock for sequential message processing (no mutex library needed)
+- [04-01]: 100K token context budget (~70% of DeepSeek 164K window) with 20K system prompt reserve
+- [04-01]: DeepSeek V3.2 primary, Qwen 3.5 Plus fallback for AI chat reliability
+- [04-01]: Daily 50-message cap per member checked in member's timezone
+- [04-01]: Conversation messages encrypted at rest via existing encryption extension
 
 ### Pending Todos
 
@@ -113,5 +120,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 03-03-PLAN.md (Seasonal system with auto-bootstrap, hall-of-fame, /season command -- Phase 3 complete)
+Stopped at: Completed 04-01-PLAN.md (AI assistant core: Ace personality, DM chat, memory, /ask, /wipe-history)
 Resume file: None

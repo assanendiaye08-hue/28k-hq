@@ -33,7 +33,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### AI Assistant
 
-- [ ] **AI-01**: Conversational AI in private space — general chat, advice, brainstorming via OpenRouter models
+- [x] **AI-01**: Conversational AI in private space — general chat, advice, brainstorming via OpenRouter models
 - [ ] **AI-02**: Context-aware morning briefs — AI incorporates member's goals, streak, interests, and recent activity
 - [ ] **AI-03**: Accountability nudges — evening message if member hasn't checked in that day, sent to preferred account
 
@@ -98,7 +98,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-02 | Phase 3: Competition and Social Proof | Complete |
 | COMP-03 | Phase 3: Competition and Social Proof | Complete |
 | COMP-04 | Phase 3: Competition and Social Proof | Complete |
-| AI-01 | Phase 4: AI Assistant | Pending |
+| AI-01 | Phase 4: AI Assistant | Complete |
 | AI-02 | Phase 4: AI Assistant | Pending |
 | AI-03 | Phase 4: AI Assistant | Pending |
 | CONT-01 | Phase 5: Content, Sessions, and Trust | Pending |
