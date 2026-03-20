@@ -60,7 +60,11 @@ Plans:
   1. Member can add up to 3 inspirations with optional context about why they admire each person via /inspiration command
   2. Member can ask Jarvis "what would [inspiration] do?" and receive a response grounded in that person's known philosophy and style
   3. Jarvis references a member's inspirations in morning briefs and nudges when contextually relevant -- without forcing it into every message
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md -- Inspiration Prisma model and /inspiration command (add/remove/list)
+- [ ] 08-02-PLAN.md -- System prompt enrichment and protected memory integration for AI interactions
 
 ### Phase 9: Productivity Timer
 **Goal**: Members can run structured focus sessions with configurable work/break intervals that award XP and track what was worked on
@@ -132,7 +136,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 5. Content, Sessions, and Trust | v1.0 | 3/3 | Complete | 2026-03-20 |
 | 6. Polish and Launch Readiness | v1.0 | 3/3 | Complete | 2026-03-20 |
 | 7. AI Infrastructure | v1.1 | Complete    | 2026-03-20 | - |
-| 8. Inspiration System | v1.1 | 0/0 | Not started | - |
+| 8. Inspiration System | v1.1 | 0/2 | Planning complete | - |
 | 9. Productivity Timer | v1.1 | 0/0 | Not started | - |
 | 10. Smart Reminders | v1.1 | 0/0 | Not started | - |
 | 11. Goal Hierarchy | v1.1 | 0/0 | Not started | - |
