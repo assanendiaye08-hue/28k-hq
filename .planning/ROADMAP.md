@@ -112,11 +112,12 @@ Plans:
   1. Bot automatically posts relevant content from RSS/APIs into appropriate channels on a schedule
   2. Members can configure which of their linked accounts receives each notification type (briefs, nudges, session alerts)
   3. The full system runs for 7 days without manual intervention and handles edge cases gracefully (member leaves/rejoins, bot restart, empty leaderboard states)
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md -- Schema migration, notification routing with /notifications command, and server lane cleanup
+- [ ] 06-02-PLAN.md -- Auto-content feed pipeline: RSS/YouTube/Reddit ingestion, AI quality filter, Discord posting with feedback loop
+- [ ] 06-03-PLAN.md -- Hardening module: bot restart recovery, #bot-log admin channel, member leave/rejoin lifecycle
 
 ## Progress
 
@@ -131,4 +132,4 @@ Note: Phases 3 and 4 can execute in parallel after Phase 2 completes.
 | 3. Competition and Social Proof | 2/3 | Complete    | 2026-03-20 |
 | 4. AI Assistant | 0/2 | Complete    | 2026-03-20 |
 | 5. Content, Sessions, and Trust | 0/3 | Complete    | 2026-03-20 |
-| 6. Polish and Launch Readiness | 0/2 | Not started | - |
+| 6. Polish and Launch Readiness | 0/3 | Not started | - |
