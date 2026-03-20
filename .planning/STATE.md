@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 7 of 13 (AI Infrastructure)
-Plan: 3 of 3
-Status: Executing
-Last activity: 2026-03-20 -- Completed 07-02 (AI call site migration)
+Phase: 7 of 13 (AI Infrastructure) -- COMPLETE
+Plan: 3 of 3 -- COMPLETE
+Status: Phase Complete
+Last activity: 2026-03-20 -- Completed 07-03 (Admin controls and tiered memory)
 
-Progress: [███░░░░░░░░░░░░░░░░░] 10% (v1.1)
+Progress: [████░░░░░░░░░░░░░░░░] 14% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20 (18 v1.0 + 2 v1.1)
+- Total plans completed: 21 (18 v1.0 + 3 v1.1)
 - Average duration: 5 min
-- Total execution time: 1.65 hours
+- Total execution time: 1.73 hours
 
 **By Phase (v1.0):**
 
@@ -38,10 +38,10 @@ Progress: [███░░░░░░░░░░░░░░░░░] 10% (v1
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 07-ai-infrastructure | 2/3 | 15 min | 8 min |
+| 07-ai-infrastructure | 3/3 | 20 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-02 (3 min), 06-03 (4 min), 07-01 (6 min), 07-02 (9 min)
+- Last 5 plans: 06-03 (4 min), 07-01 (6 min), 07-02 (9 min), 07-03 (5 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -62,6 +62,9 @@ Recent decisions affecting current work:
 - [07-02]: Context budget upgraded from 100K to 1.4M tokens for Grok 4.1 Fast's 2M window
 - [07-02]: System-level AI calls (filter, tagger) use memberId='system' for budget bypass
 - [07-02]: Functions needing db/memberId had signatures expanded with all callers updated
+- [07-03]: Warm tier uses text truncation heuristic instead of AI calls to avoid expense and recursion
+- [07-03]: compressSummary() only compresses messages older than 30 days, preserving warm-tier messages
+- [07-03]: Token trimming priority: warm summaries first, then hot messages, then trigger compression
 
 ### Pending Todos
 
@@ -74,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Completed 07-03-PLAN.md (Phase 7 complete)
 Resume file: None

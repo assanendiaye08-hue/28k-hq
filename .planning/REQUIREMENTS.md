@@ -11,8 +11,8 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 
 - [x] **INFRA-01**: Centralize all OpenRouter API calls through a single shared client with per-request token tracking
 - [x] **INFRA-02**: Per-member daily and monthly token budgets -- configurable, with graceful degradation when limits hit (template fallback, not hard block)
-- [ ] **INFRA-03**: Admin /cost command showing total tokens used, per-member breakdown, and estimated cost
-- [ ] **INFRA-04**: Tiered memory system (hot/warm/cold) -- recent data verbatim, weekly patterns summarized, historical compressed. Nothing lost from DB, only prompt assembly is tiered
+- [x] **INFRA-03**: Admin /cost command showing total tokens used, per-member breakdown, and estimated cost
+- [x] **INFRA-04**: Tiered memory system (hot/warm/cold) -- recent data verbatim, weekly patterns summarized, historical compressed. Nothing lost from DB, only prompt assembly is tiered
 - [x] **INFRA-05**: Configurable model per use case -- chat (large context model), structured output (json_schema model), fallback. Swappable without code changes
 
 ### Productivity Timer
@@ -92,8 +92,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | INFRA-01 | Phase 7 | Complete |
 | INFRA-02 | Phase 7 | Complete |
-| INFRA-03 | Phase 7 | Pending |
-| INFRA-04 | Phase 7 | Pending |
+| INFRA-03 | Phase 7 | Complete |
+| INFRA-04 | Phase 7 | Complete |
 | INFRA-05 | Phase 7 | Complete |
 | INSP-01 | Phase 8 | Pending |
 | INSP-02 | Phase 8 | Pending |
