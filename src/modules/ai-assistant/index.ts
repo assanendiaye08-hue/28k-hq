@@ -1,7 +1,7 @@
 /**
  * AI Assistant Module
  *
- * Personal AI assistant "Ace" -- a Jarvis-inspired operator that knows
+ * Personal AI assistant "Jarvis" -- an operator that knows
  * each member's goals, streak, interests, and recent activity.
  *
  * Features:

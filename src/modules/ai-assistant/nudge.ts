@@ -150,7 +150,7 @@ export async function shouldNudge(
  * Send an accountability nudge to a member.
  *
  * Checks shouldNudge first. If eligible, generates an AI-powered nudge
- * message using Ace's personality, delivers via DM, and records it.
+ * message using Jarvis's personality, delivers via DM, and records it.
  *
  * Extended silence (days >= silenceThresholdDays) triggers a genuine
  * check-in conversation instead of a productivity nudge.

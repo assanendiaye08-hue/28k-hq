@@ -1,7 +1,7 @@
 /**
  * AI assistant slash commands.
  *
- * /ask [message] -- Chat with Ace from any channel (ephemeral response)
+ * /ask [message] -- Chat with Jarvis from any channel (ephemeral response)
  * /wipe-history  -- Export conversation history as JSON file, then wipe it
  */
 
@@ -29,7 +29,7 @@ export function buildAskCommand(): SlashCommandBuilder {
     .addStringOption((opt) =>
       opt
         .setName('message')
-        .setDescription('Your message to Ace')
+        .setDescription('Your message to Jarvis')
         .setRequired(true),
     ) as SlashCommandBuilder;
 }
@@ -51,7 +51,7 @@ export async function handleAsk(
 
   if (!account) {
     await interaction.reply({
-      content: 'You need to run /setup first before chatting with Ace.',
+      content: 'You need to run /setup first before chatting with Jarvis.',
       ephemeral: true,
     });
     return;
@@ -85,7 +85,7 @@ export async function handleAsk(
 export function buildWipeHistoryCommand(): SlashCommandBuilder {
   return new SlashCommandBuilder()
     .setName('wipe-history')
-    .setDescription('Export and clear your conversation history with Ace') as SlashCommandBuilder;
+    .setDescription('Export and clear your conversation history with Jarvis') as SlashCommandBuilder;
 }
 
 /**
@@ -120,7 +120,7 @@ export async function handleWipeHistory(
       // Create JSON file attachment
       const jsonContent = JSON.stringify(history, null, 2);
       const dateStr = new Date().toISOString().split('T')[0];
-      const filename = `ace-history-${account.memberId}-${dateStr}.json`;
+      const filename = `jarvis-history-${account.memberId}-${dateStr}.json`;
 
       const attachment = new AttachmentBuilder(Buffer.from(jsonContent, 'utf-8'), {
         name: filename,
@@ -166,7 +166,7 @@ export function buildAccountabilityCommand(): SlashCommandBuilder {
     .addStringOption((opt) =>
       opt
         .setName('level')
-        .setDescription('How hard should Ace push you?')
+        .setDescription('How hard should Jarvis push you?')
         .setRequired(true)
         .addChoices(
           { name: 'Light (gentle, miss 2+ days)', value: 'light' },
