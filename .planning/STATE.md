@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 5: Content Sessions and Trust
+**Current focus:** Phase 6: Polish and Launch Readiness
 
 ## Current Position
 
-Phase: 5 of 6 (Content Sessions and Trust)
-Plan: 3 of 3 in current phase
-Status: Phase Complete
-Last activity: 2026-03-20 -- Completed 05-03-PLAN.md (Data privacy with /mydata export and /deletedata deletion)
+Phase: 6 of 6 (Polish and Launch Readiness)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-20 -- Completed 06-01-PLAN.md (Notification router, schema migration, lane cleanup)
 
-Progress: [██████████] 94%
+Progress: [████████████████████] 95%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 5 min
-- Total execution time: 1.21 hours
+- Total execution time: 1.29 hours
 
 **By Phase:**
 
@@ -32,9 +32,10 @@ Progress: [██████████] 94%
 | 03-competition-and-social-proof | 3 | 13 min | 4 min |
 | 04-ai-assistant | 2 | 9 min | 5 min |
 | 05-content-sessions-and-trust | 3 | 11 min | 4 min |
+| 06-polish-and-launch-readiness | 1 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (5 min), 05-01 (3 min), 05-02 (5 min), 05-03 (3 min)
+- Last 5 plans: 05-01 (3 min), 05-02 (5 min), 05-03 (3 min), 06-01 (5 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -53,6 +54,7 @@ Progress: [██████████] 94%
 | Phase 05 P01 | 3min | 2 tasks | 9 files |
 | Phase 05 P02 | 5min | 2 tasks | 12 files |
 | Phase 05 P03 | 3min | 2 tasks | 7 files |
+| Phase 06 P01 | 5min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -128,6 +130,9 @@ Recent decisions affecting current work:
 - [Phase 05-03]: creatorMemberId extraction added alongside memberId checks in encryption extension for LockInSession support
 - [Phase 05-03]: Private space channel fallback for /mydata when DMs are closed -- recreates AttachmentBuilder for second delivery attempt
 - [Phase 05-03]: Role stripping after DB deletion uses fetched accounts list from before cascade delete
+- [Phase 06-01]: NotificationType string union (not Prisma enum) for lightweight type safety
+- [Phase 06-01]: General notifications skip preference lookup for efficiency
+- [Phase 06-01]: auto-feed channel added alongside resource channels (not replacing) per research
 
 ### Pending Todos
 
@@ -140,5 +145,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 05-03-PLAN.md (Data privacy with /mydata export and /deletedata deletion)
+Stopped at: Completed 06-01-PLAN.md (Notification router, schema migration, lane cleanup)
 Resume file: None

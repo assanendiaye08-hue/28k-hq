@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **FNDN-03**: Member profiles — fluid/customizable interests and focus areas, not rigid lanes. Feels tailor-made per person
 - [x] **FNDN-04**: Per-member private space — member chooses DM (fully private) or private server channel (more integrated) for personal tracking and AI interaction
 - [x] **FNDN-05**: Multi-account identity system — link multiple Discord accounts to one member profile. XP/streaks/data count once per identity
-- [ ] **FNDN-06**: Per-notification-type account routing — members choose which linked account receives briefs, nudges, etc.
+- [x] **FNDN-06**: Per-notification-type account routing — members choose which linked account receives briefs, nudges, etc.
 
 ### Daily Engagement
 
@@ -88,7 +88,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FNDN-03 | Phase 1: Foundation and Identity | Complete |
 | FNDN-04 | Phase 1: Foundation and Identity | Complete |
 | FNDN-05 | Phase 1: Foundation and Identity | Complete |
-| FNDN-06 | Phase 6: Polish and Launch Readiness | Pending |
+| FNDN-06 | Phase 6: Polish and Launch Readiness | Complete |
 | ENGAGE-01 | Phase 2: Daily Engagement Loop | Complete |
 | ENGAGE-02 | Phase 2: Daily Engagement Loop | Complete |
 | ENGAGE-03 | Phase 2: Daily Engagement Loop | Complete |
