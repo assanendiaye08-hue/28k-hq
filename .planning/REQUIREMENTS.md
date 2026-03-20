@@ -44,7 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Sessions
 
-- [ ] **SESS-01**: Member-initiated lock-in sessions — member asks bot to schedule a session, bot announces to server and tracks who attends
+- [x] **SESS-01**: Member-initiated lock-in sessions — member asks bot to schedule a session, bot announces to server and tracks who attends
 
 ### Trust & Privacy
 
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-03 | Phase 4: AI Assistant | Complete |
 | CONT-01 | Phase 5: Content, Sessions, and Trust | Complete |
 | CONT-02 | Phase 6: Polish and Launch Readiness | Pending |
-| SESS-01 | Phase 5: Content, Sessions, and Trust | Pending |
+| SESS-01 | Phase 5: Content, Sessions, and Trust | Complete |
 | TRUST-01 | Phase 5: Content, Sessions, and Trust | Pending |
 | TRUST-02 | Phase 5: Content, Sessions, and Trust | Pending |
 | TRUST-03 | Phase 5: Content, Sessions, and Trust | Pending |
