@@ -37,6 +37,7 @@ export async function exportMemberData(
       schedule: true,
       seasonSnapshots: true,
       privateSpace: true,
+      notificationPreference: true,
     },
   });
 
@@ -159,6 +160,15 @@ export async function exportMemberData(
       ? {
           type: member.privateSpace.type,
           channelId: member.privateSpace.channelId,
+        }
+      : null,
+
+    notificationPreference: member.notificationPreference
+      ? {
+          briefAccountId: member.notificationPreference.briefAccountId,
+          nudgeAccountId: member.notificationPreference.nudgeAccountId,
+          sessionAlertAccountId: member.notificationPreference.sessionAlertAccountId,
+          levelUpAccountId: member.notificationPreference.levelUpAccountId,
         }
       : null,
 
