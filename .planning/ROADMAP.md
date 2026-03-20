@@ -26,7 +26,7 @@ Full details: .planning/milestones/v1.0-ROADMAP.md
 **Milestone Goal:** Make the server deeper and stickier -- structured goal planning, focused work sessions, self-reflection, inspiration, progress visibility, and smart reminders.
 
 - [x] **Phase 7: AI Infrastructure** - Centralize AI client, cost tracking, tiered memory, configurable models (completed 2026-03-20)
-- [ ] **Phase 8: Inspiration System** - Members set people they admire, Jarvis references them naturally
+- [x] **Phase 8: Inspiration System** - Members set people they admire, Jarvis references them naturally (completed 2026-03-20)
 - [ ] **Phase 9: Productivity Timer** - Pomodoro and proportional break timers with XP integration
 - [ ] **Phase 10: Smart Reminders** - Natural language time-based reminders with urgency tiers
 - [ ] **Phase 11: Goal Hierarchy** - Optional yearly-to-daily goal decomposition with Jarvis-assisted breakdown
@@ -60,7 +60,7 @@ Plans:
   1. Member can add up to 3 inspirations with optional context about why they admire each person via /inspiration command
   2. Member can ask Jarvis "what would [inspiration] do?" and receive a response grounded in that person's known philosophy and style
   3. Jarvis references a member's inspirations in morning briefs and nudges when contextually relevant -- without forcing it into every message
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 08-01-PLAN.md -- Inspiration Prisma model and /inspiration command (add/remove/list)
@@ -136,7 +136,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 5. Content, Sessions, and Trust | v1.0 | 3/3 | Complete | 2026-03-20 |
 | 6. Polish and Launch Readiness | v1.0 | 3/3 | Complete | 2026-03-20 |
 | 7. AI Infrastructure | v1.1 | Complete    | 2026-03-20 | - |
-| 8. Inspiration System | v1.1 | 0/2 | Planning complete | - |
+| 8. Inspiration System | v1.1 | Complete    | 2026-03-20 | - |
 | 9. Productivity Timer | v1.1 | 0/0 | Not started | - |
 | 10. Smart Reminders | v1.1 | 0/0 | Not started | - |
 | 11. Goal Hierarchy | v1.1 | 0/0 | Not started | - |
