@@ -47,6 +47,10 @@ export const XP_AWARDS = {
   win: 30, // XP for posting in #wins
   lesson: 35, // XP for posting in #lessons (slightly higher to encourage vulnerability)
   winsLessonsCooldownMs: 2 * 60 * 60 * 1000, // 2-hour cooldown per type per member
+
+  // Phase 5: Resource sharing
+  resourceShare: 15, // XP for posting a resource (lower effort than wins/lessons)
+  resourceShareCooldownMs: 4 * 60 * 60 * 1000, // 4-hour cooldown per member
 } as const;
 
 /**
