@@ -38,7 +38,7 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 
 ### Inspiration
 
-- [ ] **INSP-01**: Member can set 1-3 inspirations (people they admire) via /inspiration command with optional context about why
+- [x] **INSP-01**: Member can set 1-3 inspirations (people they admire) via /inspiration command with optional context about why
 - [ ] **INSP-02**: Member can ask Jarvis "what would [inspiration] do?" and get a response in that person's spirit
 - [ ] **INSP-03**: Jarvis naturally references member's inspirations in briefs and nudges when contextually relevant -- not forced or spammy
 
@@ -95,7 +95,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-03 | Phase 7 | Complete |
 | INFRA-04 | Phase 7 | Complete |
 | INFRA-05 | Phase 7 | Complete |
-| INSP-01 | Phase 8 | Pending |
+| INSP-01 | Phase 8 | Complete |
 | INSP-02 | Phase 8 | Pending |
 | INSP-03 | Phase 8 | Pending |
 | TIMER-01 | Phase 9 | Pending |

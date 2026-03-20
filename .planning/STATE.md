@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 7 -- AI Infrastructure
+**Current focus:** Phase 8 -- Inspiration System
 
 ## Current Position
 
-Phase: 7 of 13 (AI Infrastructure) -- COMPLETE
-Plan: 3 of 3 -- COMPLETE
-Status: Phase Complete
-Last activity: 2026-03-20 -- Completed 07-03 (Admin controls and tiered memory)
+Phase: 8 of 13 (Inspiration System)
+Plan: 1 of 2
+Status: In Progress
+Last activity: 2026-03-21 -- Completed 08-01 (Inspiration model and command)
 
-Progress: [████░░░░░░░░░░░░░░░░] 14% (v1.1)
+Progress: [█████░░░░░░░░░░░░░░░] 21% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21 (18 v1.0 + 3 v1.1)
+- Total plans completed: 22 (18 v1.0 + 4 v1.1)
 - Average duration: 5 min
-- Total execution time: 1.73 hours
+- Total execution time: 1.78 hours
 
 **By Phase (v1.0):**
 
@@ -39,9 +39,10 @@ Progress: [████░░░░░░░░░░░░░░░░] 14% (v1
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 07-ai-infrastructure | 3/3 | 20 min | 7 min |
+| 08-inspiration-system | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-03 (4 min), 07-01 (6 min), 07-02 (9 min), 07-03 (5 min)
+- Last 5 plans: 07-01 (6 min), 07-02 (9 min), 07-03 (5 min), 08-01 (3 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [07-03]: Warm tier uses text truncation heuristic instead of AI calls to avoid expense and recursion
 - [07-03]: compressSummary() only compresses messages older than 30 days, preserving warm-tier messages
 - [07-03]: Token trimming priority: warm summaries first, then hot messages, then trigger compression
+- [08-01]: Upsert on /inspiration add so re-adding same name updates context instead of erroring
+- [08-01]: deleteMany for /inspiration remove to get count-based feedback without try/catch
+- [08-01]: All /inspiration interactions use ephemeral replies (personal data)
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Stopped at: Completed 07-03-PLAN.md (Phase 7 complete)
+Last session: 2026-03-21
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
