@@ -19,7 +19,7 @@ import { createClient } from './core/client.js';
 import { CommandRegistry } from './core/commands.js';
 import { EventBus } from './core/events.js';
 import { loadModules } from './core/module-loader.js';
-import { getDb, disconnectDb } from './db/client.js';
+import { db, disconnectDb } from './db/client.js';
 import type { ModuleContext } from './shared/types.js';
 
 // --- Logger Setup ---
@@ -64,7 +64,7 @@ async function main(): Promise<void> {
   // Initialize core services
   const commands = new CommandRegistry();
   const events = new EventBus();
-  const db = getDb();
+  // Database client with encryption extension (from db/client.ts)
 
   // Build module context
   const ctx: ModuleContext = {
