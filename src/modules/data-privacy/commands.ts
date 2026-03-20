@@ -173,7 +173,7 @@ export async function handleDeletedata(
         '- Profile and preferences\n' +
         '- Check-ins and goals\n' +
         '- XP and streak history\n' +
-        '- Conversations with Ace\n' +
+        '- Conversations with Jarvis\n' +
         '- Voice session records\n' +
         '- Schedule and settings\n' +
         '- Season snapshots\n' +

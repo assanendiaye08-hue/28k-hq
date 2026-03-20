@@ -2,14 +2,14 @@
  * Hybrid AI+template morning brief generation with full AI context.
  *
  * The morning brief is the daily hook -- a personalized message that shows
- * a member's goals, streak, rank, and today's agenda, delivered in Ace's
+ * a member's goals, streak, rank, and today's agenda, delivered in Jarvis's
  * voice with references to ongoing conversations and community highlights.
  *
  * Approach:
  * 1. Build a structured template from real data
  * 2. Load conversation history and summary from memory service
  * 3. Gather community pulse (who's active, voice sessions, wins/lessons)
- * 4. Pass to DeepSeek V3.2 via OpenRouter with Ace personality
+ * 4. Pass to DeepSeek V3.2 via OpenRouter with Jarvis personality
  * 5. Fall back to clean template formatting if AI fails
  */
 
@@ -195,7 +195,7 @@ export function buildBriefTemplate(data: MemberBriefData): BriefTemplate {
  * 1. Check cache -- if already generated today, return cached
  * 2. Build template from real data
  * 3. Load conversation history and community pulse
- * 4. Try AI generation with Ace personality
+ * 4. Try AI generation with Jarvis personality
  * 5. Fall back to template formatting if AI fails
  */
 export async function generateBrief(
@@ -229,7 +229,7 @@ export async function generateBrief(
     // Get community pulse
     const pulse = await getCommunityPulse(db);
 
-    // Build Ace system prompt layered with brief-specific addendum
+    // Build Jarvis system prompt layered with brief-specific addendum
     const aceSystemPrompt = await buildSystemPrompt(db, memberId);
     const briefAddendum = `\n\nWrite a morning brief for this member. Keep it 3-6 sentences. Include their personal stats, reference any ongoing conversations or commitments they mentioned, add a community highlight if something interesting happened. Make it feel like their personal operator catching them up.`;
 
