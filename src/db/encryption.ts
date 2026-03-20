@@ -19,11 +19,13 @@ import { config } from '../core/config.js';
 
 /**
  * Map of model names to their encrypted field names.
- * Only rawAnswers is encrypted -- structured tags are intentionally
- * cleartext for queries, matching, and leaderboards.
+ * Encrypted: raw personal text (answers, check-in content, goal descriptions).
+ * Cleartext: structured tags, categories, titles -- needed for queries and display.
  */
 const ENCRYPTED_FIELDS: Record<string, string[]> = {
   MemberProfile: ['rawAnswers'],
+  CheckIn: ['content'],
+  Goal: ['description'],
 };
 
 /** Write operations that may contain data to encrypt. */

@@ -75,6 +75,12 @@ export const SERVER_CATEGORIES = {
 } as const;
 
 /**
+ * Setup bonus XP -- re-exported from xp/constants for convenience.
+ * Onboarding module can import from here to award XP on setup complete.
+ */
+export { XP_AWARDS } from '../modules/xp/constants.js';
+
+/**
  * Brand colors used consistently across all embeds.
  */
 export const BRAND_COLORS = {
