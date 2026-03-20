@@ -5,32 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 1: Foundation and Identity
+**Current focus:** Phase 2: Daily Engagement Loop
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation and Identity) -- COMPLETE
-Plan: 4 of 4 in current phase
-Status: Phase Complete
-Last activity: 2026-03-20 -- Completed 01-04-PLAN.md (AI profile extraction, visibility controls, account linking)
+Phase: 2 of 6 (Daily Engagement Loop)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-20 -- Completed 02-01-PLAN.md (Schema extensions, XP engine, rank sync, delivery utility)
 
-Progress: [██░░░░░░░░] 24%
+Progress: [███░░░░░░░] 29%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 6 min
-- Total execution time: 0.38 hours
+- Total execution time: 0.47 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-and-identity | 4 | 23 min | 6 min |
+| 02-daily-engagement-loop | 1 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (5 min), 01-04 (7 min)
+- Last 5 plans: 01-02 (6 min), 01-03 (5 min), 01-04 (7 min), 02-01 (5 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -38,6 +39,7 @@ Progress: [██░░░░░░░░] 24%
 | Phase 01 P02 | 6min | 2 tasks | 9 files |
 | Phase 01 P03 | 5min | 2 tasks | 9 files |
 | Phase 01 P04 | 7min | 2 tasks | 8 files |
+| Phase 02 P01 | 5min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -70,6 +72,9 @@ Recent decisions affecting current work:
 - [01-04]: Interest tags as neutral grey Discord roles (0x95a5a6) -- distinct from rank roles
 - [01-04]: Account linking uses Prisma interactive $transaction for atomic code verification
 - [01-04]: Visibility select menu allows zero selections (all fields private) via setMinValues(0)
+- [02-01]: Prisma 7 generates XPTransaction accessor as xPTransaction (capital P after x) -- use tx.xPTransaction
+- [02-01]: RankInfo type widened from readonly const tuple to plain interface for cross-module compatibility
+- [02-01]: XP_AWARDS re-exported from shared/constants.ts for onboarding module convenience
 
 ### Pending Todos
 
@@ -82,5 +87,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 01-04-PLAN.md (Phase 1 complete)
+Stopped at: Completed 02-01-PLAN.md (XP engine, schema extensions, rank sync, delivery utility)
 Resume file: None

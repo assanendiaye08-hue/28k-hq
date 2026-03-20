@@ -53,7 +53,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Schema extensions, XP engine, rank/role sync, and shared delivery utility
+- [x] 02-01-PLAN.md -- Schema extensions, XP engine, rank/role sync, and shared delivery utility
 - [ ] 02-02-PLAN.md -- Check-in command with AI categories and streak tracking, goal commands with expiry flow
 - [ ] 02-03-PLAN.md -- Scheduler module with morning briefs, check-in reminders, and Sunday planning sessions
 
@@ -126,7 +126,7 @@ Note: Phases 3 and 4 can execute in parallel after Phase 2 completes.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation and Identity | 4/4 | Complete    | 2026-03-20 |
-| 2. Daily Engagement Loop | 0/3 | Not started | - |
+| 2. Daily Engagement Loop | 1/3 | In Progress | - |
 | 3. Competition and Social Proof | 0/2 | Not started | - |
 | 4. AI Assistant | 0/2 | Not started | - |
 | 5. Content, Sessions, and Trust | 0/3 | Not started | - |

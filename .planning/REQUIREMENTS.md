@@ -20,8 +20,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **ENGAGE-01**: Daily check-in via `/checkin` — log what you did today with flexible scoring (not rigid pass/fail streaks)
 - [ ] **ENGAGE-02**: Goal setting via `/setgoal` — set weekly/monthly goals with progress tracking
-- [ ] **ENGAGE-03**: XP engine — earn XP from check-ins, goals completed, voice sessions, wins posted
-- [ ] **ENGAGE-04**: Rank/role progression — level up from XP and unlock Discord roles automatically
+- [x] **ENGAGE-03**: XP engine — earn XP from check-ins, goals completed, voice sessions, wins posted
+- [x] **ENGAGE-04**: Rank/role progression — level up from XP and unlock Discord roles automatically
 - [ ] **ENGAGE-05**: Morning briefs — daily personalized message in member's private space (goals, streak status, rank, activity summary)
 
 ### Competition
@@ -91,8 +91,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FNDN-06 | Phase 6: Polish and Launch Readiness | Pending |
 | ENGAGE-01 | Phase 2: Daily Engagement Loop | Pending |
 | ENGAGE-02 | Phase 2: Daily Engagement Loop | Pending |
-| ENGAGE-03 | Phase 2: Daily Engagement Loop | Pending |
-| ENGAGE-04 | Phase 2: Daily Engagement Loop | Pending |
+| ENGAGE-03 | Phase 2: Daily Engagement Loop | Complete |
+| ENGAGE-04 | Phase 2: Daily Engagement Loop | Complete |
 | ENGAGE-05 | Phase 2: Daily Engagement Loop | Pending |
 | COMP-01 | Phase 3: Competition and Social Proof | Pending |
 | COMP-02 | Phase 3: Competition and Social Proof | Pending |
