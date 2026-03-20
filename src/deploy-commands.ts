@@ -12,7 +12,7 @@
  * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal, /settings
  * Phase 3 commands: /leaderboard, /season
  * Phase 4 commands: /ask, /wipe-history, /accountability
- * Phase 5: resources module (no new commands -- passive messageCreate handler)
+ * Phase 5: resources module (passive messageCreate handler) + /lockin, /schedule-session, /endsession, /invite-session
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -28,6 +28,12 @@ import { buildSettingsCommand } from './modules/scheduler/commands.js';
 import { buildLeaderboardCommand } from './modules/leaderboard/commands.js';
 import { buildSeasonCommand } from './modules/season/commands.js';
 import { buildAskCommand, buildWipeHistoryCommand, buildAccountabilityCommand } from './modules/ai-assistant/commands.js';
+import {
+  buildLockinCommand,
+  buildScheduleSessionCommand,
+  buildEndsessionCommand,
+  buildInviteSessionCommand,
+} from './modules/sessions/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -86,6 +92,13 @@ const commands = [
   buildAskCommand(),
   buildWipeHistoryCommand(),
   buildAccountabilityCommand(),
+
+  // --- Phase 5 Slash Commands ---
+
+  buildLockinCommand(),
+  buildScheduleSessionCommand(),
+  buildEndsessionCommand(),
+  buildInviteSessionCommand(),
 ];
 
 // --- Deploy ---
