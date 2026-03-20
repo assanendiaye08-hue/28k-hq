@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 2 of 6 (Daily Engagement Loop)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-03-20 -- Completed 02-01-PLAN.md (Schema extensions, XP engine, rank sync, delivery utility)
+Last activity: 2026-03-20 -- Completed 02-02-PLAN.md (Check-in and goal commands with AI categories, streaks, XP integration)
 
-Progress: [███░░░░░░░] 29%
+Progress: [████░░░░░░] 35%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 6 min
-- Total execution time: 0.47 hours
+- Total execution time: 0.57 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-and-identity | 4 | 23 min | 6 min |
-| 02-daily-engagement-loop | 1 | 5 min | 5 min |
+| 02-daily-engagement-loop | 2 | 11 min | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (6 min), 01-03 (5 min), 01-04 (7 min), 02-01 (5 min)
+- Last 5 plans: 01-02 (6 min), 01-03 (5 min), 01-04 (7 min), 02-01 (5 min), 02-02 (6 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -40,6 +40,7 @@ Progress: [███░░░░░░░] 29%
 | Phase 01 P03 | 5min | 2 tasks | 9 files |
 | Phase 01 P04 | 7min | 2 tasks | 8 files |
 | Phase 02 P01 | 5min | 2 tasks | 9 files |
+| Phase 02 P02 | 6min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [02-01]: Prisma 7 generates XPTransaction accessor as xPTransaction (capital P after x) -- use tx.xPTransaction
 - [02-01]: RankInfo type widened from readonly const tuple to plain interface for cross-module compatibility
 - [02-01]: XP_AWARDS re-exported from shared/constants.ts for onboarding module convenience
+- [02-02]: Installed @date-fns/tz for timezone-aware streak tracking using TZDate
+- [02-02]: Deploy script imports command builders from modules rather than duplicating definitions
+- [02-02]: Goal autocomplete filters by command: /progress shows only MEASURABLE, /completegoal shows all active
 
 ### Pending Todos
 
@@ -87,5 +91,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 02-01-PLAN.md (XP engine, schema extensions, rank sync, delivery utility)
+Stopped at: Completed 02-02-PLAN.md (Check-in and goal commands with AI categories, streaks, XP integration)
 Resume file: None
