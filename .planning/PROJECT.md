@@ -88,7 +88,8 @@ When a member opens Discord, the environment pulls them into productive action �
 | Discord as sole platform | Friends already live on Discord, zero friction | ✓ Good — all features work within Discord |
 | Interest-based (not three lanes) | Group is diverse, rigid lanes don't fit | ✓ Good — replaced lanes with AI-extracted interest tags |
 | Gamification-first approach | Leverage gamer psychology for behavior change | ✓ Good — XP, ranks, seasons, leaderboards all shipped |
-| DeepSeek V3.2 via OpenRouter | 164K context at $0.26/M tokens — best value | ✓ Good — used for AI chat, briefs, nudges, content filtering |
+| DeepSeek V3.2 via OpenRouter (v1.0) | 164K context at $0.26/M tokens — best value | ✓ Good — used for AI chat, briefs, nudges, content filtering |
+| Grok 4.1 Fast as primary (v1.1) | 2M context at $0.20/M input — cheaper + massive context | — Pending |
 | Per-member encryption | Owner-blind privacy builds trust | ✓ Good — AES-256-GCM with HKDF key derivation |
 | Multi-account identity | Most members have 2+ Discord accounts | ✓ Good — unified XP, notification routing per account |
 | DM-based private space | True privacy, not just "private" channels | ✓ Good — both DM and channel options available |

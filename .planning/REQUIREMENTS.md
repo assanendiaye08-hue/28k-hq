@@ -1,7 +1,7 @@
 # Requirements: Discord Hustler
 
 **Defined:** 2026-03-20
-**Core Value:** When a member opens Discord, the environment pulls them into productive action — not gaming. The server must make hustling feel like the game.
+**Core Value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
 
 ## v1.1 Requirements
 
@@ -10,49 +10,49 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 ### AI Infrastructure
 
 - [ ] **INFRA-01**: Centralize all OpenRouter API calls through a single shared client with per-request token tracking
-- [ ] **INFRA-02**: Per-member daily and monthly token budgets — configurable, with graceful degradation when limits hit (template fallback, not hard block)
+- [ ] **INFRA-02**: Per-member daily and monthly token budgets -- configurable, with graceful degradation when limits hit (template fallback, not hard block)
 - [ ] **INFRA-03**: Admin /cost command showing total tokens used, per-member breakdown, and estimated cost
-- [ ] **INFRA-04**: Tiered memory system (hot/warm/cold) — recent data verbatim, weekly patterns summarized, historical compressed. Nothing lost from DB, only prompt assembly is tiered
-- [ ] **INFRA-05**: Configurable model per use case — chat (large context model), structured output (json_schema model), fallback. Swappable without code changes
+- [ ] **INFRA-04**: Tiered memory system (hot/warm/cold) -- recent data verbatim, weekly patterns summarized, historical compressed. Nothing lost from DB, only prompt assembly is tiered
+- [ ] **INFRA-05**: Configurable model per use case -- chat (large context model), structured output (json_schema model), fallback. Swappable without code changes
 
 ### Productivity Timer
 
 - [ ] **TIMER-01**: Member can start a pomodoro timer with configurable work/break lengths (default 25/5) via /timer command
-- [ ] **TIMER-02**: Member can start a proportional break timer — work as long as you want, press pause, get a break relative to time worked (default 5:1 ratio)
-- [ ] **TIMER-03**: Member can define what they're working on when starting a timer — tied to an active goal or free-text description
+- [ ] **TIMER-02**: Member can start a proportional break timer -- work as long as you want, press pause, get a break relative to time worked (default 5:1 ratio)
+- [ ] **TIMER-03**: Member can define what they're working on when starting a timer -- tied to an active goal or free-text description
 - [ ] **TIMER-04**: Timer sessions award XP on completion and are tracked for stats (duration, what was worked on)
 
 ### Goal Hierarchy
 
-- [ ] **GOAL-01**: Member can set goals at any level (yearly, quarterly, monthly, weekly, daily) — optional depth, not forced
-- [ ] **GOAL-02**: Child goals cascade progress to parent goals — completing a weekly goal updates the monthly goal it belongs to
+- [ ] **GOAL-01**: Member can set goals at any level (yearly, quarterly, monthly, weekly, daily) -- optional depth, not forced
+- [ ] **GOAL-02**: Child goals cascade progress to parent goals -- completing a weekly goal updates the monthly goal it belongs to
 - [ ] **GOAL-03**: Jarvis can help decompose a big goal into smaller sub-goals through a conversational DM flow
 - [ ] **GOAL-04**: Member can view their goal tree showing the hierarchy and progress at each level
 
 ### Self-Evaluation
 
 - [ ] **REFLECT-01**: Member can configure reflection intensity (light: 1/week, medium: 3-4/week + monthly, heavy: daily + weekly + monthly)
-- [ ] **REFLECT-02**: Jarvis asks AI-personalized reflection questions based on the member's actual activity — not generic templates
-- [ ] **REFLECT-03**: Reflection data feeds back into Jarvis's context — referenced in briefs, nudges, and conversations to give targeted suggestions
+- [ ] **REFLECT-02**: Jarvis asks AI-personalized reflection questions based on the member's actual activity -- not generic templates
+- [ ] **REFLECT-03**: Reflection data feeds back into Jarvis's context -- referenced in briefs, nudges, and conversations to give targeted suggestions
 - [ ] **REFLECT-04**: Reflection responses inform Jarvis's forward-looking suggestions (what to focus on next week, patterns to break, strengths to lean into)
 
 ### Inspiration
 
 - [ ] **INSP-01**: Member can set 1-3 inspirations (people they admire) via /inspiration command with optional context about why
 - [ ] **INSP-02**: Member can ask Jarvis "what would [inspiration] do?" and get a response in that person's spirit
-- [ ] **INSP-03**: Jarvis naturally references member's inspirations in briefs and nudges when contextually relevant — not forced or spammy
+- [ ] **INSP-03**: Jarvis naturally references member's inspirations in briefs and nudges when contextually relevant -- not forced or spammy
 
 ### Smart Reminders
 
 - [ ] **REMIND-01**: Member can set time-based reminders using natural language ("remind me Tuesday at 3pm to call X") parsed via chrono-node
-- [ ] **REMIND-02**: Reminders support urgency tiers — low (quiet DM) and high (DM with emphasis + repeat if not acknowledged)
+- [ ] **REMIND-02**: Reminders support urgency tiers -- low (quiet DM) and high (DM with emphasis + repeat if not acknowledged)
 - [ ] **REMIND-03**: Member can set recurring reminders ("every Monday at 9am remind me to...")
-- [ ] **REMIND-04**: Reminder delivery uses a pluggable backend interface — Discord DM for now, designed for future Apple ecosystem integration
+- [ ] **REMIND-04**: Reminder delivery uses a pluggable backend interface -- Discord DM for now, designed for future Apple ecosystem integration
 
 ### Monthly Recap
 
-- [ ] **RECAP-01**: Member receives a monthly progress recap via DM — AI-generated commentary on patterns, growth, and suggestions based on the month's data
-- [ ] **RECAP-02**: Member can react to share their recap to #wins channel — social proof and motivation
+- [ ] **RECAP-01**: Member receives a monthly progress recap via DM -- AI-generated commentary on patterns, growth, and suggestions based on the month's data
+- [ ] **RECAP-02**: Member can react to share their recap to #wins channel -- social proof and motivation
 
 ## v2 Requirements
 
@@ -60,19 +60,19 @@ Deferred to future release.
 
 ### Advanced Engagement
 
-- **ADV-01**: Weekly auto-challenges — bot posts weekly challenges with XP rewards
-- **ADV-02**: Skill trees — per-focus-area progression paths
+- **ADV-01**: Weekly auto-challenges -- bot posts weekly challenges with XP rewards
+- **ADV-02**: Skill trees -- per-focus-area progression paths
 - **ADV-03**: Buddy/accountability partner matching
 
 ### Advanced AI
 
-- **ADVAI-01**: Advanced AI coaching — deeper pattern recognition across weeks of data
-- **ADVAI-02**: Per-feature opt-out — members can disable specific tracking
+- **ADVAI-01**: Advanced AI coaching -- deeper pattern recognition across weeks of data
+- **ADVAI-02**: Per-feature opt-out -- members can disable specific tracking
 
 ### Platform Integration
 
-- **PLAT-01**: Apple ecosystem integration — APNs push notifications, Shortcuts actions
-- **PLAT-02**: Enhanced content curation — more personalized per-member, AI discovers sources
+- **PLAT-01**: Apple ecosystem integration -- APNs push notifications, Shortcuts actions
+- **PLAT-02**: Enhanced content curation -- more personalized per-member, AI discovers sources
 
 ## Out of Scope
 
@@ -81,7 +81,7 @@ Deferred to future release.
 | Investing/trading lane | Not a focus for this group |
 | Mobile app | Discord IS the platform (Apple integration is notification-level only) |
 | Paid membership / monetization | This is for friends, not a business |
-| Visual chart images for recap | AI commentary is sufficient — avoids canvas dependency complexity |
+| Visual chart images for recap | AI commentary is sufficient -- avoids canvas dependency complexity |
 | Voice channel integration for timers | Timer is a solo tool, voice tracking already handles co-working |
 
 ## Traceability
@@ -90,38 +90,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | TBD | Pending |
-| INFRA-02 | TBD | Pending |
-| INFRA-03 | TBD | Pending |
-| INFRA-04 | TBD | Pending |
-| INFRA-05 | TBD | Pending |
-| TIMER-01 | TBD | Pending |
-| TIMER-02 | TBD | Pending |
-| TIMER-03 | TBD | Pending |
-| TIMER-04 | TBD | Pending |
-| GOAL-01 | TBD | Pending |
-| GOAL-02 | TBD | Pending |
-| GOAL-03 | TBD | Pending |
-| GOAL-04 | TBD | Pending |
-| REFLECT-01 | TBD | Pending |
-| REFLECT-02 | TBD | Pending |
-| REFLECT-03 | TBD | Pending |
-| REFLECT-04 | TBD | Pending |
-| INSP-01 | TBD | Pending |
-| INSP-02 | TBD | Pending |
-| INSP-03 | TBD | Pending |
-| REMIND-01 | TBD | Pending |
-| REMIND-02 | TBD | Pending |
-| REMIND-03 | TBD | Pending |
-| REMIND-04 | TBD | Pending |
-| RECAP-01 | TBD | Pending |
-| RECAP-02 | TBD | Pending |
+| INFRA-01 | Phase 7 | Pending |
+| INFRA-02 | Phase 7 | Pending |
+| INFRA-03 | Phase 7 | Pending |
+| INFRA-04 | Phase 7 | Pending |
+| INFRA-05 | Phase 7 | Pending |
+| INSP-01 | Phase 8 | Pending |
+| INSP-02 | Phase 8 | Pending |
+| INSP-03 | Phase 8 | Pending |
+| TIMER-01 | Phase 9 | Pending |
+| TIMER-02 | Phase 9 | Pending |
+| TIMER-03 | Phase 9 | Pending |
+| TIMER-04 | Phase 9 | Pending |
+| REMIND-01 | Phase 10 | Pending |
+| REMIND-02 | Phase 10 | Pending |
+| REMIND-03 | Phase 10 | Pending |
+| REMIND-04 | Phase 10 | Pending |
+| GOAL-01 | Phase 11 | Pending |
+| GOAL-02 | Phase 11 | Pending |
+| GOAL-03 | Phase 11 | Pending |
+| GOAL-04 | Phase 11 | Pending |
+| REFLECT-01 | Phase 12 | Pending |
+| REFLECT-02 | Phase 12 | Pending |
+| REFLECT-03 | Phase 12 | Pending |
+| REFLECT-04 | Phase 12 | Pending |
+| RECAP-01 | Phase 13 | Pending |
+| RECAP-02 | Phase 13 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after initial definition*
+*Last updated: 2026-03-20 after roadmap creation*
