@@ -15,6 +15,7 @@
  * Phase 5: resources module (passive messageCreate handler) + /lockin, /schedule-session, /endsession, /invite-session
  * Phase 5 data privacy: /mydata, /deletedata
  * Phase 6 commands: /notifications
+ * Phase 7 commands: /cost (today, month, set-budget), /admin (set-model)
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -41,6 +42,7 @@ import {
   buildDeletedataCommand,
 } from './modules/data-privacy/commands.js';
 import { buildNotificationsCommand } from './modules/notification-router/commands.js';
+import { buildCostCommand, buildAdminSetModelCommand } from './modules/ai-admin/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -115,6 +117,11 @@ const commands = [
   // --- Phase 6 Commands ---
 
   buildNotificationsCommand(),
+
+  // --- Phase 7 Commands ---
+
+  buildCostCommand(),
+  buildAdminSetModelCommand(),
 ];
 
 // --- Deploy ---
