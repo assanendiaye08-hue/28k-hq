@@ -24,6 +24,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@date-fns/tz": "^1.4.1",
     "@openrouter/sdk": "^0.9.11",
     "@prisma/client": "^7.5.0",
     "date-fns": "^4.1.0",
