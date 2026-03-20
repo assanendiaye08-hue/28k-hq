@@ -9,34 +9,35 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation and Identity)
-Plan: 3 of 4 in current phase
-Status: Executing
-Last activity: 2026-03-20 -- Completed 01-03-PLAN.md (Server structure, onboarding flow, private spaces)
+Phase: 1 of 6 (Foundation and Identity) -- COMPLETE
+Plan: 4 of 4 in current phase
+Status: Phase Complete
+Last activity: 2026-03-20 -- Completed 01-04-PLAN.md (AI profile extraction, visibility controls, account linking)
 
-Progress: [██░░░░░░░░] 18%
+Progress: [██░░░░░░░░] 24%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 5 min
-- Total execution time: 0.27 hours
+- Total plans completed: 4
+- Average duration: 6 min
+- Total execution time: 0.38 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-and-identity | 3 | 16 min | 5 min |
+| 01-foundation-and-identity | 4 | 23 min | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (5 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (5 min), 01-04 (7 min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 01 P01 | 5min | 2 tasks | 17 files |
 | Phase 01 P02 | 6min | 2 tasks | 9 files |
 | Phase 01 P03 | 5min | 2 tasks | 9 files |
+| Phase 01 P04 | 7min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,11 @@ Recent decisions affecting current work:
 - [01-03]: DM conversation with awaitMessages instead of modals -- feels like talking to a person, not filling a form
 - [01-03]: Space preference parsing: "2", "channel", "server" -> CHANNEL; everything else -> DM
 - [01-03]: Recovery key hash (SHA-256) stored in Member record; actual key sent once via DM only
+- [01-04]: OpenRouter SDK uses camelCase API (responseFormat, jsonSchema) not snake_case from research doc
+- [01-04]: Lazy tag extraction on first /profile view + async extraction on memberSetupComplete event
+- [01-04]: Interest tags as neutral grey Discord roles (0x95a5a6) -- distinct from rank roles
+- [01-04]: Account linking uses Prisma interactive $transaction for atomic code verification
+- [01-04]: Visibility select menu allows zero selections (all fields private) via setMinValues(0)
 
 ### Pending Todos
 
@@ -76,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Completed 01-03-PLAN.md
+Stopped at: Completed 01-04-PLAN.md (Phase 1 complete)
 Resume file: None
