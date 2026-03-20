@@ -97,12 +97,12 @@ Plans:
   3. Member can run `/mydata` and see everything the bot stores about them
   4. Member can wipe all their stored data with a single command
   5. Private conversations and data marked as private are not accessible to server admins -- only to the member themselves
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-- [ ] 05-03: TBD
+- [ ] 05-01-PLAN.md -- Resource sharing channels with AI auto-tagging, discussion threads, and XP rewards
+- [ ] 05-02-PLAN.md -- Lock-in session system with instant/scheduled modes, voice channel lifecycle, and attendance tracking
+- [ ] 05-03-PLAN.md -- Data privacy commands (/mydata export, /deletedata hard delete) and encryption verification
 
 ### Phase 6: Polish and Launch Readiness
 **Goal**: Auto-content feeds are running, notification routing is dialed in across linked accounts, and the system is hardened for daily use by the full group
