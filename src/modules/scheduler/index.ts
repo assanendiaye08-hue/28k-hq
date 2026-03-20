@@ -7,6 +7,7 @@
  * 3. Listen for scheduleUpdated event to rebuild individual member tasks
  * 4. Schedule global hourly goal expiry check
  * 5. Schedule global daily interest tag cleanup
+ * 6. Schedule global evening nudge sweep (21:00 UTC fallback)
  *
  * All scheduled tasks rebuild on bot restart from database state.
  */
@@ -22,6 +23,7 @@ import { sendBrief, sendCheckinReminder } from './briefs.js';
 import { runPlanningSession } from './planning.js';
 import { checkExpiredGoals } from '../goals/expiry.js';
 import { cleanupUnusedTags } from '../server-setup/interest-tags.js';
+import { sendNudge } from '../ai-assistant/nudge.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -56,6 +58,13 @@ function makePlanningFn(client: Client, db: ExtendedPrismaClient, ctx: ModuleCon
   return (memberId: string) => () => runPlanningSession(client, db, memberId, ctx.events);
 }
 
+/**
+ * Create nudge callback factory.
+ */
+function makeNudgeFn(client: Client, db: ExtendedPrismaClient) {
+  return (memberId: string) => () => sendNudge(client, db, memberId);
+}
+
 const schedulerModule: Module = {
   name: 'scheduler',
 
@@ -72,6 +81,7 @@ const schedulerModule: Module = {
     const briefFn = makeBriefFn(client, db);
     const reminderFn = makeReminderFn(client, db);
     const planningFn = makePlanningFn(client, db, ctx);
+    const nudgeFn = makeNudgeFn(client, db);
 
     // 3. Rebuild all tasks on Discord ready event
     client.once('ready', async () => {
@@ -87,9 +97,11 @@ const schedulerModule: Module = {
           briefTone: s.briefTone,
           reminderTimes: s.reminderTimes,
           sundayPlanning: s.sundayPlanning,
+          accountabilityLevel: s.accountabilityLevel,
+          nudgeTime: s.nudgeTime,
         }));
 
-        manager.rebuildAll(scheduleData, briefFn, reminderFn, planningFn);
+        manager.rebuildAll(scheduleData, briefFn, reminderFn, planningFn, nudgeFn);
         logger.info(`Rebuilt ${scheduleData.length} member schedules on ready`);
       } catch (error) {
         logger.error(`Failed to rebuild schedules on ready: ${String(error)}`);
@@ -117,6 +129,8 @@ const schedulerModule: Module = {
           briefTone: schedule.briefTone,
           reminderTimes: schedule.reminderTimes,
           sundayPlanning: schedule.sundayPlanning,
+          accountabilityLevel: schedule.accountabilityLevel,
+          nudgeTime: schedule.nudgeTime,
         };
 
         manager.updateMemberSchedule(
@@ -125,6 +139,7 @@ const schedulerModule: Module = {
           briefFn,
           reminderFn,
           planningFn,
+          nudgeFn,
         );
         logger.info(`Rebuilt schedule for ${memberId} after update`);
       } catch (error) {
@@ -166,6 +181,36 @@ const schedulerModule: Module = {
     });
 
     logger.info('Scheduled daily interest tag cleanup (4:00 AM UTC)');
+
+    // 7. Schedule global evening nudge sweep at 21:00 UTC
+    // This is a fallback sweep -- individual cron tasks handle per-member
+    // scheduling, but this sweep catches edge cases (members without individual
+    // nudge tasks, timezone drift, etc.)
+    cron.schedule('0 21 * * *', async () => {
+      try {
+        const schedules = await db.memberSchedule.findMany({
+          where: { nudgeTime: { not: null } },
+        });
+
+        let nudgesSent = 0;
+        for (const schedule of schedules) {
+          try {
+            await sendNudge(client, db, schedule.memberId);
+            nudgesSent++;
+          } catch (error) {
+            logger.error(`Evening sweep nudge failed for ${schedule.memberId}: ${String(error)}`);
+          }
+        }
+
+        logger.info(`Evening nudge sweep completed: ${nudgesSent}/${schedules.length} processed`);
+      } catch (error) {
+        logger.error(`Evening nudge sweep failed: ${String(error)}`);
+      }
+    }, {
+      name: 'evening-nudge-sweep',
+    });
+
+    logger.info('Scheduled evening nudge sweep (21:00 UTC)');
     logger.info('Scheduler module registered');
   },
 };
