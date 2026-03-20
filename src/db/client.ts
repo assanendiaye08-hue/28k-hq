@@ -1,39 +1,45 @@
 /**
- * Database client placeholder.
+ * Database client -- PrismaClient singleton with encryption extension.
  *
- * Plan 02 will replace this with the real PrismaClient setup including:
- * - PrismaClient initialization
- * - Custom encryption extension ($extends)
- * - Connection management
+ * Exports:
+ * - db: The extended PrismaClient with transparent field encryption
+ * - disconnectDb(): Gracefully close the database connection
  *
- * For now, exports null so the bot core can compile and the module system
- * can work before the database is set up.
+ * The client connects lazily on first query (Prisma 7 default behavior).
+ * The encryption extension is applied via withEncryption(), which intercepts
+ * reads/writes on models with encrypted fields (see encryption.ts).
  */
 
-let db: unknown = null;
+import { PrismaClient } from '@prisma/client';
+import { withEncryption } from './encryption.js';
 
 /**
- * Get the database client instance.
- * Returns null until Plan 02 initializes the real PrismaClient.
+ * Create the base PrismaClient singleton.
+ * Logging is enabled in development for query debugging.
  */
-export function getDb(): unknown {
-  return db;
-}
+const basePrisma = new PrismaClient({
+  log:
+    process.env.NODE_ENV === 'development'
+      ? ['query', 'warn', 'error']
+      : ['warn', 'error'],
+});
 
 /**
- * Set the database client instance.
- * Called during initialization once the real PrismaClient is created.
+ * Extended PrismaClient with transparent field encryption.
+ * Use this for all database operations throughout the application.
  */
-export function setDb(client: unknown): void {
-  db = client;
-}
+export const db = withEncryption(basePrisma);
+
+/**
+ * Type of the extended database client.
+ * Use this when typing parameters or context objects that receive the db.
+ */
+export type ExtendedPrismaClient = typeof db;
 
 /**
  * Disconnect the database client.
- * No-op until Plan 02 provides a real client.
+ * Call during graceful shutdown to close the connection pool.
  */
 export async function disconnectDb(): Promise<void> {
-  if (db && typeof (db as { $disconnect?: () => Promise<void> }).$disconnect === 'function') {
-    await (db as { $disconnect: () => Promise<void> }).$disconnect();
-  }
+  await basePrisma.$disconnect();
 }
