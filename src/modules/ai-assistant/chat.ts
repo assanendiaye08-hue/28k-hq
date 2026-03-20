@@ -120,15 +120,23 @@ export async function handleChat(
       { role: 'system', content: systemPrompt },
     ];
 
-    // Add conversation summary as a system message if it exists
+    // Add cold tier: conversation summary as historical context
     if (context.summary) {
       messages.push({
         role: 'system',
-        content: `Previous conversation summary:\n${context.summary}`,
+        content: `Historical context: ${context.summary}`,
       });
     }
 
-    // Add recent messages
+    // Add warm tier: weekly summaries from days 8-30
+    if (context.weeklySummaries.length > 0) {
+      messages.push({
+        role: 'system',
+        content: `Recent weeks: ${context.weeklySummaries.join('\n')}`,
+      });
+    }
+
+    // Add hot tier: recent messages (last 7 days verbatim)
     for (const msg of context.recentMessages) {
       messages.push({
         role: msg.role as 'user' | 'assistant',
