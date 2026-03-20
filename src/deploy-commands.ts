@@ -9,7 +9,7 @@
  * register/update slash commands with Discord, then exits.
  *
  * Phase 1 commands: /setup, /profile, /link, /verify, /unlink
- * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal
+ * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal, /settings
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -21,6 +21,7 @@ import {
   buildProgressCommand,
   buildCompletegoalCommand,
 } from './modules/goals/commands.js';
+import { buildSettingsCommand } from './modules/scheduler/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -64,6 +65,10 @@ const commands = [
   buildGoalsCommand(),
   buildProgressCommand(),
   buildCompletegoalCommand(),
+
+  // --- Phase 2 Scheduler Command ---
+
+  buildSettingsCommand(),
 ];
 
 // --- Deploy ---
