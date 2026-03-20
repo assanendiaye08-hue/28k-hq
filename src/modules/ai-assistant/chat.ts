@@ -4,15 +4,14 @@
  * Processes messages through the AI pipeline with:
  * - Per-member processing lock (prevents race conditions from rapid messages)
  * - Daily message cap (50 messages per member per day)
- * - Primary model (DeepSeek V3.2) with fallback (Qwen 3.5 Plus)
+ * - Centralized AI client with budget enforcement and model routing
  * - Context assembly with token budget management
  */
 
-import { OpenRouter } from '@openrouter/sdk';
 import { TZDate } from '@date-fns/tz';
 import { startOfDay } from 'date-fns';
-import { config } from '../../core/config.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
+import { callAI } from '../../shared/ai-client.js';
 import { storeMessage, assembleContext } from './memory.js';
 import { buildSystemPrompt } from './personality.js';
 import winston from 'winston';
@@ -31,25 +30,6 @@ const logger = winston.createLogger({
 
 /** Maximum messages a member can send per day. */
 const DAILY_MESSAGE_CAP = 50;
-
-/** Primary AI model. */
-const PRIMARY_MODEL = 'deepseek/deepseek-v3.2';
-
-/** Fallback AI model if primary fails. */
-const FALLBACK_MODEL = 'qwen/qwen3.5-plus-02-15';
-
-// ─── OpenRouter Client ─────────────────────────────────────────────────────────
-
-let openrouterClient: OpenRouter | null = null;
-
-function getOpenRouterClient(): OpenRouter {
-  if (!openrouterClient) {
-    openrouterClient = new OpenRouter({
-      apiKey: config.OPENROUTER_API_KEY,
-    });
-  }
-  return openrouterClient;
-}
 
 // ─── Per-Member Processing Lock ────────────────────────────────────────────────
 
@@ -93,7 +73,7 @@ async function withMemberLock<T>(memberId: string, fn: () => Promise<T>): Promis
  * 2. Store the user message
  * 3. Assemble context (member data, summary, recent messages)
  * 4. Build messages array for the AI
- * 5. Call primary model (DeepSeek V3.2), fallback to Qwen 3.5 Plus
+ * 5. Call centralized AI client (handles model routing + budget)
  * 6. Store and return the assistant response
  *
  * Uses per-member lock to prevent race conditions.
@@ -156,54 +136,19 @@ export async function handleChat(
       });
     }
 
-    // 6. Call AI with fallback
-    const client = getOpenRouterClient();
-    let responseText: string | null = null;
+    // 6. Call AI via centralized client
+    const result = await callAI(db, {
+      memberId,
+      feature: 'chat',
+      messages,
+    });
 
-    // Try primary model
-    try {
-      const completion = await client.chat.send({
-        chatGenerationParams: {
-          model: PRIMARY_MODEL,
-          messages,
-          stream: false,
-        },
-      });
-
-      const content = completion.choices[0]?.message?.content;
-      if (content && typeof content === 'string' && content.length > 0) {
-        responseText = content;
-        logger.debug(`Primary model response for ${memberId} (${content.length} chars)`);
-      }
-    } catch (error) {
-      logger.warn(`Primary model failed for ${memberId}: ${String(error)}`);
-    }
-
-    // Try fallback model if primary failed
-    if (!responseText) {
-      try {
-        const completion = await client.chat.send({
-          chatGenerationParams: {
-            model: FALLBACK_MODEL,
-            messages,
-            stream: false,
-          },
-        });
-
-        const content = completion.choices[0]?.message?.content;
-        if (content && typeof content === 'string' && content.length > 0) {
-          responseText = content;
-          logger.debug(`Fallback model response for ${memberId} (${content.length} chars)`);
-        }
-      } catch (error) {
-        logger.error(`Fallback model also failed for ${memberId}: ${String(error)}`);
-      }
-    }
-
-    // Both models failed
-    if (!responseText) {
+    if (result.degraded || !result.content) {
       return "My circuits are a bit fried right now. Try again in a sec.";
     }
+
+    const responseText = result.content;
+    logger.debug(`AI response for ${memberId} (${responseText.length} chars, model: ${result.model})`);
 
     // 7. Store the assistant response
     await storeMessage(db, memberId, 'assistant', responseText);
