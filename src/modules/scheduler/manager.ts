@@ -2,7 +2,7 @@
  * Per-member scheduler lifecycle manager.
  *
  * Maintains a Map of memberId -> Map<taskType, ScheduledTask>.
- * Task types: 'brief', 'reminder-HH:mm', 'planning'.
+ * Task types: 'brief', 'reminder-HH:mm', 'planning', 'nudge'.
  *
  * On bot restart, rebuildAll reads all MemberSchedule records from the
  * database and recreates cron tasks for each member. No data is lost.
@@ -33,13 +33,15 @@ export interface MemberSchedule {
   briefTone: string;
   reminderTimes: string[];
   sundayPlanning: boolean;
+  accountabilityLevel: string;
+  nudgeTime: string | null;
 }
 
 /**
  * SchedulerManager -- manages per-member cron tasks.
  *
  * Outer key: memberId
- * Inner key: task type ('brief', 'reminder-HH:mm', 'planning')
+ * Inner key: task type ('brief', 'reminder-HH:mm', 'planning', 'nudge')
  */
 export class SchedulerManager {
   private tasks = new Map<string, Map<string, ScheduledTask>>();
@@ -103,6 +105,25 @@ export class SchedulerManager {
   }
 
   /**
+   * Schedule an evening nudge cron task for a member.
+   * Replaces any existing nudge task for this member.
+   *
+   * @param memberId - The member ID
+   * @param cronExpr - Cron expression for nudge time
+   * @param timezone - IANA timezone string
+   * @param fn - Async function to call when the task fires
+   */
+  scheduleNudge(
+    memberId: string,
+    cronExpr: string,
+    timezone: string,
+    fn: () => Promise<void>,
+  ): void {
+    this.setTask(memberId, 'nudge', cronExpr, timezone, fn);
+    logger.info(`Scheduled nudge for ${memberId}: "${cronExpr}" (${timezone})`);
+  }
+
+  /**
    * Stop and remove all scheduled tasks for a member.
    */
   unscheduleAll(memberId: string): void {
@@ -126,12 +147,14 @@ export class SchedulerManager {
    * @param briefFn - Factory function for brief task callbacks
    * @param reminderFn - Factory function for reminder task callbacks
    * @param planningFn - Factory function for planning session callbacks
+   * @param nudgeFn - Factory function for nudge task callbacks
    */
   rebuildAll(
     schedules: MemberSchedule[],
     briefFn: (memberId: string) => () => Promise<void>,
     reminderFn: (memberId: string) => () => Promise<void>,
     planningFn: (memberId: string) => () => Promise<void>,
+    nudgeFn?: (memberId: string) => () => Promise<void>,
   ): void {
     // Stop all existing tasks first
     for (const memberId of this.tasks.keys()) {
@@ -141,6 +164,7 @@ export class SchedulerManager {
     let briefCount = 0;
     let reminderCount = 0;
     let planningCount = 0;
+    let nudgeCount = 0;
 
     for (const schedule of schedules) {
       const { memberId, timezone } = schedule;
@@ -164,11 +188,19 @@ export class SchedulerManager {
         this.schedulePlanning(memberId, timezone, planningFn(memberId));
         planningCount++;
       }
+
+      // Schedule nudge if nudgeTime is set and nudgeFn provided
+      if (schedule.nudgeTime && nudgeFn) {
+        const [hours, minutes] = schedule.nudgeTime.split(':');
+        const cronExpr = `${minutes} ${hours} * * *`;
+        this.scheduleNudge(memberId, cronExpr, timezone, nudgeFn(memberId));
+        nudgeCount++;
+      }
     }
 
     logger.info(
       `Rebuilt all tasks: ${schedules.length} members, ` +
-      `${briefCount} briefs, ${reminderCount} reminders, ${planningCount} planning sessions`,
+      `${briefCount} briefs, ${reminderCount} reminders, ${planningCount} planning sessions, ${nudgeCount} nudges`,
     );
   }
 
@@ -181,6 +213,7 @@ export class SchedulerManager {
    * @param briefFn - Factory for brief callback
    * @param reminderFn - Factory for reminder callback
    * @param planningFn - Factory for planning callback
+   * @param nudgeFn - Factory for nudge callback
    */
   updateMemberSchedule(
     memberId: string,
@@ -188,6 +221,7 @@ export class SchedulerManager {
     briefFn: (memberId: string) => () => Promise<void>,
     reminderFn: (memberId: string) => () => Promise<void>,
     planningFn: (memberId: string) => () => Promise<void>,
+    nudgeFn?: (memberId: string) => () => Promise<void>,
   ): void {
     // Stop existing tasks
     this.unscheduleAll(memberId);
@@ -207,6 +241,13 @@ export class SchedulerManager {
 
     if (schedule.sundayPlanning) {
       this.schedulePlanning(memberId, timezone, planningFn(memberId));
+    }
+
+    // Schedule nudge if nudgeTime is set and nudgeFn provided
+    if (schedule.nudgeTime && nudgeFn) {
+      const [hours, minutes] = schedule.nudgeTime.split(':');
+      const cronExpr = `${minutes} ${hours} * * *`;
+      this.scheduleNudge(memberId, cronExpr, timezone, nudgeFn(memberId));
     }
 
     logger.info(`Updated schedule for ${memberId}`);

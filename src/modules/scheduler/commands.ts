@@ -85,6 +85,13 @@ export function buildSettingsCommand(): SlashCommandBuilder {
       .setRequired(false),
   );
 
+  cmd.addStringOption((opt) =>
+    opt
+      .setName('nudge-time')
+      .setDescription("Evening nudge time in HH:mm format, or 'off' to disable")
+      .setRequired(false),
+  );
+
   return cmd;
 }
 
@@ -128,6 +135,7 @@ async function handleSettings(
   const briefToneInput = interaction.options.getString('brief-tone');
   const remindersInput = interaction.options.getString('reminders');
   const sundayPlanningInput = interaction.options.getBoolean('sunday-planning');
+  const nudgeTimeInput = interaction.options.getString('nudge-time');
 
   // Check if any option was provided
   if (
@@ -135,7 +143,8 @@ async function handleSettings(
     briefTimeInput === null &&
     briefToneInput === null &&
     remindersInput === null &&
-    sundayPlanningInput === null
+    sundayPlanningInput === null &&
+    nudgeTimeInput === null
   ) {
     // Show current settings
     const schedule = await db.memberSchedule.findUnique({
@@ -158,6 +167,8 @@ async function handleSettings(
       { name: 'Brief Tone', value: schedule.briefTone, inline: true },
       { name: 'Reminders', value: schedule.reminderTimes.length > 0 ? schedule.reminderTimes.join(', ') : 'None', inline: true },
       { name: 'Sunday Planning', value: schedule.sundayPlanning ? 'On' : 'Off', inline: true },
+      { name: 'Nudge Time', value: schedule.nudgeTime ?? 'Off', inline: true },
+      { name: 'Accountability', value: schedule.accountabilityLevel ?? 'medium', inline: true },
     );
 
     await interaction.editReply({ embeds: [embed] });
@@ -214,6 +225,28 @@ async function handleSettings(
     }
   }
 
+  // Parse nudge time if provided
+  let parsedNudgeTime: string | null | undefined;
+  if (nudgeTimeInput) {
+    if (nudgeTimeInput.toLowerCase() === 'off') {
+      parsedNudgeTime = null; // Disable nudges
+    } else {
+      const parsed = parseHHmm(nudgeTimeInput);
+      if (!parsed) {
+        await interaction.editReply({
+          embeds: [
+            errorEmbed(
+              'Invalid nudge time',
+              `"${nudgeTimeInput}" is not a valid time. Use HH:mm format (e.g., "21:00") or "off" to disable.`,
+            ),
+          ],
+        });
+        return;
+      }
+      parsedNudgeTime = parsed;
+    }
+  }
+
   // Build update data (only include fields that were provided)
   const updateData: Record<string, unknown> = {};
   if (timezoneInput) updateData.timezone = timezoneInput;
@@ -221,6 +254,7 @@ async function handleSettings(
   if (briefToneInput) updateData.briefTone = briefToneInput;
   if (parsedReminders !== undefined) updateData.reminderTimes = parsedReminders;
   if (sundayPlanningInput !== null) updateData.sundayPlanning = sundayPlanningInput;
+  if (parsedNudgeTime !== undefined) updateData.nudgeTime = parsedNudgeTime;
 
   // Upsert MemberSchedule
   const schedule = await db.memberSchedule.upsert({
@@ -247,6 +281,8 @@ async function handleSettings(
     { name: 'Brief Tone', value: schedule.briefTone, inline: true },
     { name: 'Reminders', value: schedule.reminderTimes.length > 0 ? schedule.reminderTimes.join(', ') : 'None', inline: true },
     { name: 'Sunday Planning', value: schedule.sundayPlanning ? 'On' : 'Off', inline: true },
+    { name: 'Nudge Time', value: schedule.nudgeTime ?? 'Off', inline: true },
+    { name: 'Accountability', value: schedule.accountabilityLevel ?? 'medium', inline: true },
   );
 
   await interaction.editReply({ embeds: [embed] });
