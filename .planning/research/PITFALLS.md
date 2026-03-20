@@ -1,165 +1,148 @@
-# Pitfalls Research
+# Pitfalls Research: v1.1 Depth Features
 
-**Domain:** Discord productivity/accountability community with gamification for small friend groups (10-25 gamers)
+**Domain:** Adding productivity timers, goal hierarchy, self-evaluation, inspiration, monthly recaps, smart reminders, and rate limiting to an existing 16K LOC Discord productivity bot
 **Researched:** 2026-03-20
-**Confidence:** HIGH (psychology research well-established; Discord-specific findings verified across multiple sources)
+**Confidence:** HIGH (based on deep codebase analysis of existing 18-module architecture, verified Discord bot patterns, and established productivity UX research)
 
 ## Critical Pitfalls
 
-### Pitfall 1: The Overjustification Trap -- Extrinsic Rewards Killing Intrinsic Drive
+### Pitfall 1: Timer State Lost on Bot Restart -- The Pomodoro Amnesia Problem
 
 **What goes wrong:**
-Points, badges, and leaderboards become the reason members participate. When the novelty of earning XP fades (research shows engagement plummets after week 8-12), members stop hustling entirely -- not just stop using the bot, but stop doing the productive work itself. You have trained them to associate hustling with earning Discord points, and when points feel meaningless, hustling feels meaningless too. Edward Deci's 1971 landmark study demonstrated that extrinsic rewards diminish intrinsic motivation to perform tasks. A fitness app case study showed strong initial adoption followed by sharp decline after month one, leading to shutdown at 18 months.
+Productivity timers (pomodoro sessions) are inherently stateful -- they track an ongoing countdown with work/break phases. If the timer state lives only in memory (setTimeout/setInterval), a PM2 restart, deploy, or crash kills every active timer silently. Members lose their focus sessions with no feedback. The existing `SchedulerManager` in `src/modules/scheduler/manager.ts` already solves this for cron-based tasks (it rebuilds from DB on startup), but timers are fundamentally different: they have arbitrary start times, variable durations, and phase transitions that cron expressions cannot represent.
 
 **Why it happens:**
-The overjustification effect: when you add external incentives to an activity someone already finds somewhat interesting, their brain re-attributes their motivation from "I want to do this" to "I'm doing this for the reward." Remove or devalue the reward, and motivation drops below the original baseline. This is especially dangerous with gamers -- they are highly attuned to reward loops and will unconsciously optimize for points rather than actual progress.
+The natural implementation is `setTimeout(callback, 25 * 60 * 1000)` -- simple, clean, wrong. Node.js timers are process-local. The existing sessions module (`src/modules/sessions/manager.ts`) already uses an in-memory `activeSessions` Map with no persistence for active state, and it works because lock-in sessions survive via voice channel presence detection on restart. Timers have no such external anchor -- if the bot restarts mid-pomodoro, the timer is simply gone.
 
 **How to avoid:**
-- Make the gamification layer reflect real progress, not manufacture fake progress. Points should map to actual outcomes (revenue earned, clients landed, content published) not proxy activities (hours logged, messages sent).
-- Use rewards to celebrate milestones already achieved, not to incentivize the activity itself. "You earned $500 this week -- here's a rank up" not "Post 5 check-ins to earn 50 XP."
-- Follow Self-Determination Theory: every gamification element must support autonomy (member chooses what to track), competence (visible skill growth), or relatedness (connection to the group). If it doesn't serve one of these three, cut it.
-- Build in "reward-free zones" -- some interactions should have zero point value to preserve spaces where intrinsic motivation operates undisturbed.
-- Never make gamification mandatory. Optional participation preserves autonomy.
+Store timer state in the database: `memberId`, `startedAt`, `duration`, `phase` (work/break), `pausedAt`. On each phase transition, update the DB record. On bot startup, query all active timers, calculate remaining time, and re-register timeouts. This mirrors how `SchedulerManager.rebuildAll()` already works for cron tasks. Use a `TimerSession` Prisma model, not in-memory state.
 
 **Warning signs:**
-- Members asking "how many points is this worth?" before deciding whether to do something.
-- Activity clustering around whatever gives the most XP rather than what's most productive.
-- Engagement drops sharply whenever the leaderboard resets or rewards change.
-- Members doing minimum-viable check-ins (one-word responses) to maintain streaks without genuine reflection.
+- Timer feature works perfectly until the first deploy after launch
+- Members reporting "my timer just disappeared" without any error
+- No `rebuildAll`-equivalent function in the timer module
 
 **Phase to address:**
-Phase 1 (Foundation/Gamification Design). This must be baked into the architecture from day one. Retrofitting intrinsic motivation into an already-extrinsic system is nearly impossible -- you'd have to strip rewards from people who are now dependent on them.
+Phase 1 (Productivity Timer). Must be designed database-first from the start. Retrofitting persistence onto an in-memory timer is a rewrite.
 
 ---
 
-### Pitfall 2: The Shame Spiral -- Accountability Becoming Punishment
+### Pitfall 2: Goal Hierarchy Migration Breaks Existing Flat Goals
 
 **What goes wrong:**
-Public accountability systems (daily check-ins, leaderboards, streak displays) create a visibility trap. When a member falls behind, the system makes their failure visible to friends. In a 10-25 person friend group where everyone knows each other, this isn't abstract social comparison -- it's seeing your best friend outperform you every day while you struggle. Research shows shame is associated with avoidance and withdrawal, while guilt (a milder, action-focused emotion) can motivate repair behavior. The system accidentally produces shame instead of guilt. Members who fall behind stop opening Discord entirely to avoid confronting their public failure, which is the exact opposite of the project's goal.
+The current `Goal` model is flat -- no `parentId`, no depth concept, no hierarchy. Adding `parentId` as an optional self-referential foreign key is the obvious schema change, but it creates three integration hazards: (1) Prisma self-relations can generate erroneous UNIQUE indexes on the `parentId` column, preventing multiple children per parent. (2) Every existing query that touches goals -- `/goals`, `/progress`, `/completegoal`, goal expiry in `src/modules/goals/expiry.ts`, autocomplete in `handleGoalAutocomplete`, and the AI personality builder in `src/modules/ai-assistant/personality.ts` -- assumes a flat list. (3) The AI system prompt's `buildStatsSection()` and `buildMemberContext()` both iterate over `member.goals` as a flat array. Adding hierarchy without updating these surfaces creates inconsistent displays.
 
 **Why it happens:**
-Productivity shame operates through cognitive distortions: all-or-nothing thinking dichotomizes time as "productive versus wasted," and perfectionism renders partial effort inadequate. In a friend group, reputational concern amplifies this -- these people will see each other in real life. The "what-the-hell effect" compounds things: one lapse becomes justification for complete abandonment. Research shows people with perfectionist tracking frameworks are 3.2x more likely to abandon goals after initial setbacks.
+"Just add an optional parentId" feels like a minimal change. But the Goal model is referenced in 6+ locations across 4 modules (goals, xp, scheduler/briefs, ai-assistant). Each location has implicit assumptions about flat structure -- `findMany` with no depth filtering, display logic that doesn't indent or group, autocomplete that shows all goals at one level.
 
 **How to avoid:**
-- Design the system around "progress, not perfection." Track percentage adherence (80% is great) rather than binary streaks (missed = zero).
-- Make failure private by default, success public by choice. A member who misses a check-in should get a private DM, not a public "X broke their streak" announcement.
-- Normalize setbacks explicitly in the system. Build a "bounce back" mechanic that rewards returning after absence rather than punishing the absence.
-- Frame leaderboards around growth rate (improvement from personal baseline) not absolute position. The member who went from 0 hours to 10 hours matters more than the one who maintained 40.
-- The founder (already a hustler) must model vulnerability by sharing their own failures publicly. If the top performer never shows struggle, the implicit message is "failure is unacceptable."
+1. Review the migration SQL after `prisma migrate dev` generates it -- watch for UNIQUE constraints on `parentId`. Edit the migration to use a regular index instead if Prisma generates a unique one.
+2. Make hierarchy completely optional. Existing goals with `parentId: null` must continue working identically. Zero behavioral change for members who don't want hierarchy.
+3. Update all goal queries to handle depth. For flat views (autocomplete, briefs), filter to top-level goals or add `depth` display. For detailed views, show hierarchy.
+4. Update `buildStatsSection()` and `buildMemberContext()` in the AI personality module to present hierarchical goals as indented/nested structures so Jarvis understands the relationship.
+5. Handle cascade behavior explicitly: completing a parent goal should NOT auto-complete children (or vice versa). Completing all children could optionally prompt parent completion via Jarvis.
 
 **Warning signs:**
-- Members going silent for days after a bad week instead of checking in.
-- Decrease in honest reporting -- inflated numbers, vague updates, "yeah I'm working on stuff."
-- Private messages between members expressing feeling "behind" or "not good enough."
-- Specific members consistently at the bottom of leaderboards disengaging from the server overall.
+- Migration fails on production because of duplicate `parentId` values (shouldn't happen since field is new, but Prisma's unique index bug can cause issues)
+- AI assistant refers to sub-goals as standalone goals with no parent context
+- `/goals` command shows 15 goals in a flat list when 10 of them are sub-goals of 5 parent goals
 
 **Phase to address:**
-Phase 1 (Core Accountability System Design). Must be designed with shame-prevention as a first-class concern, not patched in after damage is done.
+Phase 2 (Goal Hierarchy Refactor). This phase must include an explicit integration checklist for every file that touches the Goal model.
 
 ---
 
-### Pitfall 3: The Surveillance Resistance -- Gamers Feeling "Tracked" and "Managed"
+### Pitfall 3: Reflection Fatigue -- Self-Evaluation Becoming Another Chore
 
 **What goes wrong:**
-The target audience (gamers) chose gaming specifically because it's a space of autonomy, escape, and self-directed fun. Introducing productivity tracking, daily check-ins, and AI assistants that monitor progress can trigger psychological reactance -- the instinctive resistance people feel when their autonomy is threatened. A 2023 Glassdoor survey found 41% of professionals report feeling less productive when they know they're being monitored. Research on algorithmic surveillance shows it produces lower perceived autonomy, worse performance, and greater resistance than human oversight. In a friend group, this manifests as resentment toward the founder: "Who made you the boss of me?"
+The v1.0 system already asks members to check in daily, set goals, update progress, and respond to nudges. Adding a self-evaluation/reflection flow creates yet another "thing the bot asks you to do." Members experience decision fatigue and obligation overload. The biggest insight from reflection app research: the biggest mistake is that people have great insights during reflection but no system to connect them to daily action -- the insights fade and the exercise feels pointless. If reflection doesn't visibly change what Jarvis says, what goals get suggested, or what the morning brief contains, members will do it once and never again.
 
 **Why it happens:**
-Psychological reactance theory: when individuals perceive a loss of autonomy or control, they become motivated to restore it -- often by doing the opposite of what's asked. The friend-group dynamic makes this worse because there's no formal authority structure. The founder has no legitimate "boss" authority, so any system that feels like management will be rejected. Gamers are particularly sensitive to this because gaming culture values agency and choice -- it's the core appeal of the medium.
+Reflection is easy to build (it's a form) but hard to make valuable. The feature gets shipped as a standalone flow that writes data to a table, but nothing reads that table. The morning brief in `src/modules/scheduler/briefs.ts` doesn't reference reflection data. The AI system prompt in `src/modules/ai-assistant/personality.ts` doesn't include reflection insights. The data exists but has no downstream consumers.
 
 **How to avoid:**
-- Frame everything as tools the member controls, not systems that control the member. "Your personal dashboard" not "your accountability report."
-- Let members opt into tracking levels. Some may want granular hour tracking; others may prefer weekly summaries. Forcing one model on everyone triggers reactance.
-- The AI assistant should feel like a personal ally, not a surveillance tool. It asks, it doesn't demand. It celebrates, it doesn't scold.
-- Make the founder a participant, not an administrator. They should be on the leaderboard, doing check-ins, subject to the same system.
-- Use language from gaming, not corporate management. "Quests" not "tasks." "Loot" not "rewards." "Party" not "team."
-- Critical: Never auto-track without consent. If the bot detects someone hasn't checked in, it should send a friendly private nudge, not a public callout.
+1. Design reflection output-first: before building the UI, define exactly how reflection data feeds into (a) Jarvis's system prompt, (b) the morning brief, (c) goal suggestions, and (d) the monthly recap.
+2. Make it configurable intensity. The existing `accountabilityLevel` field on `MemberSchedule` (light/medium/heavy) should control reflection depth: light = 1 question weekly, medium = 3 questions weekly, heavy = daily structured reflection.
+3. Close the loop visibly. When Jarvis references a reflection ("Last week you said you were struggling with focus -- how's that going?"), the member sees the reflection was worth doing.
+4. Never prompt reflection and check-in on the same notification. Batch or alternate.
 
 **Warning signs:**
-- Members joking about the bot being "Big Brother" or "the boss."
-- Declining participation in check-ins while remaining active in social channels.
-- Members asking to disable or mute bot features.
-- Passive-aggressive engagement ("fine, here's my check-in: I existed today").
+- Reflection data table grows but is never joined or queried by other modules
+- Members complete reflection once during the first week, then never again
+- Jarvis never references anything from reflections in conversation
 
 **Phase to address:**
-Phase 1 (Bot UX and Tone Design) and ongoing. The language, framing, and opt-in architecture must be designed before any bot code is written.
+Phase 3 (Self-Evaluation/Reflection). Must be designed with downstream integration specified before any code is written.
 
 ---
 
-### Pitfall 4: The Leaderboard Doom Loop -- Competition Destroying Friendship
+### Pitfall 4: Smart Reminders Colliding with Existing Scheduler -- Two Timing Systems Fighting
 
 **What goes wrong:**
-In a 10-25 person friend group, a persistent public leaderboard creates a rigid social hierarchy that didn't exist before. The top 3-5 become "the successful ones" and the bottom 3-5 become "the slackers." This social stratification damages real friendships. Research shows leaderboards can create toxic communities, burned-out top performers, and people who treat their rank like self-worth. When someone in 15th place with no realistic chance of catching first place sees the gap, they stop participating entirely. In a friend group, they also stop hanging out.
+The bot already has a comprehensive scheduling system: `SchedulerManager` handles briefs, check-in reminders, Sunday planning, and nudges via node-cron. Smart reminders (natural language, one-shot, arbitrary times) are a fundamentally different scheduling paradigm -- they're one-time events, not recurring crons. Building a second scheduling system alongside the first creates: (1) two codepaths for "send member a message at a specific time," (2) notification overlap where a smart reminder fires 5 minutes before a scheduled nudge, (3) two sets of timezone handling logic that can drift apart, and (4) two rebuild-on-restart codepaths.
 
 **Why it happens:**
-Leaderboards create zero-sum framing: for me to rise, someone else must fall. In gaming contexts this is fine because the stakes are fictional. But ranking friends on real-life success creates real emotional consequences. The top performers get a dopamine hit from their position, but at the cost of subtly (or not so subtly) signaling superiority. Small groups amplify this because there's nowhere to hide -- everyone sees exactly where everyone stands.
+Cron-based recurring schedules and one-shot reminders feel like different features, so developers naturally build them separately. But from the member's perspective, they're the same thing: "the bot told me something at a specific time." Having two systems means two places to set quiet hours, two delivery pipelines, and two potential failure points.
 
 **How to avoid:**
-- Use relative/personal progress leaderboards instead of absolute rankings. "You're up 30% from last week" matters more than "You're 12th out of 20."
-- Implement team-based competition where small squads compete together, so the social dynamic is cooperation within teams rather than individual hierarchy. Research shows team rankings reduce toxicity because success depends on the group.
-- Rotate competition formats frequently. Week 1: most improved. Week 2: best streak. Week 3: best collaboration. Prevent any single ranking from calcifying.
-- Consider time-decay on leaderboard points so past performance doesn't create insurmountable leads.
-- Display leaderboards during specific "competition periods" rather than as permanent fixtures. Persistent visibility of your rank is psychologically corrosive.
+Extend `SchedulerManager` rather than building a parallel system. Add a `scheduleOneShot(memberId, fireAt, taskType, fn)` method that stores the reminder in the DB (new `Reminder` model) and registers a timeout. On bot restart, `rebuildAll` should also query pending reminders and re-register them. Route all reminder delivery through the existing `deliverNotification()` from `src/modules/notification-router/router.ts`. Add a new notification type (`'reminder'`) to the router so members can configure which account receives reminders.
 
 **Warning signs:**
-- The same 3-4 people always at the top, with an increasing gap.
-- Bottom-half members making self-deprecating jokes about their rank.
-- Members asking to remove or hide the leaderboard.
-- Friendship dynamics shifting -- top performers clustering together, bottom performers withdrawing.
+- A new `ReminderScheduler` class that duplicates timezone handling from `SchedulerManager`
+- Members receiving a reminder and a nudge within minutes of each other about the same topic
+- Reminder delivery bypasses the notification router (uses direct DM instead of `deliverNotification`)
 
 **Phase to address:**
-Phase 2 (Leaderboard/Competition System). Should be built after basic accountability works, with explicit anti-toxicity mechanics from the start.
+Phase 5 (Smart Reminders). Must be designed as an extension of the existing scheduler, not a parallel system.
 
 ---
 
-### Pitfall 5: Streak Anxiety and the Binary Collapse
+### Pitfall 5: AI Cost Explosion from v1.1 Feature Surface Area
 
 **What goes wrong:**
-Streak systems (daily check-in streaks, consistency streaks) create an all-or-nothing psychology where one missed day destroys accumulated motivation. Research from the University of Pennsylvania's Behavior Change Lab shows users receiving more than 2 streak notifications per week are 41% more likely to abandon the app within 18 days. A longitudinal study in NPJ Digital Medicine found users of minimalist trackers maintained consistent logging for a median of 74 days versus just 22 days for streak-centric platforms. The system you build to maintain engagement becomes the system that destroys it.
+v1.0 has controlled AI usage: morning briefs (1/day/member), chat (50 messages/day cap), nudges (1/day), content filtering. v1.1 adds multiple new AI-consuming features: Jarvis-assisted goal decomposition, reflection analysis, inspiration system ("what would X do?"), and monthly recap generation. Each feature seems cheap in isolation ($0.001 per call), but the surface area multiplies: 25 members * (1 brief + 1 reflection analysis + occasional goal decomposition + inspiration queries + 1 monthly recap) can push costs from $0.03/day to $0.50+/day without any single feature being the culprit. The existing daily message cap (50/member) in `src/modules/ai-assistant/chat.ts` only covers direct chat -- it doesn't account for system-initiated AI calls.
 
 **Why it happens:**
-Streaks create "streak anxiety" -- stress about maintaining the counter rather than genuine engagement with the activity. When the streak breaks (and life guarantees it will -- illness, travel, family emergencies), the psychological cost is disproportionate. The "what-the-hell effect" kicks in: "I already broke my 30-day streak, might as well take the week off." Over 80% of fitness app users abandon within 3 months. As Dr. Katy Milkman observed: "Streaks train people to care more about not failing than about succeeding."
+Each feature team (or each phase) adds "just one more AI call" without a unified cost accounting system. There's no global AI budget tracker. The existing `DAILY_MESSAGE_CAP = 50` in chat.ts is a per-member chat limit, not a system-wide cost control. System-initiated calls (briefs, reflections, recaps) bypass it entirely.
 
 **How to avoid:**
-- Replace binary streaks with flexible scoring. A 1-5 scale for daily engagement (1 = minimal, 5 = exceptional) where 80% adherence is celebrated. Research shows 80% adherence produces nearly identical long-term results to 100% consistency.
-- Build in "grace days" -- 1-2 per week where missing doesn't break the streak. This acknowledges reality without rewarding inactivity.
-- Track multi-dimensional progress (across hustling lanes, learning, community engagement) so a bad week in one area doesn't feel like total failure.
-- When a streak breaks, immediately offer a "comeback challenge" that rewards returning rather than punishing absence.
-- Never display streak length as a primary metric. Show it as a secondary stat behind actual outcome metrics.
+1. Implement a centralized AI cost tracker before adding any v1.1 AI features. Every OpenRouter call goes through a single function that logs: memberId (or 'system'), token count, estimated cost, feature source.
+2. Set a daily system-wide budget ceiling with a hard stop. When reached, degrade gracefully: skip AI-enhanced briefs (use template fallback, which already exists in `src/modules/scheduler/briefs.ts`), defer non-urgent AI calls.
+3. Distinguish member-initiated vs system-initiated AI costs. Member chat has the existing 50/day cap. System calls (briefs, reflections, recaps) should have separate per-feature budgets.
+4. Cache aggressively. The `briefCache` pattern in briefs.ts is good -- apply the same pattern to inspiration responses and reflection analysis.
 
 **Warning signs:**
-- Members checking in with zero-effort content just to not break their streak.
-- Anxiety-laden messages about "almost forgetting to check in."
-- Complete radio silence from a member who just broke a long streak.
-- Members asking if they can backfill missed days.
+- OpenRouter bill jumps 5-10x after v1.1 deploy with no single feature responsible
+- No function exists that can answer "how much did AI cost today?"
+- Template fallbacks never trigger because no cost ceiling exists
 
 **Phase to address:**
-Phase 1 (Accountability System Design). Streak mechanics must be designed with flexibility from the start -- rigid streaks cannot be easily retrofitted into forgiving ones without feeling like a downgrade.
+Phase 6 (Rate Limiting and Cost Controls). Should be built BEFORE the AI-heavy features (goal decomposition, inspiration, reflection analysis), not after.
 
 ---
 
-### Pitfall 6: The Dead Server Spiral -- Founder Burnout Killing the Community
+### Pitfall 6: Monthly Recap Image Generation Blocking the Event Loop
 
 **What goes wrong:**
-The project constraint states "single person maintaining." This is a critical vulnerability. The server's energy depends entirely on the founder's energy. When the founder has a bad week, the server goes quiet. When the server goes quiet, members lose the habit of checking in. When members stop checking in, the founder faces a dead server and loses motivation to maintain it. This is the #1 killer of small Discord communities. Research consistently identifies owner disengagement as the primary cause of server death, not inherent community problems.
+Monthly progress recaps need visual summaries -- charts, progress bars, stat cards. Discord embeds can't render dynamic visualizations, so you need to generate images server-side (canvas/sharp) and send as attachments. Image generation with @napi-rs/canvas or node-canvas is CPU-intensive. Generating 25 custom recap images (one per member) at month-end blocks the Node.js event loop for seconds per image. During generation, the bot stops responding to commands, timers don't fire, and Discord heartbeats can be missed (causing disconnection). This is especially dangerous because recaps naturally cluster: all 25 generate within the same cron window.
 
 **Why it happens:**
-Running a community is emotionally draining invisible labor. The founder must: maintain bots, create events, seed conversations, respond to check-ins, update content feeds, handle interpersonal dynamics, AND do their own hustling. Without delegation, this is unsustainable. The irony: the founder built this to help friends be productive, but maintaining it makes them less productive.
+Node.js is single-threaded. Canvas rendering is synchronous CPU work. The existing bot architecture processes everything on the main thread -- all cron callbacks in `SchedulerManager`, all command handlers, all event listeners. There's no worker thread infrastructure.
 
 **How to avoid:**
-- Automate relentlessly. The AI assistant should handle daily check-in prompts, leaderboard updates, streak tracking, and content feeds without founder intervention. The founder should spend less than 15 minutes per day on server maintenance.
-- Build self-sustaining rituals. Weekly challenges, automated accountability DMs, and scheduled events that run whether or not the founder is active that day.
-- Deputize 2-3 members as co-moderators early. Not with admin permissions, but with social responsibility for keeping energy up.
-- Design the bot to generate activity autonomously: daily prompts, weekly recaps, challenge announcements, milestone celebrations -- all automated.
-- Build monitoring alerts that tell the founder when engagement drops below a threshold, rather than requiring them to manually monitor.
+1. Use worker_threads for image generation. Spawn a worker per recap, or a worker pool with 2-3 workers.
+2. Stagger recap generation across the day -- don't generate all 25 at midnight. Space them 2-5 minutes apart.
+3. Use QuickChart API as an alternative to local canvas rendering for charts/graphs -- offloads CPU to an external service (free tier: 500 charts/month, sufficient for 25 members * 12 months).
+4. If using local canvas, keep images simple. A stat card with text and colored bars is cheap to render. A full custom infographic with gradients and icons is expensive.
+5. Consider generating recaps as rich embeds with emoji-based visualizations (progress bars using Unicode block characters) as the default, with image generation as an optional enhancement.
 
 **Warning signs:**
-- Founder dreading opening the admin panel.
-- Increasing time between bot updates or new features.
-- The founder being the only person initiating conversations.
-- "I'll get to that this weekend" becoming a recurring pattern.
+- Bot goes unresponsive for 30+ seconds at the start of each month
+- Discord gateway connection drops during recap generation
+- PM2 marks the process as unstable due to event loop stalls
 
 **Phase to address:**
-Every phase. Automation should be the default assumption for every feature. If it can't run without daily founder input, redesign it.
+Phase 4 (Monthly Progress Recap). Design must include a staggering strategy and either worker threads or external rendering.
 
 ---
 
@@ -169,74 +152,83 @@ Shortcuts that seem reasonable but create long-term problems.
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Hardcoding bot token in source | Quick setup | Complete bot compromise if code is ever shared or pushed to Git; Discord auto-revokes exposed tokens | Never |
-| Using JSON files for data persistence | No database setup needed | Data corruption on concurrent writes, no query capability, grows unmanageable past 100 records | First 48 hours of prototyping only |
-| Giving bot Administrator permission | No permission debugging | Any vulnerability gives attacker full server control; violates principle of least privilege | Never |
-| Single monolithic bot file | All code in one place | 120K+ lines become unmaintainable (documented by bot developers); impossible to debug or extend | Never -- use command handler pattern from day one |
-| Skipping error handling on API calls | Faster development | Unhandled 429 errors cause request spikes that hit Discord's error threshold; bot gets globally restricted | Never |
-| Building features without opt-out | Faster feature delivery | Members feel surveilled, trigger psychological reactance, disengage | Never for tracking/accountability features |
+| Storing timer state only in memory (setTimeout) | Simple implementation, no migration needed | Every bot restart kills active timers; members lose focus sessions silently | Never -- the bot uses PM2 with auto-restart, making this guaranteed to fail |
+| Building a separate reminder scheduler instead of extending SchedulerManager | Faster development, no risk of breaking existing scheduled tasks | Two timezone handling codepaths, two restart recovery systems, notification conflicts between systems | Never -- the existing SchedulerManager was designed to be extensible |
+| Generating recap images synchronously on the main thread | No worker_threads complexity, simpler code | Event loop blocks during generation; bot unresponsive; Discord heartbeat missed at scale | Only if images are trivially simple (< 50ms generation) |
+| Hardcoding inspiration people in the AI prompt | Works immediately, no new DB model | Can't update inspirations without code deploy; no per-member customization | First prototype only, then migrate to DB |
+| Adding AI calls without cost tracking | Each feature ships faster without centralized billing | No visibility into which feature costs what; budget overruns discovered via OpenRouter invoice, not monitoring | Never -- add the tracker before the features |
+| Making self-evaluation mandatory | Higher completion rates initially | Triggers obligation fatigue; members resent the bot; contradicts v1.0's opt-in philosophy | Never -- always make it configurable via accountabilityLevel |
+| Skipping migration testing for goal hierarchy | Faster schema iteration | Prisma self-relation unique index bug corrupts migration; existing goal queries break in production | Never -- test migration on a copy of production data |
 
 ## Integration Gotchas
 
-Common mistakes when connecting to external services.
+Common mistakes when connecting v1.1 features to the existing v1.0 system.
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Discord API rate limits | Ignoring rate limit headers, causing 429 cascades | Respect Retry-After header; discord.js handles this automatically via @discordjs/rest, but custom API calls must implement it manually |
-| Discord Webhooks | Leaving Manage Webhooks permission on bots after setup | Create webhooks during setup, then revoke the permission; exposed webhook endpoints allow anyone to post messages including @everyone |
-| Discord Gateway Intents | Requesting all intents "just in case" | Only request intents you actively use; MESSAGE_CONTENT intent requires verification for bots in 100+ servers and wastes memory tracking unnecessary events |
-| AI API (OpenAI/Anthropic) for personal assistants | No rate limiting or cost controls on user-triggered AI calls | Implement per-user daily token limits, queue requests, cache common responses; a single user spamming the AI assistant can run up hundreds of dollars |
-| Database connections | Opening a new connection per command | Use connection pooling; SQLite is fine for 10-25 users but use async (aiosqlite for Python, better-sqlite3 for Node.js) to avoid blocking the event loop |
-| Time zones | Assuming all members share a timezone for daily resets | Store member timezone preference; daily check-ins should reset per member, not globally |
+| Integration Point | Common Mistake | Correct Approach |
+|-------------------|----------------|------------------|
+| Goal hierarchy + AI personality (`personality.ts`) | Adding parentId to Goal model but not updating `buildStatsSection()` or `buildMemberContext()` -- Jarvis sees sub-goals as disconnected goals | Update both functions to present goals as a tree. Indent children under parents. Include parent context when referencing a sub-goal |
+| Timer + XP engine | Awarding XP per pomodoro completion without diminishing returns -- members spam short pomodoros for XP | Follow the existing diminishing returns pattern from `XP_AWARDS.checkin` (25 -> 12 -> 6 -> 2). First pomodoro = full XP, subsequent same-day pomodoros decrease |
+| Smart reminders + notification router | Delivering reminders via direct DM instead of through `deliverNotification()` -- bypasses member's account routing preferences | Always route through `deliverNotification(client, db, memberId, 'reminder', content)`. Add 'reminder' to the NotificationType and TYPE_TO_FIELD mapping in `src/modules/notification-router/router.ts` |
+| Reflection + encryption | Storing reflection responses in cleartext when the entire system uses per-member AES-256-GCM encryption for personal data | Reflection content is personal data -- encrypt it using the same `encrypt()` from `src/shared/crypto.ts`. Follow the pattern from CheckIn.content and ConversationMessage.content |
+| Inspiration system + AI context window | Adding full inspiration bios to every AI call, consuming 2K+ tokens per person per call | Store inspiration names only in DB. Let Jarvis use its training knowledge about public figures. Only include the member's relationship to the inspiration ("you admire X because Y") in the system prompt, not a biography |
+| Monthly recap + season system | Generating recaps that ignore season boundaries -- showing stats that span two seasons | Query data within the current season's `startedAt`/`endedAt` boundaries. The Season model in the schema already tracks this |
+| Timer + existing lock-in sessions | Building pomodoro timers as a separate concept when lock-in sessions already provide co-working infrastructure | Integrate timers INTO lock-in sessions as an optional mode. A member in a lock-in session should be able to run a pomodoro within it, with the timer visible to session participants |
 
 ## Performance Traps
 
-Patterns that work at small scale but fail as usage grows.
+Patterns that work at small scale but become problems.
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Storing all leaderboard data in memory | Fast reads | Use database with indices; memory grows linearly with history | When historical data exceeds a few months of daily entries for 25 users (manageable, but poor habit) |
-| Fetching full message history for stats | Accurate counts | Cache message counts incrementally; listen to events and update counters | When channels accumulate 10K+ messages; API pagination becomes slow |
-| Processing commands synchronously | Simple code | Use async patterns; defer replies for operations taking over 3 seconds (Discord interaction timeout) | First time a database query or AI call takes more than 3 seconds; user sees "interaction failed" |
-| No caching for Discord API responses | Fresh data | Use discord.js built-in cache; avoid redundant guild/channel/user fetches | Irrelevant at 25 users, but builds bad habits for any future scaling |
+| Querying full goal tree with all descendants for every AI call | Slow AI response times, increased DB load | Limit tree depth to 3 levels (year -> quarter -> week). Cache the tree structure per member with 5-minute TTL | When members have 20+ goals in a deep hierarchy |
+| Generating monthly recaps for all members in a single cron tick | Bot unresponsive for minutes, Discord heartbeat timeout | Stagger generation: 1 member every 2 minutes via queued processing | Immediately at 25 members with image generation |
+| Loading all reminders into memory on startup | Memory grows linearly with reminder count | Only load reminders firing in the next hour. Re-query hourly | When members accumulate 100+ future reminders |
+| Unbounded inspiration context in AI prompts | Token budget consumed by inspiration data, leaving less room for conversation history | Cap inspiration list at 3-5 people per member. Include only names and member's stated reason, not bios | When a member adds 10+ inspiration figures |
+| Re-parsing natural language time expressions on every display | CPU waste on every /reminders list command | Parse once on creation, store as ISO datetime in DB. Display from stored datetime | Negligible at 25 users, but builds bad habits |
 
 ## Security Mistakes
 
-Domain-specific security issues beyond general web security.
+Domain-specific security issues for v1.1 features.
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Bot token in source code or Git history | Full bot takeover; attacker can mass-DM members, spam server, harvest data | Use .env files, add .env to .gitignore, use environment variables in hosting; if token was ever committed, regenerate immediately |
-| Leaving Manage Webhooks permission active | External actors can inject messages into any channel, including @everyone pings | Revoke permission after webhook creation; audit webhook list periodically |
-| AI assistant seeing private channel content without scoping | Members' private accountability data exposed to wrong audience | Scope AI context per member; private channels should only feed that member's assistant |
-| No input sanitization on user-submitted goals/updates | Injection of Discord markdown, @everyone mentions, or embed manipulation | Strip mentions and sanitize markdown in user inputs before display |
-| Storing member productivity data without consent clarity | Trust erosion when members realize the bot tracks more than they expected | Explicit onboarding that explains exactly what is tracked; provide data export and deletion commands |
+| Storing reflection/self-evaluation content unencrypted | Members share vulnerable personal assessments. If DB is compromised, deeply personal data is exposed in cleartext. This violates the "owner-blind privacy" principle established in v1.0 | Encrypt reflection content using existing per-member encryption (`encrypt()` from `src/shared/crypto.ts`). Follow the same pattern as CheckIn.content |
+| AI-generated inspiration responses containing harmful advice | If a member's inspiration is a controversial figure, Jarvis might generate inappropriate content when asked "what would X do?" | Add content guardrails to inspiration prompts. Constrain Jarvis to productivity/work-ethic context only. Never let the AI roleplay as the inspiration figure |
+| Rate limiting information leak | Exposing exact remaining budget/tokens to members reveals system internals that could be exploited to game the system | Show friendly messages ("you're approaching your daily limit") not exact numbers ("you have 47.3K tokens remaining") |
+| Reminder content visible to other members via shared channels | If smart reminders deliver to a CHANNEL-type private space that another member can see | Reminders should always deliver via DM, never to channel-type private spaces. Override the private space preference for reminder-type notifications |
+| Monthly recap images containing unencrypted personal stats shared publicly | A member shares their recap to #wins, revealing stats that are normally private | Recap images shared to public channels should show opt-in public stats only. Detailed private stats stay in the DM version |
 
 ## UX Pitfalls
 
-Common user experience mistakes in this domain.
+Common user experience mistakes when adding these features.
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Too many channels on day one | Members open server, see 30+ channels, feel overwhelmed, mute entire server | Launch with 5-8 channels maximum; add channels only when organic need emerges. Research shows servers over 30 channels cause mute-everything behavior |
-| Bot responding to everything publicly | Members feel surveilled; casual conversation becomes impossible | Bot should respond in threads or DMs by default; use public channels only for celebrations and announcements |
-| Requiring complex setup to start | New member must configure timezone, lanes, goals, AI preferences before seeing any value | Provide sensible defaults; let members start with zero configuration and customize later |
-| Notification spam from bot updates | Members mute the server entirely, defeating the purpose | Rate-limit bot messages; batch daily updates into a single digest; respect Discord notification settings |
-| Same gamification for all three lanes | Freelancing progress looks nothing like ecom progress looks nothing like content creation | Design lane-specific metrics: freelancers track clients/revenue, ecom tracks stores/products/revenue, content tracks posts/followers/engagement |
-| AI assistant being generic | "How can I help you today?" feels like Clippy, not a personal coach | Pre-seed assistant with member context (their lane, their goals, their recent activity); make first interaction feel personalized |
+| Timer notifications in the wrong channel | Pomodoro "break time!" message appears in #general instead of DM, annoying everyone | All timer notifications go through notification router to member's private space. Only session-visible timers (in lock-in sessions) should post to the session's channel |
+| Goal hierarchy forced on everyone | Members who like simple flat goals now have to navigate a tree structure for basic operations like `/goals` | Hierarchy is strictly optional. `/goals` shows flat list by default. Only members who explicitly create sub-goals see hierarchy. `/setgoal` works identically to v1.0 unless --parent is specified |
+| Reflection prompts at bad times | Sending "how did your week go?" at 2 PM on a Tuesday when the member is deep in work | Tie reflection timing to existing schedule preferences. Use the member's brief time or create a separate reflection time preference. Never interrupt with reflection during a pomodoro session |
+| Inspiration system feeling like generic motivational spam | "Here's what Steve Jobs would say about your goal!" reads like a bad LinkedIn post | Inspirations must be member-chosen, not system-assigned. Jarvis references them naturally in conversation ("you said you admire X -- they were in a similar spot when..."), not as unsolicited motivational cards |
+| Monthly recap that's just a wall of numbers | Member opens a DM with 15 stat lines and no visual hierarchy | Lead with the narrative: "You completed 12 goals this month, up from 8 last month." Follow with visual summary (progress bars, charts). End with specific highlights. Keep total length under 1 Discord message |
+| Too many new slash commands overwhelming autocomplete | v1.0 has 22 commands. Adding /timer, /reflection, /inspire, /remind, /recap, /setparent, /subgoals pushes to 29+ | Group related functionality into subcommands: `/timer start`, `/timer pause`, `/timer status` instead of `/starttimer`, `/pausetimer`, `/timerstatus`. Minimize top-level command additions |
+| Smart reminders with no way to list or cancel | Member sets a reminder, forgets about it, can't find it, gets surprised by it days later | Always provide `/reminders` (list pending), `/cancelreminder` (remove by ID or fuzzy match). Show pending reminders in morning brief |
 
 ## "Looks Done But Isn't" Checklist
 
 Things that appear complete but are missing critical pieces.
 
-- [ ] **Daily check-in system:** Often missing graceful handling of missed days -- verify the bot doesn't publicly shame absent members or reset streaks without a comeback path
-- [ ] **Leaderboard:** Often missing reset/rotation logic -- verify it doesn't create permanent hierarchies; check that new members aren't hopelessly behind from day one
-- [ ] **AI personal assistant:** Often missing context boundaries -- verify member A's private data never leaks into member B's conversations; test with actual multi-user scenarios
-- [ ] **Streak tracking:** Often missing timezone handling -- verify a member in a different timezone doesn't lose their streak due to UTC midnight vs their local midnight
-- [ ] **Bot error handling:** Often missing graceful degradation -- verify the bot sends a friendly "something went wrong" message instead of silently failing when the database or API is unreachable
-- [ ] **Onboarding flow:** Often missing the "what's in it for me" hook -- verify a new member understands the value within 60 seconds, not after reading a rules channel
-- [ ] **Voice channel co-working:** Often missing activity indication -- verify members can see who's in a voice channel without joining; dead voice channels feel worse than no voice channels
-- [ ] **Content feeds:** Often missing curation quality -- verify the feed isn't just an RSS dump; low-quality automated content poisons the channel faster than no content
+- [ ] **Productivity Timer:** Often missing restart recovery -- verify that restarting the bot mid-pomodoro resumes the timer correctly with accurate remaining time
+- [ ] **Productivity Timer:** Often missing pause/resume state persistence -- verify that pausing, restarting the bot, then resuming works
+- [ ] **Goal Hierarchy:** Often missing autocomplete update -- verify `/progress` and `/completegoal` autocomplete only shows leaf goals or handles parent/child correctly
+- [ ] **Goal Hierarchy:** Often missing AI context update -- verify `buildSystemPrompt()` presents hierarchical goals with parent-child relationships, not flat
+- [ ] **Goal Hierarchy:** Often missing `/mydata` export update -- verify the JSON export includes parent-child relationships in the goal data
+- [ ] **Self-Evaluation:** Often missing downstream integration -- verify at least one other feature (brief, AI prompt, or recap) actively reads and references reflection data
+- [ ] **Inspiration System:** Often missing empty state -- verify what happens when a member has no inspirations set and Jarvis tries to reference one
+- [ ] **Monthly Recap:** Often missing timezone-correct month boundaries -- verify recap for March covers March 1 00:00 to March 31 23:59 in the MEMBER'S timezone, not UTC
+- [ ] **Monthly Recap:** Often missing season boundary handling -- verify recap doesn't mix stats from two different seasons
+- [ ] **Smart Reminders:** Often missing past-time handling -- verify "remind me at 3pm" when it's already 4pm either errors clearly or schedules for tomorrow, not silently discards
+- [ ] **Smart Reminders:** Often missing notification router integration -- verify reminders use `deliverNotification()` not direct DM
+- [ ] **Rate Limiting:** Often missing system-initiated call tracking -- verify briefs, reflections, and recaps count against the cost budget, not just member chat messages
+- [ ] **Rate Limiting:** Often missing graceful degradation -- verify what happens when the budget is exhausted: template fallback for briefs, queued retry for recaps, friendly message for chat
 
 ## Recovery Strategies
 
@@ -244,13 +236,13 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Overjustification (members only work for points) | HIGH | Gradually reduce point frequency; reintroduce intrinsic framing; feature real outcomes over point totals; may require full gamification system redesign |
-| Shame spiral (members withdrawing) | MEDIUM | Private outreach from founder (not the bot); create explicit "no judgment" re-entry path; share founder's own struggles publicly; temporarily hide leaderboards |
-| Surveillance resistance (members resenting tracking) | MEDIUM | Immediately make all tracking opt-in; send a message acknowledging the concern; let members choose their own tracking granularity; reframe bot as tool, not monitor |
-| Leaderboard toxicity (friends competing unhealthily) | MEDIUM | Shift to team-based competition; rotate leaderboard criteria; add "most improved" and "best collaborator" categories; consider removing absolute rankings entirely |
-| Streak anxiety (perfectionism burnout) | LOW | Introduce grace days retroactively; celebrate comeback stories; redefine "success" as percentage consistency not perfect streaks; private message affected members |
-| Dead server spiral (founder burnout) | HIGH | Automate everything possible immediately; recruit 2-3 co-maintainers from the friend group; reduce posting frequency to sustainable level; accept that some weeks will be quiet |
-| Bot token compromise | LOW (technical) | Regenerate token immediately in Discord Developer Portal; audit bot actions during compromise window; rotate any other secrets; review code for additional exposure |
+| Timer state lost on restart (in-memory only) | MEDIUM | Add TimerSession DB model. Write migration to persist active timers. Add rebuildTimers() to startup. Members lose any timers active during the fix deploy, but future timers survive |
+| Goal hierarchy migration breaks flat goals | HIGH | Rollback migration. Fix Prisma schema (remove erroneous unique index). Re-test on data copy. Re-deploy. If data was corrupted, restore from backup |
+| Reflection data has no downstream consumers | LOW | Add reflection context to buildSystemPrompt() and brief template. No data loss, just wasted member effort during the gap |
+| Two scheduling systems fighting (reminder vs cron) | HIGH | Merge reminder system into SchedulerManager. Migrate stored reminders to unified format. Significant refactor of whichever system was built second |
+| AI cost overrun | LOW (financial), MEDIUM (technical) | Immediately add cost ceiling. Enable template fallbacks. Audit which features consume the most tokens. Reduce context window for non-critical calls |
+| Event loop blocked by recap generation | MEDIUM | Move to worker_threads or external service. Retroactively generate failed recaps. Add staggering to prevent cluster |
+| Reflection/reminder data stored unencrypted | HIGH | Write data migration to encrypt existing records in-place. Requires careful key derivation for each member. Cannot be done atomically -- must handle partial encryption state |
 
 ## Pitfall-to-Phase Mapping
 
@@ -258,38 +250,31 @@ How roadmap phases should address these pitfalls.
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Overjustification trap | Phase 1: Gamification Design | Audit: do point awards map 1:1 to real outcomes? Are there reward-free interaction spaces? |
-| Shame spiral | Phase 1: Accountability System | Test: simulate a member missing 5 days. What happens? Is it private? Is there a comeback path? |
-| Surveillance resistance | Phase 1: Bot UX/Tone | Review: can a member use the server without opting into any tracking? Does the language feel like a tool or a manager? |
-| Leaderboard doom loop | Phase 2: Competition System | Check: after 4 weeks of simulated data, is the gap between #1 and #20 insurmountable? Are team mechanics in place? |
-| Streak anxiety | Phase 1: Streak/Tracking Design | Test: break a 30-day streak. Does the system punish or encourage comeback? Are grace days built in? |
-| Founder burnout / dead server | Every Phase: Automation | Measure: can the server run for 7 days without any founder intervention? If not, what requires manual action? |
-| Bot token exposure | Phase 1: Infrastructure Setup | Audit: is .env in .gitignore? Are secrets in environment variables? Is the token rotatable? |
-| Notification fatigue | Phase 1: Bot Message Design | Test: join the server as a new member. How many bot messages arrive in the first hour? First day? Is it overwhelming? |
-| Channel overwhelm | Phase 1: Server Structure | Count: are there fewer than 10 visible channels at launch? Does every channel have clear, non-overlapping purpose? |
-| AI cost runaway | Phase 2: AI Assistant | Monitor: is there a per-user daily token cap? What happens when the cap is hit? Is there a monthly cost ceiling? |
-| Gamification cheating | Phase 2: Anti-gaming Design | Audit: can a member earn top-3 leaderboard position through low-effort manipulation? Are there manual-review gates for suspicious patterns? |
-| Timezone bugs in streaks | Phase 1: Data Model Design | Test: simulate members in 3 different timezones. Do daily resets work correctly for each? |
+| Timer state lost on restart | Timer phase | Test: start timer, restart bot via PM2, verify timer resumes with correct remaining time |
+| Goal hierarchy migration breaks queries | Goal Refactor phase | Test: create 3-level goal tree, run /goals, /progress, verify display is correct. Check AI system prompt includes hierarchy |
+| Reflection becomes dead data | Reflection phase | Audit: does any code outside the reflection module READ reflection data? If not, the feature is incomplete |
+| Two scheduling systems | Reminders phase | Architecture review: is there a single SchedulerManager handling both cron tasks and one-shot reminders? |
+| AI cost explosion | Rate Limiting phase (build FIRST) | Monitor: can the system answer "how much did AI cost today by feature?" If not, cost controls are incomplete |
+| Event loop blocking from recaps | Recap phase | Test: trigger recap generation for all members simultaneously. Measure: does the bot remain responsive to commands during generation? |
+| Encryption missed on new personal data | Every phase with new personal data | Audit per phase: are reflection responses, reminder text, evaluation scores encrypted at rest? |
+| Inspiration system feels like spam | Inspiration phase | User test: show inspiration output to 3 members. Ask: "Does this feel personal or generic?" If generic, redesign |
+| Notification overlap (reminder + nudge + brief) | Reminders phase | Test: set a reminder at the same time as a scheduled nudge. Verify the system either deduplicates or spaces them by at least 5 minutes |
+| Slash command proliferation | Every phase adding commands | Count: after all v1.1 features, are there more than 25 top-level slash commands? If yes, consolidate into subcommand groups |
+| Smart reminder delivers to wrong channel | Reminders phase | Test: set a CHANNEL-type private space, create a reminder. Verify it delivers via DM, not the channel |
 
 ## Sources
 
-- [Overjustification effect -- Wikipedia](https://en.wikipedia.org/wiki/Overjustification_effect) -- HIGH confidence (well-established psychology)
-- [The Dark Side of Gamification -- Growth Engineering](https://www.growthengineering.co.uk/dark-side-of-gamification/) -- MEDIUM confidence (industry analysis, multiple corroborating sources)
-- [Why Most Habit Streaks Fail -- Moore Momentum](https://mooremomentum.com/blog/why-most-habit-streaks-fail-and-how-to-build-ones-that-dont/) -- MEDIUM confidence (cites research, verified against other streak research)
-- [Motivation crowding effects on gamified fitness apps -- PMC/Frontiers](https://pmc.ncbi.nlm.nih.gov/articles/PMC10807424/) -- HIGH confidence (peer-reviewed research)
-- [Leaderboards good or bad -- Level Up](https://www.levelup.plus/blog/leaderboards-good-or-bad/) -- MEDIUM confidence (practitioner analysis, consistent with academic findings)
-- [Why Gamification Usually Fails -- Behavioral Strategy](https://behavioralstrategy.com/failures/gamification-failures/) -- MEDIUM confidence (case studies with specific examples)
-- [Discord Bot Development Lessons -- Josh Humphriss](https://joshhumphriss.com/articles/discordbotslearnt) -- MEDIUM confidence (practitioner experience, 120K+ lines of bot code)
-- [Discord Rate Limits Documentation](https://discord.com/developers/docs/topics/rate-limits) -- HIGH confidence (official documentation)
-- [Discord Bot Security Best Practices 2025](https://friendify.net/blog/discord-bot-security-best-practices-2025.html) -- MEDIUM confidence (practitioner guide, consistent with official docs)
-- [Algorithmic vs human surveillance and autonomy -- Nature Communications Psychology](https://www.nature.com/articles/s44271-024-00102-8) -- HIGH confidence (peer-reviewed research)
-- [Psychological Reactance -- Ness Labs](https://nesslabs.com/psychological-reactance) -- MEDIUM confidence (science communication, consistent with academic sources)
-- [Escaping Guilt: Psychology of Rest in Hustle Culture -- PsychoTricks](https://psychotricks.com/productivity-shame-trap/) -- MEDIUM confidence (cites neurochemical research)
-- [How to Revive a Dead Discord Server -- Whop](https://whop.com/blog/how-to-revive-a-dead-discord-server/) -- LOW confidence (practitioner advice, but consistent pattern across multiple guides)
-- [Self-Determination Theory -- selfdeterminationtheory.org](https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf) -- HIGH confidence (foundational academic work)
-- [The Gamification Fallacy -- Yu-kai Chou](https://yukaichou.com/gamification-study/points-badges-and-leaderboards-the-gamification-fallacy/) -- MEDIUM confidence (leading gamification researcher)
-- [Psychology of Social Loafing -- Sprouts/Medium](https://medium.com/@sproutbientasks/the-psychology-of-social-loafing-exploring-group-dynamics-b0560809bdd7) -- MEDIUM confidence (summarizes established research)
+- Codebase analysis: `src/modules/scheduler/manager.ts` (SchedulerManager architecture), `src/modules/goals/` (flat goal model and all query patterns), `src/modules/ai-assistant/personality.ts` and `memory.ts` (AI context assembly), `src/modules/xp/engine.ts` and `constants.ts` (XP award patterns with diminishing returns), `src/modules/notification-router/router.ts` (delivery routing), `src/shared/crypto.ts` (encryption patterns), `src/modules/sessions/manager.ts` (in-memory state pattern for sessions) -- HIGH confidence (direct source code analysis)
+- [Prisma self-relation unique index bug](https://github.com/prisma/migrate/issues/405) -- HIGH confidence (official Prisma issue tracker)
+- [node-cron missed execution issues](https://github.com/node-cron/node-cron/issues/400) -- HIGH confidence (official issue tracker, confirmed bug)
+- [Token-Based Rate Limiting for AI Agents](https://zuplo.com/learning-center/token-based-rate-limiting-ai-agents) -- MEDIUM confidence (industry guide, consistent with OpenRouter billing model)
+- [QuickChart for Discord bots](https://quickchart.io/documentation/send-charts-discord-bot/) -- HIGH confidence (official documentation)
+- [discord.js canvas guide](https://discordjs.guide/legacy/popular-topics/canvas) -- MEDIUM confidence (legacy guide, but patterns still valid)
+- [OKR Mistakes and Goal Hierarchy Pitfalls](https://www.perdoo.com/resources/blog/common-okr-mistakes-and-how-to-overcome-them) -- MEDIUM confidence (practitioner guide, multiple corroborating sources)
+- [Self-Reflection for Productivity](https://alexwalker7.medium.com/how-to-use-self-reflection-for-increased-productivity-techniques-for-evaluating-your-progress-and-6d6fe47b632c) -- MEDIUM confidence (practitioner analysis)
+- [Discord interaction persistence after restart](https://www.answeroverflow.com/m/1021674183614279700) -- MEDIUM confidence (community discussion, verified against discord.js behavior)
+- [Node.js Image Manipulation Libraries for Discord](https://medium.com/on-discord/nodejs-image-manipulation-libraries-43a3f955cc67) -- MEDIUM confidence (practitioner guide)
 
 ---
-*Pitfalls research for: Discord Hustler -- productivity/accountability community for small gamer friend group*
+*Pitfalls research for: Discord Hustler v1.1 Depth -- adding productivity timer, goal hierarchy, self-evaluation, inspiration, monthly recaps, smart reminders, and rate limiting to existing 16K LOC bot*
 *Researched: 2026-03-20*

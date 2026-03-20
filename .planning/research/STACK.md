@@ -1,199 +1,327 @@
-# Stack Research
+# Stack Research: v1.1 Depth -- New Feature Additions
 
-**Domain:** Discord productivity/gamification bots and integrations
+**Domain:** Discord productivity bot -- depth features (timers, goal hierarchy, reflection, inspiration, recaps, smart reminders, cost controls)
 **Researched:** 2026-03-20
-**Confidence:** HIGH (core stack verified via official docs and npm; supporting libraries verified via multiple sources)
+**Confidence:** HIGH (versions verified via `npm show`, TypeScript/ESM compatibility confirmed, integration points validated against existing codebase)
 
-## Recommended Stack
+**Scope:** This document covers ONLY new dependencies and patterns needed for v1.1 features. The validated v1.0 stack (discord.js 14.25.x, Prisma 7, OpenRouter with DeepSeek V3.2 + Qwen 3.5 Plus, node-cron 4.x, date-fns 4.x, zod 4.x, winston 3.x, PM2) is not re-evaluated.
 
-### Core Technologies
+## New Dependencies for v1.1
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Node.js | 22.x LTS (22.22.x) | Runtime | discord.js 14.25.x requires Node 22.12.0+. Use 22.x LTS for stability and long-term support (EOL April 2027). Node 24.x LTS is available but 22.x has wider ecosystem testing. |
-| TypeScript | 5.7+ | Language | Type safety across the entire bot codebase. Catches Discord API misuse at compile time. Every major discord.js template in 2025-2026 uses TypeScript. Not optional for a project this complex. |
-| discord.js | 14.25.1 | Discord API wrapper | The dominant Discord library for Node.js with 55% market share among JS Discord frameworks, 2M+ weekly npm downloads. v14 is the stable production branch. Do NOT use v15 (dev preview, breaking changes, not production-ready). |
-| PostgreSQL | 16+ | Primary database | Relational integrity for leaderboards, streaks, goals, user data. Supports complex queries (rankings with window functions, streak calculations). Free tier on Railway. SQLite is tempting for small scale but lacks concurrent write support -- a problem when multiple bot commands hit the DB simultaneously. |
-| Prisma ORM | 7.x | Database access layer | Full TypeScript type safety, auto-generated client from schema, declarative migrations. Prisma 7 dropped the Rust engine entirely (pure TypeScript now), resulting in 3.4x faster queries and 90% smaller bundle. Best DX for Discord bot development where you want to iterate fast on schema. |
+### chrono-node -- Natural Language Time Parsing
 
-### AI Integration
+| Attribute | Value |
+|-----------|-------|
+| Package | `chrono-node` |
+| Version | 2.9.0 |
+| Purpose | Parse natural language time expressions for smart reminders |
+| Confidence | HIGH (verified via npm, TypeScript types included, ESM exports confirmed) |
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| @anthropic-ai/sdk | 0.80.x | Claude API access | Direct SDK for Claude API. Personal AI assistant feature requires conversational AI with strong reasoning. Claude excels at accountability coaching, goal analysis, and personalized feedback. Use claude-sonnet-4-20250514 for the assistant (balances cost, speed, and quality for a 10-25 member server). |
-| AI SDK (@ai-sdk/anthropic) | 3.0.x | Unified AI abstraction (optional) | Vercel's AI SDK provides streaming, tool use, and provider switching. Use ONLY if you want provider flexibility (swap Claude for GPT for specific tasks). For a focused Claude integration, the direct SDK is simpler. |
+**Why:** The smart reminders feature needs to parse inputs like "remind me tomorrow at 3pm", "in 2 hours", "next Monday morning". The existing `parseDeadline()` function in `goals/commands.ts` is a hand-rolled regex parser that handles 6 formats. Smart reminders need far richer parsing -- relative times, recurring patterns, and time-of-day expressions. chrono-node handles all of these out of the box.
 
-### Infrastructure
+**Integration:**
+- TypeScript types included (`dist/esm/index.d.ts`)
+- ESM exports confirmed: `{ '.': { import: './dist/esm/index.js' } }`
+- Zero dependencies beyond dayjs (bundled)
+- Drop-in replacement for the manual `parseDeadline()` in goals too -- simplifies existing code while enabling smart reminders
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Railway | - | Hosting + Database | Best DX for Discord bot hosting. $5/mo Hobby plan with included PostgreSQL (no separate DB add-on pricing). Git-push deploys, environment variables UI, logs dashboard. A Node.js bot + PostgreSQL runs ~$10-15/mo. For a friend group project with one maintainer, this DX-to-cost ratio is unbeatable. |
-| Upstash Redis | - | Caching + rate limiting (Phase 2+) | Serverless Redis with free tier (10K commands/day). Use for caching leaderboard computations, rate limiting AI API calls, and cooldown tracking. Not needed at launch but critical once AI assistant is active (prevent API cost blowouts). |
+**Usage pattern:**
+```typescript
+import * as chrono from 'chrono-node';
 
-### Supporting Libraries
+// Smart reminder: "remind me to review PRs tomorrow at 3pm"
+const result = chrono.parseDate('tomorrow at 3pm', new Date(), { forwardDate: true });
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| node-cron | 3.x | Scheduled tasks | Daily check-in reminders, streak resets at midnight, weekly leaderboard summaries. Lightweight, cron-syntax based, no external dependencies. |
-| @discordjs/voice | 0.17.x | Voice channel features | Co-working presence detection (who's in voice channels). Only needed for the "locking in together" feature. |
-| dotenv | 16.x | Environment variables | Local development. Railway handles env vars in production, but you need dotenv for local dev. |
-| zod | 3.x | Runtime validation | Validate user inputs from slash commands, form modals, and AI responses before DB writes. Pairs naturally with TypeScript. |
-| winston | 3.x | Structured logging | Production-grade logging with log levels, file rotation, and structured JSON output. Essential for debugging a bot you maintain solo. |
-| date-fns | 4.x | Date manipulation | Streak calculations, timezone handling for daily resets, scheduling displays. Lightweight, tree-shakeable, no Moment.js bloat. |
-
-### Development Tools
-
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| tsx | TypeScript execution | Run TypeScript directly without separate compile step. Use for development (`tsx watch src/index.ts`). |
-| tsup | Bundling for production | Fast esbuild-based bundler. Produces clean JS for production deployment. Simpler than configuring raw esbuild or webpack. |
-| ESLint + @typescript-eslint | Linting | Catch common discord.js anti-patterns and TypeScript issues. Use flat config (eslint.config.mjs). |
-| Prettier | Formatting | Consistent code style. Single maintainer still benefits -- reduces cognitive load when revisiting code months later. |
-| vitest | Testing | Fast, TypeScript-native test runner. Use for testing command handlers, leaderboard calculations, streak logic in isolation. |
-
-## Installation
-
-```bash
-# Core
-npm install discord.js @anthropic-ai/sdk @prisma/client
-
-# Supporting
-npm install node-cron zod winston date-fns dotenv
-
-# Dev dependencies
-npm install -D typescript tsx tsup prisma vitest @types/node eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser prettier
+// With timezone reference (integrates with existing MemberSchedule.timezone)
+const refDate = new TZDate(new Date(), memberTimezone);
+const parsed = chrono.parseDate('next Monday at 9am', refDate, { forwardDate: true });
 ```
 
-```bash
-# Initialize Prisma with PostgreSQL
-npx prisma init --datasource-provider postgresql
+**Bonus:** Can also replace the hand-rolled `parseDeadline()` in `/setgoal` for better deadline parsing ("end of next month", "next Friday at midnight", "March 30th").
 
-# Generate client after schema changes
-npx prisma generate
+---
 
-# Run migrations
-npx prisma migrate dev
+### @napi-rs/canvas -- Server-Side Image Generation
+
+| Attribute | Value |
+|-----------|-------|
+| Package | `@napi-rs/canvas` |
+| Version | 0.1.97 |
+| Purpose | Generate monthly progress recap images |
+| Confidence | HIGH (verified via npm, TypeScript types included, zero system dependencies, 332 dependent packages) |
+
+**Why:** Monthly progress recaps need to produce a visual summary image (progress charts, XP trends, goal completions, streak history) that members can share to #wins or social media. Discord embeds are text-only -- an image attachment is the only way to create shareable visual content. @napi-rs/canvas is the standard choice for Discord bots because it uses Skia (the same rendering engine as Chrome), requires zero system dependencies (no `apt-get install` on the server), and ships prebuilt binaries for all platforms.
+
+**Why not alternatives:**
+- `canvas` (node-canvas): Requires native system libraries (cairo, pango, libjpeg). Breaks on Railway/Docker without manual system dependency installation. @napi-rs/canvas bundles everything.
+- `canvacord` (v6.0.4): Built ON TOP of @napi-rs/canvas. Uses React-like JSX/Satori for templates. Overkill abstraction for our use case -- we need a few custom chart layouts, not a template engine. Its RankCardBuilder is designed for generic Discord rank cards, not our specific recap layout. Using @napi-rs/canvas directly gives full control without the 5 extra dependencies (satori, resvg, tailwind-merge, etc.).
+- `puppeteer` / `playwright`: Launches a headless browser. 200MB+ binary, 500ms+ render time, massive memory footprint. Completely wrong tool for generating a few PNG charts on a VPS.
+
+**Integration:**
+- TypeScript types included (`index.d.ts`)
+- Node.js engine requirement: `>= 10` (well within our Node 22.x)
+- No peer dependencies
+- API is identical to HTML5 Canvas (`createCanvas`, `getContext('2d')`, `toBuffer('image/png')`)
+- Result is a Buffer that goes directly to `AttachmentBuilder` in discord.js
+
+**Usage pattern:**
+```typescript
+import { createCanvas, loadImage } from '@napi-rs/canvas';
+
+// Create a recap card (800x600 image)
+const canvas = createCanvas(800, 600);
+const ctx = canvas.getContext('2d');
+
+// Draw progress bars, text, charts...
+ctx.fillStyle = '#f59e0b'; // Brand amber
+ctx.fillRect(50, 100, progressWidth, 30);
+ctx.font = '24px sans-serif';
+ctx.fillText(`${member.displayName}'s Monthly Recap`, 50, 60);
+
+// Export to Discord attachment
+const buffer = canvas.toBuffer('image/png');
+const attachment = new AttachmentBuilder(buffer, { name: 'recap.png' });
+await channel.send({ files: [attachment] });
 ```
 
-## Discord API Capabilities Relevant to This Project
+**Cost impact:** Zero. Runs locally, no API calls.
 
-### Slash Commands (PRIMARY interaction model)
-- Up to 100 global slash commands per application
-- Subcommands and subcommand groups for organizing (e.g., `/streak check`, `/streak history`)
-- Autocomplete for dynamic options (e.g., lane selection, member lookup)
-- Ephemeral responses for private feedback (personal stats, AI assistant replies)
+---
 
-### Components V2 (March 2025 -- USE THIS)
-- **Containers**: Visually distinct rounded boxes with accent colors. Perfect for leaderboard cards, daily briefings, streak displays.
-- **Sections**: Side-by-side text + accessory (thumbnail or button). Ideal for member profiles with avatar + stats.
-- **Media Galleries**: 1-10 images/videos. Use for progress screenshots, content sharing.
-- **Separators**: Visual dividers within messages. Clean leaderboard formatting.
-- Activated per-message with `IS_COMPONENTS_V2` flag (1 << 15).
+### No New Dependencies Needed (Use Existing Stack)
 
-### Privileged Intents (REQUIRED)
-- **Guild Members**: Required for tracking who joins/leaves, member list access. Enable in Developer Portal.
-- **Message Content**: Required ONLY if reading message content (e.g., for AI context in channels). For a server under 75 members, toggle on in Developer Portal without application.
-- **Guild Presences**: Needed for online/idle/DND status tracking. Enable if building presence-based features.
+The following v1.1 features do NOT require new libraries:
 
-### Threads
-- Use for AI assistant conversations (create a thread per check-in, keeps channels clean)
-- Auto-archive after inactivity (1 hour, 24 hours, 3 days, or 1 week)
+| Feature | Why No New Dependency |
+|---------|---------------------|
+| **Productivity timer (pomodoro)** | Use `setTimeout`/`setInterval` + in-memory `Map<memberId, TimerState>`. node-cron is for scheduled recurring tasks; pomodoro is user-initiated with dynamic durations. A timer is just state management + delayed function calls. The existing `SchedulerManager` pattern (Map of memberId -> tasks) applies directly. |
+| **Goal hierarchy refactor** | Prisma self-relations handle parent-child trees natively. Add `parentId String?` + `parent Goal? @relation("GoalHierarchy")` + `children Goal[] @relation("GoalHierarchy")` to the existing Goal model. No new library needed -- queries use `include: { children: true }` for one level, or `$queryRaw` with recursive CTEs for full tree traversal (rare, only for yearly->daily visualization). |
+| **Self-evaluation/reflection** | Text-based flow using Discord modals (already used in onboarding) + AI analysis via existing OpenRouter integration. Store encrypted responses in a new `Reflection` Prisma model. No new tools. |
+| **Inspiration system** | New Prisma model `Inspiration` with `memberId` + `name` + `context`. Jarvis personality builder adds inspirations to system prompt context. Pure data + prompt engineering -- no libraries. |
+| **Per-user rate limiting / cost controls** | Build in-process with a simple `Map<memberId, { count, windowStart }>`. At 10-25 members, an in-memory sliding window is sufficient. No Redis, no `rate-limiter-flexible`. The existing daily message cap pattern in `chat.ts` (counting DB rows since `startOfDay`) already works -- extend it with configurable per-member limits stored in a new Prisma model. |
+| **Smart reminder scheduling** | The existing `SchedulerManager` + `node-cron` handles cron-based scheduling. For one-shot reminders ("remind me in 2 hours"), use `setTimeout` + persist to DB for restart recovery (same pattern as scheduled lock-in sessions). |
+| **Pluggable delivery backend** | Extend the existing `NotificationRouter` with a provider interface. The Discord provider is already implemented. Future Apple/APNs provider will be a separate module that implements the same interface. No library needed until the Apple integration phase. |
 
-### Scheduled Events
-- Native Discord feature for co-working sessions, accountability check-ins
-- Members get notifications, shows in server sidebar
+---
 
-### Rate Limits
-- 50 requests/second global limit (interaction responses are exempt)
-- Slash command responses must be sent within 3 seconds (defer for longer operations like AI calls)
-- discord.js handles rate limit queuing automatically
+## Architecture Patterns for v1.1 (No Library Required)
+
+### Pomodoro Timer -- In-Memory State Machine
+
+Do NOT use node-cron for pomodoro timers. node-cron is designed for recurring scheduled tasks ("every day at 8am"). Pomodoro timers are user-initiated, dynamic-duration, interactive state machines.
+
+**Pattern:** In-memory Map with setTimeout handles.
+
+```typescript
+interface TimerState {
+  memberId: string;
+  mode: 'work' | 'break';
+  startedAt: Date;
+  durationMs: number;
+  handle: NodeJS.Timeout;
+  pomodoroCount: number;
+  sessionId: string; // Links to LockInSession or standalone
+}
+
+// Per-member timer storage
+const activeTimers = new Map<string, TimerState>();
+```
+
+**Restart recovery:** Persist timer start time + duration to DB. On restart, calculate remaining time and recreate the setTimeout. The existing sessions module already does this pattern for scheduled lock-in sessions (lines 102-147 of `sessions/index.ts`).
+
+### Per-User Cost Controls -- Extend Existing Pattern
+
+The existing daily message cap in `chat.ts` counts DB rows:
+```typescript
+const todayMessageCount = await db.conversationMessage.count({
+  where: { memberId, role: 'user', createdAt: { gte: todayStart } },
+});
+```
+
+For v1.1 cost controls, make this configurable per-member:
+1. Add a `CostConfig` Prisma model with `dailyMessageLimit`, `dailyAICallLimit`, `monthlyTokenBudget`
+2. Add a server-wide `BotConfig` entry for global daily AI spend cap
+3. Track token usage per AI call (OpenRouter response includes `usage.total_tokens`)
+4. Check both per-member and global limits before each AI call
+
+**Why not rate-limiter-flexible?** That library (v10.0.1) is designed for HTTP API rate limiting -- request/second patterns with distributed Redis backends. Our use case is per-member daily/monthly caps checked against a PostgreSQL counter. The existing pattern (DB count query) is simpler, already tested, and naturally survives restarts. Adding rate-limiter-flexible for 10-25 members introduces unnecessary abstraction.
+
+### Pluggable Notification Delivery -- Provider Interface
+
+Extend `notification-router/router.ts` with a delivery provider pattern:
+
+```typescript
+interface DeliveryProvider {
+  name: string;
+  canDeliver(memberId: string): Promise<boolean>;
+  deliver(memberId: string, content: DeliveryContent): Promise<boolean>;
+}
+
+// Current: DiscordDMProvider (existing behavior)
+// Future: APNsProvider (Apple Push Notifications)
+// Future: ShortcutsProvider (Apple Shortcuts webhook)
+```
+
+**When to add the APNs library:** Only when the Apple integration phase starts. Do not install `apns2` (v12.2.0) now. The provider interface pattern means the APNs implementation is a single file that imports the library -- no architectural coupling.
+
+---
+
+## Installation (v1.1 Additions Only)
+
+```bash
+# New production dependencies
+npm install chrono-node @napi-rs/canvas
+
+# That's it. No new dev dependencies needed.
+```
+
+**Total new dependency weight:**
+- `chrono-node@2.9.0`: ~200KB (pure JS, bundled dayjs)
+- `@napi-rs/canvas@0.1.97`: ~25MB (prebuilt Skia binary for your platform, downloaded automatically via optional dependencies)
+
+---
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| Runtime | Node.js 22 LTS | Bun 1.x | Bun is faster but discord.js compatibility has had historical issues. Node.js is the battle-tested runtime for discord.js with zero compatibility concerns. Not worth the risk for a solo-maintainer project. |
-| Discord library | discord.js 14.x | discord.py (Python) | Python is better for pure AI/ML, but this project is a Discord bot with AI features, not an AI project with Discord features. Node.js ecosystem is stronger for Discord bots (larger community, more templates, faster event-driven I/O). |
-| Discord library | discord.js 14.x | discord.js 15.x (dev) | v15 is dev preview with breaking changes (ESM-only, new WebSocket internals). Not production-ready. Stick with v14 stable until v15 reaches stable release. |
-| ORM | Prisma 7 | Drizzle ORM | Drizzle offers better raw SQL control and lighter weight, but Prisma's schema-first DX, auto-generated client, and comprehensive documentation win for a solo developer who needs to iterate fast. Prisma 7's pure-TypeScript engine closed the performance gap. |
-| ORM | Prisma 7 | Raw SQL (pg driver) | Tempting for "simplicity" but quickly becomes unmaintainable. No type safety, manual migration tracking, no generated types. False economy for a project with 10+ tables (users, goals, streaks, leaderboards, check-ins, lanes, challenges, etc.). |
-| Database | PostgreSQL | SQLite | SQLite breaks under concurrent writes from multiple bot command handlers. PostgreSQL handles this natively. Railway includes PostgreSQL at no extra cost. SQLite's simplicity advantage vanishes when you need window functions for leaderboard rankings. |
-| Database | PostgreSQL | MongoDB | Leaderboard rankings, streak calculations, and accountability data are inherently relational. MongoDB would require denormalization and application-level joins that PostgreSQL handles natively. |
-| Hosting | Railway | Fly.io | Fly.io has a better free tier but requires CLI-first workflow, Dockerfile knowledge, and more ops overhead. Railway's git-push deploy and integrated PostgreSQL is better for a solo maintainer who wants to focus on features, not infrastructure. |
-| Hosting | Railway | VPS (DigitalOcean, Hetzner) | Cheaper at ~$5/mo but requires manual server management, process managers (pm2), manual PostgreSQL setup, SSL, backups. Not worth the ops burden for a friend group project. |
-| AI | Claude (Anthropic) | OpenAI GPT-4o | Both are capable. Claude's conversational style and longer context window make it slightly better for the accountability coach persona. More importantly: Anthropic's SDK is clean, pricing is competitive, and the assistant only serves 10-25 people (cost is negligible either way). |
-| Scheduling | node-cron | BullMQ | BullMQ is overkill for this scale. It requires Redis and adds complexity for job persistence. node-cron handles all scheduling needs (daily resets, weekly summaries, check-in reminders) for a 10-25 member server. Add BullMQ only if you need reliable job retry/persistence later. |
+| NLP date parsing | chrono-node 2.9.0 | Hand-rolled regex (existing) | The existing `parseDeadline()` handles 6 formats. Smart reminders need 50+ patterns (relative times, recurring, time-of-day). Maintaining a hand-rolled parser for that scope is a rewrite risk. chrono-node is battle-tested (567 dependents), 10KB, and TypeScript-native. |
+| NLP date parsing | chrono-node 2.9.0 | date-fns `parse()` | date-fns `parse()` requires a known format string. It cannot parse freeform natural language like "next Tuesday afternoon". Different tool for a different problem. |
+| NLP date parsing | chrono-node 2.9.0 | Sugar.js / Sherlock | Sugar.js is a monolithic utility library (date parsing is a side feature). Sherlock is unmaintained (last commit 2019). chrono-node is focused, maintained, typed. |
+| Image generation | @napi-rs/canvas 0.1.97 | canvacord 6.0.4 | Canvacord is built on @napi-rs/canvas + satori + resvg + tailwind-merge. Its RankCardBuilder is designed for generic Discord rank cards. Our recap needs custom layouts (XP trend line, goal completion grid, streak calendar). Direct canvas API gives full control with fewer deps. |
+| Image generation | @napi-rs/canvas 0.1.97 | Components V2 (text-only) | Discord Components V2 containers can make nice text layouts, but cannot render charts, graphs, or progress visualizations. A monthly recap without visual charts is just another text message -- not shareable, not engaging. |
+| Image generation | @napi-rs/canvas 0.1.97 | chart.js + chartjs-node-canvas | chartjs-node-canvas wraps chart.js for server-side rendering but depends on `canvas` (node-canvas) which requires system dependencies. @napi-rs/canvas avoids this entirely. Drawing simple bar/line charts with raw Canvas2D API is 50 lines of code -- chart.js's 200KB bundle is overkill for 3 chart types. |
+| Rate limiting | In-memory Map + DB counts | rate-limiter-flexible 10.0.1 | rate-limiter-flexible is designed for HTTP request rate limiting at scale with Redis backends. Our use case is per-member daily caps for 10-25 people, checked against PostgreSQL. The existing `chat.ts` pattern (DB row count) already works. Adding a library introduces abstraction without benefit at this scale. |
+| Rate limiting | In-memory Map + DB counts | Upstash Redis | Redis adds an external service dependency for a problem solvable with a DB query. At 10-25 members, the "check limit" query adds <1ms. Redis makes sense at 1000+ concurrent users -- not here. |
+| Timer management | setTimeout + Map | BullMQ / Agenda | Job queues require Redis (BullMQ) or MongoDB (Agenda) and are designed for distributed worker patterns. A pomodoro timer is a per-user countdown -- setTimeout with DB persistence for restart recovery is the right tool. The sessions module already uses this exact pattern for scheduled sessions. |
+| Timer management | setTimeout + Map | node-cron (existing) | node-cron schedules recurring tasks at fixed times ("every day at 8am"). Pomodoro timers are dynamic-duration, user-initiated, non-recurring. Wrong abstraction. |
+| Goal hierarchy | Prisma self-relation | ltree (PostgreSQL extension) | PostgreSQL's `ltree` extension enables efficient materialized path queries for deep trees. But our hierarchy is max 4 levels (year -> quarter -> month -> week/day) with ~20 nodes per member. Self-referential relations with `include: { children: true }` handle this with zero configuration. ltree is for 10,000+ node trees. |
+| Delivery abstraction | Interface + existing router | Notification microservice | A separate notification service adds deployment complexity, inter-service communication, and operational overhead for a 10-25 member server. A provider interface inside the existing bot process is the right abstraction until scale demands separation. |
 
-## What NOT to Use
+## What NOT to Add for v1.1
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| discord.js v15 (dev) | Dev preview, breaking changes, not production-ready | discord.js 14.25.x (stable) |
-| Prefix commands (!command) | Discord deprecated prefix commands for bots. Message Content intent increasingly restricted. Slash commands are the official path forward. | Slash commands + Components V2 |
-| MEE6 / existing bots | Pre-built bots cannot provide custom AI assistants, custom gamification tied to specific lanes, or the deep integration this project needs. They also lock features behind paid tiers. | Custom bot built to the exact spec |
-| Moment.js | Deprecated, bloated (300KB+), mutable API leads to bugs | date-fns (tree-shakeable, immutable, ~10KB used) |
-| Sequelize | Older ORM with weaker TypeScript support, verbose syntax, poor migration DX compared to Prisma | Prisma 7 |
-| TypeORM | Active-Record pattern fights with TypeScript's strengths. Known for silent query bugs and poor migration reliability. | Prisma 7 |
-| Express.js (for the bot) | A Discord bot is NOT a web server. No HTTP routes needed. Adding Express adds unnecessary complexity and attack surface. | Only add a web server if you build a dashboard later (and use it as a separate service). |
-| JSON file storage | No concurrent access safety, no querying, no migrations, no backups. Works for 5 minutes then becomes a nightmare. | PostgreSQL via Prisma |
+| Avoid | Why | Do Instead |
+|-------|-----|------------|
+| Redis / Upstash | Not needed for 10-25 member rate limiting. Adds external dependency, connection management, and cost for a problem solvable with DB queries. | In-memory Map for hot-path checks, PostgreSQL for persistence |
+| `apns2` or APNs library | Apple integration is a future milestone. Installing it now creates dead code and version drift. | Design the pluggable provider interface now. Add the library when building the Apple module. |
+| `chart.js` / `chartjs-node-canvas` | Depends on `canvas` (system deps). Our charts are simple (bar, line, progress arc) -- 50 lines of Canvas2D, not a charting framework. | Raw @napi-rs/canvas drawing. Helper functions for `drawBarChart()`, `drawLineChart()`, `drawProgressArc()`. |
+| `canvacord` | Unnecessary abstraction layer over @napi-rs/canvas. Adds satori, resvg, tailwind-merge. We need custom layouts, not pre-built card templates. | Direct @napi-rs/canvas API |
+| `ioredis` / `redis` | No Redis use case at this scale. | PostgreSQL handles everything |
+| `bull` / `bullmq` | Job queue for distributed workers. Our timers are in-process countdowns for 10-25 people. | setTimeout + DB persistence |
+| `rate-limiter-flexible` | HTTP-oriented rate limiting library. Our rate limiting is application-level daily/monthly caps. | DB count queries (existing pattern) + in-memory Map cache |
+| `agenda` / `bree` | Advanced job schedulers. node-cron + setTimeout already cover all scheduling needs. | Existing SchedulerManager + setTimeout for one-shot timers |
 
-## Stack Patterns by Variant
+## Prisma Schema Additions (No New Library)
 
-**If AI costs become a concern:**
-- Add Upstash Redis for response caching (cache repeated questions)
-- Implement per-user daily AI interaction limits (configurable)
-- Use Claude Haiku for simple queries, Sonnet for complex coaching
-- Model routing: simple lookups (haiku) vs. deep analysis (sonnet)
+The following new models and model changes are needed purely through Prisma schema evolution:
 
-**If you add a web dashboard later:**
-- Add Next.js as a separate service on Railway
-- Share the same PostgreSQL database
-- Use Discord OAuth2 for authentication (members log in with Discord)
-- Keep the bot and dashboard as separate deployable services
+```prisma
+// Goal hierarchy -- self-relation
+model Goal {
+  // ... existing fields ...
+  parentId  String?
+  parent    Goal?   @relation("GoalHierarchy", fields: [parentId], references: [id])
+  children  Goal[]  @relation("GoalHierarchy")
+  depth     Int     @default(0) // 0=standalone, 1=yearly, 2=quarterly, 3=monthly, 4=weekly/daily
+}
 
-**If the group grows beyond 25 members:**
-- PostgreSQL handles this with zero changes
-- Add connection pooling (Prisma handles this automatically)
-- Consider Upstash Redis for leaderboard caching
-- No sharding needed until 2,500+ servers (irrelevant for single-server use)
+// Self-evaluation / reflection
+model Reflection {
+  id          String   @id @default(cuid())
+  memberId    String
+  content     String   // Encrypted
+  mood        Int?     // 1-5 scale
+  intensity   String   @default("standard") // "light", "standard", "deep"
+  period      String   // "daily", "weekly", "monthly"
+  insights    String?  // AI-generated insights (encrypted)
+  createdAt   DateTime @default(now())
+  member      Member   @relation(...)
+}
 
-## Version Compatibility
+// Inspiration figures
+model Inspiration {
+  id          String   @id @default(cuid())
+  memberId    String
+  name        String   // "Naval Ravikant", "Elon Musk", etc.
+  context     String?  // Encrypted -- why they admire this person
+  createdAt   DateTime @default(now())
+  member      Member   @relation(...)
+}
+
+// Smart reminders
+model Reminder {
+  id          String        @id @default(cuid())
+  memberId    String
+  content     String        // Encrypted
+  triggerAt   DateTime
+  urgency     String        @default("normal") // "low", "normal", "high", "critical"
+  recurring   String?       // Cron expression if recurring, null if one-shot
+  status      ReminderStatus @default(PENDING)
+  deliveredAt DateTime?
+  createdAt   DateTime      @default(now())
+  member      Member        @relation(...)
+}
+
+// Per-member cost/rate configuration
+model CostConfig {
+  id                 String @id @default(cuid())
+  memberId           String @unique
+  dailyMessageLimit  Int    @default(50)  // Current hardcoded cap, now configurable
+  monthlyTokenBudget Int?   // Optional monthly token cap
+  member             Member @relation(...)
+}
+
+// Pomodoro timer sessions (for persistence across restarts)
+model TimerSession {
+  id              String   @id @default(cuid())
+  memberId        String
+  mode            String   // "work" or "break"
+  durationMinutes Int
+  startedAt       DateTime
+  pomodoroCount   Int      @default(0)
+  sessionId       String?  // Optional link to LockInSession
+  member          Member   @relation(...)
+}
+```
+
+## Version Compatibility (New Packages)
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| discord.js@14.25.x | Node.js >= 22.12.0 | Hard requirement. Will not run on Node 20 or earlier. |
-| prisma@7.x | Node.js >= 18.18.0 | Compatible with Node 22.x. Pure TypeScript engine (no Rust binary). |
-| @anthropic-ai/sdk@0.80.x | Node.js >= 18.x | Uses native fetch. Compatible with Node 22.x. |
-| typescript@5.7.x | All packages listed | Strict mode recommended. Enable `strict: true` in tsconfig. |
-| node-cron@3.x | Node.js >= 14.x | Lightweight, no compatibility concerns. |
+| chrono-node@2.9.0 | Node.js >= 12.20.0 | Well within our Node 22.x. ESM + CJS dual exports. TypeScript types included. |
+| @napi-rs/canvas@0.1.97 | Node.js >= 10 | Prebuilt binaries for darwin-arm64, linux-x64, win32-x64. Auto-detected via optional dependencies. No manual configuration. |
+| chrono-node@2.9.0 | TypeScript 5.x | Types at `dist/esm/index.d.ts`. No version constraints. |
+| @napi-rs/canvas@0.1.97 | TypeScript 5.x | Types at `index.d.ts`. Full Canvas2D API typing. |
+| chrono-node@2.9.0 | Prisma 7.x | No interaction. Parses dates that become `DateTime` fields in Prisma. |
+| @napi-rs/canvas@0.1.97 | discord.js 14.x | Output Buffer feeds directly into `AttachmentBuilder`. No compatibility issues. |
 
-## Cost Estimate (Monthly)
+## Cost Impact of v1.1
 
-| Service | Plan | Estimated Cost | Notes |
-|---------|------|----------------|-------|
-| Railway (Bot + PostgreSQL) | Hobby | $10-15/mo | $5 base + usage. Bot + DB within this range at 10-25 members. |
-| Anthropic Claude API | Pay-per-use | $5-20/mo | Sonnet at ~$3/1M input tokens. 25 members with daily check-ins = low volume. Highly variable based on AI usage patterns. |
-| Upstash Redis | Free tier | $0/mo | 10K commands/day free. More than enough for caching at this scale. |
-| Domain (optional) | - | $0-12/yr | Only needed if adding a web dashboard. |
-| **Total** | | **$15-35/mo** | Flexible on Anthropic usage. Can cap with daily limits. |
+| Item | Change | Estimate |
+|------|--------|----------|
+| AI API costs | More AI calls (reflection analysis, inspiration context, recap summaries) | +$0.02-0.05/day (~$1-1.50/mo) |
+| @napi-rs/canvas | CPU-only, runs locally | $0 |
+| chrono-node | CPU-only, runs locally | $0 |
+| Database | More tables, more rows per member | Negligible at 10-25 members |
+| **v1.1 net increase** | | **~$1-2/mo** |
+
+Current v1.0 AI costs are ~$0.03/day via DeepSeek V3.2. The new features (reflection AI analysis, inspiration context injection, recap summaries) add more AI calls but are still low-volume (10-25 members, once daily/weekly/monthly). With per-member cost controls, spending is bounded.
 
 ## Sources
 
-- [discord.js Official Documentation (14.25.1)](https://discord.js.org/docs) -- Verified Node.js 22.12.0+ requirement, package versions, API coverage. HIGH confidence.
-- [discord.js GitHub Releases](https://github.com/discordjs/discord.js/releases) -- Verified v14.25.1 as latest stable (Nov 2024). HIGH confidence.
-- [discord.js v15 Migration Guide](https://v15.discordjs.guide/additional-info/updating-from-v14) -- Confirmed v15 is dev preview, not production-ready. HIGH confidence.
-- [Discord Developer Documentation - Rate Limits](https://discord.com/developers/docs/topics/rate-limits) -- 50 req/s global, interaction exemptions. HIGH confidence.
-- [Discord Developer Documentation - Privileged Intents](https://support-dev.discord.com/hc/en-us/articles/6207308062871-What-are-Privileged-Intents) -- Guild Members, Message Content, Presences. HIGH confidence.
-- [Discord Components V2](https://docs.discord.com/developers/components/reference) -- Containers, Sections, Media Galleries. March 2025 release. HIGH confidence.
-- [Prisma 7 Announcement](https://www.prisma.io/blog/announcing-prisma-orm-7-0-0) -- Rust-free, TypeScript-only engine. HIGH confidence.
-- [Prisma vs Drizzle Comparison (MakerKit, 2026)](https://makerkit.dev/blog/tutorials/drizzle-vs-prisma) -- DX vs performance tradeoffs. MEDIUM confidence.
-- [@anthropic-ai/sdk on npm](https://www.npmjs.com/package/@anthropic-ai/sdk) -- Version 0.80.0, actively maintained. HIGH confidence.
-- [Railway Pricing Documentation](https://docs.railway.com/pricing) -- $5/mo Hobby, usage-based, integrated PostgreSQL. MEDIUM confidence (pricing may change).
-- [Railway vs Fly.io Comparison](https://docs.railway.com/platform/compare-to-fly) -- DX comparison, deployment models. MEDIUM confidence.
-- [Node.js Release Schedule](https://nodejs.org/en/about/previous-releases) -- v22.x LTS (active), v24.x LTS (current). HIGH confidence.
-- [Discord Bot Database Choices 2025](https://friendify.net/blog/discord-bot-database-choices-sqlite-postgres-mongo-2025.html) -- SQLite limitations, PostgreSQL recommendation. MEDIUM confidence.
-- [Discord Bot Hosting Comparison 2026](https://clawdhost.net/blog/best-discord-bot-hosting-2026/) -- Railway, Fly.io, VPS comparisons. MEDIUM confidence.
+- [chrono-node on npm](https://www.npmjs.com/package/chrono-node) -- Version 2.9.0 verified via `npm show`. TypeScript types and ESM exports confirmed. HIGH confidence.
+- [chrono-node GitHub](https://github.com/wanasit/chrono) -- 567 dependents, active maintenance, comprehensive test suite. HIGH confidence.
+- [@napi-rs/canvas on npm](https://www.npmjs.com/package/@napi-rs/canvas) -- Version 0.1.97 verified via `npm show`. 332 dependents. Zero system deps. HIGH confidence.
+- [@napi-rs/canvas GitHub](https://github.com/Brooooooklyn/canvas) -- Skia-based, prebuilt binaries, HTML5 Canvas API compatible. HIGH confidence.
+- [canvacord on npm](https://www.npmjs.com/package/canvacord) -- Version 6.0.4. Dependencies include @napi-rs/canvas, satori, resvg, tailwind-merge. Confirmed higher abstraction than needed. HIGH confidence.
+- [rate-limiter-flexible on npm](https://www.npmjs.com/package/rate-limiter-flexible) -- Version 10.0.1. Confirmed HTTP-oriented with Redis/Memory backends. Not suited for our per-member daily cap pattern. MEDIUM confidence.
+- [Prisma self-relations documentation](https://www.prisma.io/docs/orm/prisma-schema/data-model/relations/self-relations) -- Confirmed one-to-many self-relation pattern for goal hierarchy. HIGH confidence.
+- [Prisma tree structures support (Issue #4562)](https://github.com/prisma/prisma/issues/4562) -- Confirmed no native recursive query support; raw SQL CTEs needed for deep traversal. MEDIUM confidence.
+- [apns2 on npm](https://www.npmjs.com/package/apns2) -- Version 12.2.0. HTTP/2 + JWT auth. Node >= 20. Confirmed viable for future Apple integration but not needed now. MEDIUM confidence.
+- [Discord Pomodoro Bot Examples](https://github.com/cademirci/pomodoro-bot) -- Confirmed setTimeout-based timer pattern is standard for Discord bots. MEDIUM confidence.
+- [Node.js Timers Documentation](https://nodejs.org/en/docs/guides/timers-in-node) -- setTimeout/setInterval behavior, timer object references for cancellation. HIGH confidence.
+- Existing codebase analysis (package.json, schema.prisma, scheduler/manager.ts, notification-router/router.ts, ai-assistant/chat.ts, goals/commands.ts) -- Integration points verified against actual code. HIGH confidence.
 
 ---
-*Stack research for: Discord Hustler -- productivity/gamification bot ecosystem*
+*Stack research for: Discord Hustler v1.1 Depth -- new feature additions*
 *Researched: 2026-03-20*
