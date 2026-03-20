@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 8 -- Inspiration System
+**Current focus:** Phase 9 (next phase after completing Inspiration System)
 
 ## Current Position
 
 Phase: 8 of 13 (Inspiration System)
-Plan: 1 of 2
-Status: In Progress
-Last activity: 2026-03-21 -- Completed 08-01 (Inspiration model and command)
+Plan: 2 of 2 (Phase Complete)
+Status: Phase Complete
+Last activity: 2026-03-21 -- Completed 08-02 (AI personality enrichment)
 
-Progress: [█████░░░░░░░░░░░░░░░] 21% (v1.1)
+Progress: [██████░░░░░░░░░░░░░░] 28% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22 (18 v1.0 + 4 v1.1)
+- Total plans completed: 23 (18 v1.0 + 5 v1.1)
 - Average duration: 5 min
-- Total execution time: 1.78 hours
+- Total execution time: 1.81 hours
 
 **By Phase (v1.0):**
 
@@ -39,10 +39,10 @@ Progress: [█████░░░░░░░░░░░░░░░] 21% (v1
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 07-ai-infrastructure | 3/3 | 20 min | 7 min |
-| 08-inspiration-system | 1/2 | 3 min | 3 min |
+| 08-inspiration-system | 2/2 | 5 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-01 (6 min), 07-02 (9 min), 07-03 (5 min), 08-01 (3 min)
+- Last 5 plans: 07-01 (6 min), 07-02 (9 min), 07-03 (5 min), 08-01 (3 min), 08-02 (2 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -69,6 +69,9 @@ Recent decisions affecting current work:
 - [08-01]: Upsert on /inspiration add so re-adding same name updates context instead of erroring
 - [08-01]: deleteMany for /inspiration remove to get count-based feedback without try/catch
 - [08-01]: All /inspiration interactions use ephemeral replies (personal data)
+- [08-02]: Inspirations as dedicated prompt section (not merged into profile) for conceptual clarity
+- [08-02]: "What would X do?" handled purely via prompt engineering -- no command handler needed
+- [08-02]: Empty inspirations return empty string to avoid cluttering prompts
 
 ### Pending Todos
 
@@ -81,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-02-PLAN.md (Phase 8 complete)
 Resume file: None
