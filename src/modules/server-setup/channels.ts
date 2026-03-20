@@ -7,6 +7,7 @@
  *   RESOURCES      -- gated behind Member role (resource sharing)
  *   VOICE          -- gated behind Member role (co-working rooms)
  *   PRIVATE SPACES -- hidden from everyone (individual overwrites per member)
+ *   BOT OPS        -- hidden from everyone, owner-only (#bot-log)
  *
  * The function is idempotent: existing categories and channels are skipped.
  * Receives the role map from setupServerRoles() for permission overwrites.
@@ -84,6 +85,14 @@ const CATEGORIES: CategoryDef[] = [
     public: false,
     hidden: true,
     channels: [], // Individual channels created per member during onboarding
+  },
+  {
+    name: 'BOT OPS',
+    public: false,
+    hidden: true,
+    channels: [
+      { name: 'bot-log', type: ChannelType.GuildText },
+    ],
   },
 ];
 
@@ -196,6 +205,23 @@ export async function setupServerChannels(
         });
 
         // Bot can send messages in #welcome
+        await created.permissionOverwrites.edit(botMember.id, {
+          ViewChannel: true,
+          SendMessages: true,
+          EmbedLinks: true,
+        });
+      }
+
+      // Special handling for #bot-log channel -- owner-only visibility
+      if (channelDef.name === 'bot-log' && categoryDef.name === 'BOT OPS') {
+        // Grant guild owner full access
+        await created.permissionOverwrites.edit(guild.ownerId, {
+          ViewChannel: true,
+          ReadMessageHistory: true,
+          SendMessages: true,
+        });
+
+        // Bot needs to post recovery summaries
         await created.permissionOverwrites.edit(botMember.id, {
           ViewChannel: true,
           SendMessages: true,
