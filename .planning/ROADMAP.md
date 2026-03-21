@@ -88,7 +88,7 @@ Plans:
 **Goal**: Full pomodoro timer with menu bar countdown, popover controls, alarm transitions, API sync, persistence
 **Depends on**: Phase 16
 **Requirements**: TMR-01, TMR-02, TMR-03, TMR-04, TMR-05, TMR-06, TMR-07, TMR-08, TMR-09, TMR-10, TMR-11, TMR-12
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 17-01-PLAN.md — Timer engine: Zustand store, schema migration, tray helper, persistence, audio
@@ -116,6 +116,6 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 14. Monorepo Restructure | 2/2 | Complete    | 2026-03-21 | - |
 | 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
 | 16. Desktop Shell + Dashboard | 3/3 | Complete    | 2026-03-21 | - |
-| 17. Pomodoro Timer | v2.0 | 0/3 | Not started | - |
+| 17. Pomodoro Timer | 1/3 | In Progress|  | - |
 | 18. Flowmodoro + Goals | v2.0 | 0/2 | Not started | - |
 | 19. Sync + Polish | v2.0 | 0/2 | Not started | - |
