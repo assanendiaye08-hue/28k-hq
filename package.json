@@ -1,54 +1,18 @@
 {
   "name": "28k-hq",
-  "version": "1.0.0",
-  "description": "Discord server ecosystem that transforms gamers into hustlers through gamification, AI assistants, and competitive leaderboards",
-  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "deploy-commands": "tsx src/deploy-commands.ts",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "lint": "eslint src/",
-    "format": "prettier --write src/",
-    "test": "vitest"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "dev:bot": "turbo dev --filter @28k/bot",
+    "build:bot": "turbo build --filter @28k/bot",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "pnpm --filter @28k/db db:migrate",
+    "deploy-commands": "pnpm --filter @28k/bot deploy-commands"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "gamification",
-    "productivity"
-  ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@date-fns/tz": "^1.4.1",
-    "@openrouter/sdk": "^0.9.11",
-    "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.5.0",
-    "chrono-node": "^2.9.0",
-    "date-fns": "^4.1.0",
-    "discord.js": "^14.25.1",
-    "dotenv": "^17.3.1",
-    "node-cron": "^4.2.1",
-    "pg": "^8.20.0",
-    "rss-parser": "^3.13.0",
-    "winston": "^3.19.0",
-    "zod": "^4.3.6"
-  },
+  "packageManager": "pnpm@10.32.1",
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "@types/node-cron": "^3.0.11",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
-    "@typescript-eslint/parser": "^8.57.1",
-    "eslint": "^10.0.3",
-    "prettier": "^3.8.1",
-    "prisma": "^7.5.0",
-    "tsup": "^8.5.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "turbo": "^2.8.20",
+    "typescript": "^5.9.3"
   }
 }
