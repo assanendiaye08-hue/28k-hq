@@ -42,12 +42,12 @@ export async function sendWelcomeMessage(channel: TextChannel): Promise<void> {
     },
     {
       name: 'Get Started',
-      value: 'Run `/setup` to create your profile, choose your space, and unlock the server.',
+      value: 'Type `/setup` **right here in this channel** to create your profile, choose your space, and unlock the server.',
       inline: false,
     },
   );
 
-  embed.setFooter({ text: 'Run /setup to get started' });
+  embed.setFooter({ text: 'Type /setup in this channel to get started' });
 
   await channel.send({ embeds: [embed] });
 }
