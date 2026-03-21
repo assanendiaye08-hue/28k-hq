@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Discord server ecosystem with custom bots and integrations that transforms a friend group of 10-25 former gamers into active hustlers. The server makes productivity, money-making, and self-improvement feel as engaging as gaming — through gamification, AI-powered accountability, competitive leaderboards, and personalized content feeds. Shipped as v1.0 MVP with 16K+ LOC TypeScript.
+A Discord server ecosystem with custom bots and integrations that transforms a friend group of 10-25 former gamers into active hustlers. The server makes productivity, money-making, and self-improvement feel as engaging as gaming — through gamification, AI-powered accountability, competitive leaderboards, structured goal hierarchies, productivity timers, and personalized content feeds. Shipped through v1.1 Depth with 23K+ LOC TypeScript.
 
 ## Core Value
 
@@ -20,14 +20,14 @@ When a member opens Discord, the environment pulls them into productive action �
 - ✓ Per-member AES-256-GCM encryption at rest — v1.0
 - ✓ Daily check-ins with flexible scoring — v1.0
 - ✓ Goal setting with progress tracking — v1.0
-- ✓ XP engine (check-ins, goals, voice, wins, resources) — v1.0
+- ✓ XP engine (check-ins, goals, voice, wins, resources, timers, reflections) — v1.0/v1.1
 - ✓ Rank/role progression — v1.0
 - ✓ AI-powered morning briefs with full member context — v1.0
 - ✓ Multi-dimensional leaderboards (XP, voice, streaks) — v1.0
 - ✓ Voice session tracking with AFK detection — v1.0
 - ✓ Wins/lessons channels with XP and reactions — v1.0
 - ✓ Valorant-style seasonal system with archives — v1.0
-- ✓ Conversational AI assistant "Jarvis" (DeepSeek V3.2 + Qwen fallback) — v1.0
+- ✓ Conversational AI assistant "Jarvis" (Grok 4.1 Fast + DeepSeek fallback) — v1.0/v1.1
 - ✓ Accountability nudges with configurable intensity — v1.0
 - ✓ Resource sharing channels with AI auto-tagging and threads — v1.0
 - ✓ Lock-in sessions (instant + scheduled, private + public) — v1.0
@@ -37,27 +37,19 @@ When a member opens Discord, the environment pulls them into productive action �
 - ✓ Auto-content feeds (RSS/YouTube/Reddit + AI filter) — v1.0
 - ✓ Per-notification-type account routing — v1.0
 - ✓ Bot hardening (restart recovery, member lifecycle, admin logging) — v1.0
-
-## Current Milestone: v1.1 Depth
-
-**Goal:** Make the server deeper and stickier — structured goal planning, focused work sessions, self-reflection, inspiration, progress visibility, and smart reminders.
-
-**Target features:**
-- Productivity timer suite (pomodoro + proportional breaks)
-- Goal system refactor (optional yearly→daily hierarchy, Jarvis-assisted)
-- Self-evaluation/reflection flow with configurable intensity
-- Inspiration system (set people you admire, Jarvis references them naturally)
-- Monthly progress recap (visual summary, shareable)
-- Smart reminders (natural language, urgency tiers, pluggable delivery for future Apple integration)
+- ✓ Centralized AI client with cost tracking and per-member token budgets — v1.1
+- ✓ Tiered memory system (hot/warm/cold) with protected data — v1.1
+- ✓ Configurable model routing (Grok primary, DeepSeek fallback, hot-swappable) — v1.1
+- ✓ Inspiration system with natural Jarvis references — v1.1
+- ✓ Productivity timer (pomodoro + proportional breaks + NLP starts) — v1.1
+- ✓ Smart reminders (chrono-node NLP, urgency tiers, recurring, pluggable delivery) — v1.1
+- ✓ Goal hierarchy (yearly→weekly, cascading progress, Jarvis decomposition) — v1.1
+- ✓ Self-evaluation/reflection (configurable intensity, AI questions, Jarvis feedback loop) — v1.1
+- ✓ Monthly progress recap (adaptive AI narrative, shareable to #wins) — v1.1
 
 ### Active
 
-- [ ] Productivity timer suite (pomodoro + proportional breaks)
-- [ ] Goal system refactor (optional depth yearly→daily, flexible hierarchy, Jarvis-assisted)
-- [ ] Self-evaluation/reflection flow with configurable intensity
-- [ ] Inspiration system ("what would [inspiration] do?")
-- [ ] Monthly progress recap (visual summary DM, shareable to #wins)
-- [ ] Smart reminders (natural language time-based, urgency tiers, pluggable delivery backend)
+(None — planning next milestone)
 
 ### Out of Scope
 
@@ -70,29 +62,31 @@ When a member opens Discord, the environment pulls them into productive action �
 - **The group**: 10-25 friends from the same city, diverse profiles (FAANG engineers, small biz owners, students, ecom, affiliate). Smart and capable but spending time gaming on Discord instead of building
 - **The founder's angle**: Already a hustler making money online. Wants to pull friends into the same mindset
 - **Key insight**: These are gamers — wired for competition, progression, streaks, leaderboards. The bots tap into that psychology
-- **Current state**: v1.0 shipped — 16,041 LOC TypeScript, 22 slash commands, 12 modules, per-member encryption, AI assistant "Jarvis", auto-feeds. Starting v1.1 Depth milestone
-- **Future integration**: Apple ecosystem integration planned (APNs, Shortcuts) — build reminder/notification delivery as pluggable backend
-- **Tech stack**: discord.js, Prisma 7, OpenRouter (DeepSeek V3.2 + Qwen 3.5 Plus), node-cron, rss-parser, PM2
+- **Current state**: v1.1 shipped — 23,564 LOC TypeScript, 35 plans, 51 requirements validated across 2 milestones. Ready for deployment and real-world testing
+- **Future integration**: Apple ecosystem integration planned (APNs, Shortcuts) — pluggable delivery backend already in place
+- **Tech stack**: discord.js, Prisma 7, OpenRouter (Grok 4.1 Fast primary + DeepSeek V3.2 fallback), node-cron, chrono-node, rss-parser, PM2
 
 ## Constraints
 
 - **Platform**: Discord only
 - **Scale**: 10-25 members — depth over breadth
 - **Maintenance**: Single person — must be reliable and low-maintenance
-- **Budget**: Flexible but cost-effective. AI costs ~$0.03/day via DeepSeek V3.2
+- **Budget**: Flexible but cost-effective. AI costs ~$0.10/day max per member via Grok 4.1 Fast
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Discord as sole platform | Friends already live on Discord, zero friction | ✓ Good — all features work within Discord |
-| Interest-based (not three lanes) | Group is diverse, rigid lanes don't fit | ✓ Good — replaced lanes with AI-extracted interest tags |
-| Gamification-first approach | Leverage gamer psychology for behavior change | ✓ Good — XP, ranks, seasons, leaderboards all shipped |
-| DeepSeek V3.2 via OpenRouter (v1.0) | 164K context at $0.26/M tokens — best value | ✓ Good — used for AI chat, briefs, nudges, content filtering |
-| Grok 4.1 Fast as primary (v1.1) | 2M context at $0.20/M input — cheaper + massive context | — Pending |
-| Per-member encryption | Owner-blind privacy builds trust | ✓ Good — AES-256-GCM with HKDF key derivation |
-| Multi-account identity | Most members have 2+ Discord accounts | ✓ Good — unified XP, notification routing per account |
-| DM-based private space | True privacy, not just "private" channels | ✓ Good — both DM and channel options available |
+| Discord as sole platform | Friends already live on Discord, zero friction | ✓ Good |
+| Interest-based (not three lanes) | Group is diverse, rigid lanes don't fit | ✓ Good |
+| Gamification-first approach | Leverage gamer psychology for behavior change | ✓ Good |
+| Grok 4.1 Fast via OpenRouter | 2M context at $0.20/M input — massive window + cheap | ✓ Good — switched from DeepSeek in v1.1 |
+| Per-member encryption | Owner-blind privacy builds trust | ✓ Good |
+| Multi-account identity | Most members have 2+ Discord accounts | ✓ Good |
+| DM-based private space | True privacy, not just "private" channels | ✓ Good |
+| Centralized AI client | One place for cost tracking, model routing, budget enforcement | ✓ Good — 14 call sites, zero direct OpenRouter imports |
+| Tiered memory (hot/warm/cold) | Scale context without losing data | ✓ Good — Grok 2M + conservative compression |
+| Pluggable delivery backend | Future Apple integration without rewrite | ✓ Good — interface ready, Discord impl shipped |
 
 ---
-*Last updated: 2026-03-20 after v1.1 milestone start*
+*Last updated: 2026-03-21 after v1.1 milestone*

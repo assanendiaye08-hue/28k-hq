@@ -9,3 +9,13 @@
 
 ---
 
+
+## v1.1 Depth (Shipped: 2026-03-21)
+
+**Phases completed:** 13 phases, 35 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
