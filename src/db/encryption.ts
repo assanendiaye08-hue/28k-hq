@@ -28,6 +28,7 @@ const ENCRYPTED_FIELDS: Record<string, string[]> = {
   Goal: ['description'],
   ConversationMessage: ['content'],
   ConversationSummary: ['summary'],
+  Reflection: ['response', 'insights'],
   LockInSession: ['title'],
 };
 
@@ -220,7 +221,9 @@ function extractMemberIdFromResult(result: unknown): string | null {
     if (typeof obj.creatorMemberId === 'string') return obj.creatorMemberId;
   }
 
-  // Array of results -- use first item's memberId (all should be same member)
+  // Array of results -- use first item's memberId.
+  // Safe: Prisma queries with encrypted models always filter by memberId,
+  // so all rows in a result set belong to the same member.
   if (Array.isArray(result) && result.length > 0) {
     const first = result[0] as Record<string, unknown>;
     if (typeof first?.memberId === 'string') return first.memberId;

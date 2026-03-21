@@ -14,6 +14,8 @@
 
 import type { Client, Guild } from 'discord.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
+import { RANK_PROGRESSION } from '../../shared/constants.js';
+import { LOCKIN_ROLE_NAME } from '../sessions/constants.js';
 
 /**
  * Permanently delete all data for a member and clean up Discord resources.
@@ -55,13 +57,31 @@ export async function hardDeleteMember(
   // ConversationSummary, SeasonSnapshot
   await db.member.delete({ where: { id: memberId } });
 
-  // Step 5: Strip ALL bot-managed roles from linked Discord accounts
+  // Step 5: Strip bot-managed roles only (not user's other server roles)
+  // Build a set of role names managed by the bot
+  const botManagedNames = new Set<string>([
+    'Member',
+    ...RANK_PROGRESSION.map((r) => r.name),
+    LOCKIN_ROLE_NAME,
+  ]);
+
+  // Fetch interest tag role IDs from DB
+  const interestTags = await db.interestTag.findMany({ select: { roleId: true } });
+  const interestTagRoleIds = new Set(
+    interestTags.map((t) => t.roleId).filter((id): id is string => id != null),
+  );
+
   for (const account of accounts) {
     try {
       const guildMember = await guild.members.fetch(account.discordId);
-      // Remove all roles except @everyone (which can't be removed)
-      const botRoles = guildMember.roles.cache.filter((r) => r.name !== '@everyone');
-      for (const [, role] of botRoles) {
+      // Only remove roles managed by the bot
+      const rolesToRemove = guildMember.roles.cache.filter(
+        (r) =>
+          botManagedNames.has(r.name) ||
+          r.name.startsWith('Season ') ||
+          interestTagRoleIds.has(r.id),
+      );
+      for (const [, role] of rolesToRemove) {
         await guildMember.roles.remove(role).catch(() => {});
       }
     } catch {

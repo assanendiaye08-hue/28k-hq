@@ -22,28 +22,32 @@ export async function exportMemberData(
   db: ExtendedPrismaClient,
   memberId: string,
 ): Promise<Buffer> {
-  // Fetch the member with ALL relations included
+  // Fetch the member with non-encrypted relations included.
+  // Encrypted models are queried separately so the encryption extension
+  // fires on each direct model query and decrypts fields transparently.
   const member = await db.member.findUniqueOrThrow({
     where: { id: memberId },
     include: {
       accounts: { select: { discordId: true, linkedAt: true } },
-      profile: true,
-      checkIns: { orderBy: { createdAt: 'asc' } },
-      goals: { orderBy: { createdAt: 'asc' } },
       xpTransactions: { orderBy: { createdAt: 'asc' } },
       voiceSessions: { orderBy: { startedAt: 'asc' } },
-      conversationMessages: { orderBy: { createdAt: 'asc' } },
-      conversationSummary: true,
       schedule: true,
       seasonSnapshots: true,
       privateSpace: true,
       notificationPreference: true,
       timerSessions: { orderBy: { startedAt: 'asc' } },
       reminders: { orderBy: { createdAt: 'asc' } },
-      reflections: { orderBy: { createdAt: 'asc' } },
       inspirations: { orderBy: { createdAt: 'asc' } },
     },
   });
+
+  // Separate queries for encrypted models -- extension decrypts on direct model queries
+  const profile = await db.memberProfile.findUnique({ where: { memberId } });
+  const checkIns = await db.checkIn.findMany({ where: { memberId }, orderBy: { createdAt: 'asc' } });
+  const goals = await db.goal.findMany({ where: { memberId }, orderBy: { createdAt: 'asc' } });
+  const conversationMessages = await db.conversationMessage.findMany({ where: { memberId }, orderBy: { createdAt: 'asc' } });
+  const conversationSummary = await db.conversationSummary.findUnique({ where: { memberId } });
+  const reflections = await db.reflection.findMany({ where: { memberId }, orderBy: { createdAt: 'asc' } });
 
   // Fetch session participation separately (no direct Member relation)
   const sessionParticipation = await db.sessionParticipant.findMany({
@@ -72,19 +76,19 @@ export async function exportMemberData(
       linkedAt: a.linkedAt,
     })),
 
-    profile: member.profile
+    profile: profile
       ? {
-          interests: member.profile.interests,
-          currentFocus: member.profile.currentFocus,
-          goals: member.profile.goals,
-          learningAreas: member.profile.learningAreas,
-          workStyle: member.profile.workStyle,
-          publicFields: member.profile.publicFields,
-          rawAnswers: member.profile.rawAnswers,
+          interests: profile.interests,
+          currentFocus: profile.currentFocus,
+          goals: profile.goals,
+          learningAreas: profile.learningAreas,
+          workStyle: profile.workStyle,
+          publicFields: profile.publicFields,
+          rawAnswers: profile.rawAnswers,
         }
       : null,
 
-    checkIns: member.checkIns.map((c) => ({
+    checkIns: checkIns.map((c) => ({
       id: c.id,
       content: c.content,
       effortRating: c.effortRating,
@@ -94,7 +98,7 @@ export async function exportMemberData(
       createdAt: c.createdAt,
     })),
 
-    goals: member.goals.map((g) => ({
+    goals: goals.map((g) => ({
       id: g.id,
       title: g.title,
       description: g.description,
@@ -129,18 +133,18 @@ export async function exportMemberData(
       durationMinutes: v.durationMinutes,
     })),
 
-    conversations: member.conversationMessages.map((m) => ({
+    conversations: conversationMessages.map((m) => ({
       id: m.id,
       role: m.role,
       content: m.content,
       createdAt: m.createdAt,
     })),
 
-    conversationSummary: member.conversationSummary
+    conversationSummary: conversationSummary
       ? {
-          summary: member.conversationSummary.summary,
-          messageCount: member.conversationSummary.messageCount,
-          updatedAt: member.conversationSummary.updatedAt,
+          summary: conversationSummary.summary,
+          messageCount: conversationSummary.messageCount,
+          updatedAt: conversationSummary.updatedAt,
         }
       : null,
 
@@ -176,6 +180,7 @@ export async function exportMemberData(
           nudgeAccountId: member.notificationPreference.nudgeAccountId,
           sessionAlertAccountId: member.notificationPreference.sessionAlertAccountId,
           levelUpAccountId: member.notificationPreference.levelUpAccountId,
+          reminderAccountId: member.notificationPreference.reminderAccountId,
         }
       : null,
 
@@ -203,7 +208,7 @@ export async function exportMemberData(
       createdAt: r.createdAt,
     })),
 
-    reflections: member.reflections.map((r) => ({
+    reflections: reflections.map((r) => ({
       id: r.id,
       type: r.type,
       question: r.question,

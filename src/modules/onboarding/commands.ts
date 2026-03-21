@@ -101,68 +101,14 @@ export async function handleSetup(
     }
   }
 
-  // Step 4: Success -- create records in DB
+  // Step 4: Success -- create records in DB (atomic transaction)
   try {
     const { answers, spaceType, displayName } = result;
 
-    // 4a: Generate encryption salt
-    const encryptionSalt = generateEncryptionSalt();
-
-    // 4b: Create Member record
-    const memberRecord = await db.member.create({
-      data: {
-        displayName,
-        encryptionSalt,
-        recoveryKeyHash: '', // Placeholder -- updated below after key derivation
-      },
-    });
-
-    // 4c: Derive member encryption key and generate recovery key
-    const masterKey = Buffer.from(config.MASTER_ENCRYPTION_KEY, 'hex');
-    const memberKey = deriveMemberKey(masterKey, memberRecord.id);
-    const recoveryKey = generateRecoveryKey(memberKey);
-
-    // Update recovery key hash (store hash, not the key itself)
-    const crypto = await import('node:crypto');
-    const recoveryKeyHash = crypto
-      .createHash('sha256')
-      .update(recoveryKey)
-      .digest('hex');
-
-    await db.member.update({
-      where: { id: memberRecord.id },
-      data: { recoveryKeyHash },
-    });
-
-    // 4d: Create DiscordAccount linking Discord ID to Member
-    await db.discordAccount.create({
-      data: {
-        discordId: interaction.user.id,
-        memberId: memberRecord.id,
-      },
-    });
-
-    // 4e: Store raw answers as encrypted JSON in MemberProfile
-    // The encryption extension will automatically encrypt rawAnswers
-    const rawAnswersJson = JSON.stringify(answers);
-
-    await db.memberProfile.create({
-      data: {
-        memberId: memberRecord.id,
-        rawAnswers: rawAnswersJson,
-        // Structured tag fields left empty -- Plan 04 handles AI extraction
-        interests: [],
-        goals: [],
-        learningAreas: [],
-        publicFields: ['interests', 'currentFocus'], // Default public fields
-      },
-    });
-
-    // 4f: Create PrivateSpace record
+    // 4a: Create Discord channel FIRST (outside transaction -- external API call)
     let channelId: string | null = null;
 
     if (spaceType === 'CHANNEL' && interaction.guild) {
-      // 4g: Create private channel if CHANNEL type chosen
       const botId = interaction.client.user.id;
       const privateChannel = await createPrivateChannel(
         interaction.guild,
@@ -172,15 +118,98 @@ export async function handleSetup(
       channelId = privateChannel.id;
     }
 
-    await db.privateSpace.create({
-      data: {
-        memberId: memberRecord.id,
-        type: spaceType,
-        channelId,
-      },
-    });
+    // 4b: Wrap all DB writes in a transaction for atomicity
+    let memberRecord: { id: string };
+    let recoveryKey: string;
 
-    // 4h: Send recovery key via DM
+    try {
+      const txResult = await db.$transaction(async (tx) => {
+        // Generate encryption salt (pure computation)
+        const encryptionSalt = generateEncryptionSalt();
+
+        // Create Member record
+        const member = await tx.member.create({
+          data: {
+            displayName,
+            encryptionSalt,
+            recoveryKeyHash: '', // Placeholder -- updated below after key derivation
+          },
+        });
+
+        // Derive member encryption key and generate recovery key
+        const masterKey = Buffer.from(config.MASTER_ENCRYPTION_KEY, 'hex');
+        const memberKey = deriveMemberKey(masterKey, member.id);
+        const recKey = generateRecoveryKey(memberKey);
+
+        // Update recovery key hash (store hash, not the key itself)
+        const crypto = await import('node:crypto');
+        const recoveryKeyHash = crypto
+          .createHash('sha256')
+          .update(recKey)
+          .digest('hex');
+
+        await tx.member.update({
+          where: { id: member.id },
+          data: { recoveryKeyHash },
+        });
+
+        // Create DiscordAccount linking Discord ID to Member
+        await tx.discordAccount.create({
+          data: {
+            discordId: interaction.user.id,
+            memberId: member.id,
+          },
+        });
+
+        // Store raw answers as encrypted JSON in MemberProfile
+        const rawAnswersJson = JSON.stringify(answers);
+
+        await tx.memberProfile.create({
+          data: {
+            memberId: member.id,
+            rawAnswers: rawAnswersJson,
+            interests: [],
+            goals: [],
+            learningAreas: [],
+            publicFields: ['interests', 'currentFocus'],
+          },
+        });
+
+        // Create PrivateSpace record
+        await tx.privateSpace.create({
+          data: {
+            memberId: member.id,
+            type: spaceType,
+            channelId,
+          },
+        });
+
+        // Create default MemberSchedule so briefs and nudges start immediately
+        await tx.memberSchedule.create({
+          data: {
+            memberId: member.id,
+          },
+        });
+
+        return { memberRecord: member, recoveryKey: recKey };
+      });
+
+      memberRecord = txResult.memberRecord;
+      recoveryKey = txResult.recoveryKey;
+    } catch (txError) {
+      // Transaction failed -- clean up Discord channel if it was created
+      if (channelId) {
+        await interaction.client.channels
+          .fetch(channelId)
+          .then((ch) => {
+            if (ch && 'delete' in ch) return (ch as { delete: (reason?: string) => Promise<unknown> }).delete();
+          })
+          .catch(() => {});
+      }
+      throw txError;
+    }
+
+    // 4c: Send recovery key via DM (non-critical, after transaction success)
     try {
       const dm = await guildMember.createDM();
       await dm.send(
@@ -196,7 +225,7 @@ export async function handleSetup(
       );
     }
 
-    // 4i: Assign Member role (unlocks all gated channels)
+    // 4d: Assign Member role (non-critical, idempotent)
     if (memberRole) {
       await guildMember.roles.add(memberRole, 'Completed /setup onboarding');
       logger.info(`Assigned Member role to ${guildMember.user.tag}`);
@@ -204,7 +233,7 @@ export async function handleSetup(
       logger.warn('Member role not found -- could not assign after setup');
     }
 
-    // 4j: Edit reply with success message
+    // 4e: Edit reply with success message
     if (spaceType === 'CHANNEL' && channelId) {
       await interaction.editReply(
         "You're all set! Check out the server -- everything is unlocked now. " +
@@ -217,14 +246,7 @@ export async function handleSetup(
       );
     }
 
-    // 4k: Create default MemberSchedule so briefs and nudges start immediately
-    await db.memberSchedule.create({
-      data: {
-        memberId: memberRecord.id,
-      },
-    });
-
-    // 4l: Emit memberSetupComplete event
+    // 4f: Emit memberSetupComplete event
     events.emit('memberSetupComplete', memberRecord.id, interaction.user.id);
 
     logger.info(
