@@ -193,8 +193,8 @@ export function withEncryption(prisma: PrismaClient) {
         const result = await query(args);
 
         if (result != null) {
-          // For read results, we need the memberId from the result to derive the key
-          const resultMemberId = extractMemberIdFromResult(result);
+          // For read results, derive the key from result memberId or fall back to where clause
+          const resultMemberId = extractMemberIdFromResult(result) ?? extractMemberId(typedArgs);
           if (resultMemberId) {
             const memberKey = getMemberKey(resultMemberId);
             decryptResultFields(result, fields, memberKey);

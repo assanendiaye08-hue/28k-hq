@@ -52,14 +52,19 @@ const aiAssistantModule: Module = {
     ctx.commands.register('wipe-history', buildWipeHistoryCommand(), handleWipeHistory);
     ctx.commands.register('accountability', buildAccountabilityCommand(), handleAccountability);
 
-    // 2. Listen for DM messages
+    // 2. Listen for DM and private channel messages
     client.on('messageCreate', async (message) => {
       try {
         // Skip bot messages
         if (message.author.bot) return;
 
-        // Only handle DM-based messages
-        if (!message.channel.isDMBased()) return;
+        // Handle DMs directly; for server channels, only respond in private space channels
+        if (!message.channel.isDMBased()) {
+          const privateSpace = await db.privateSpace.findFirst({
+            where: { channelId: message.channel.id, type: 'CHANNEL' },
+          });
+          if (!privateSpace) return;
+        }
 
         // Skip if user is currently in the setup flow
         if (activeSetupUsers.has(message.author.id)) return;
