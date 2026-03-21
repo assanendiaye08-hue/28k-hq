@@ -92,6 +92,19 @@ export function buildSettingsCommand(): SlashCommandBuilder {
       .setRequired(false),
   );
 
+  cmd.addStringOption((opt) =>
+    opt
+      .setName('reflection-intensity')
+      .setDescription('Self-reflection frequency')
+      .setRequired(false)
+      .addChoices(
+        { name: 'Off (no reflections)', value: 'off' },
+        { name: 'Light (weekly only)', value: 'light' },
+        { name: 'Medium (3-4/week + monthly)', value: 'medium' },
+        { name: 'Heavy (daily + weekly + monthly)', value: 'heavy' },
+      ),
+  );
+
   return cmd;
 }
 
@@ -136,6 +149,7 @@ async function handleSettings(
   const remindersInput = interaction.options.getString('reminders');
   const sundayPlanningInput = interaction.options.getBoolean('sunday-planning');
   const nudgeTimeInput = interaction.options.getString('nudge-time');
+  const reflectionIntensityInput = interaction.options.getString('reflection-intensity');
 
   // Check if any option was provided
   if (
@@ -144,7 +158,8 @@ async function handleSettings(
     briefToneInput === null &&
     remindersInput === null &&
     sundayPlanningInput === null &&
-    nudgeTimeInput === null
+    nudgeTimeInput === null &&
+    reflectionIntensityInput === null
   ) {
     // Show current settings
     const schedule = await db.memberSchedule.findUnique({
@@ -169,6 +184,7 @@ async function handleSettings(
       { name: 'Sunday Planning', value: schedule.sundayPlanning ? 'On' : 'Off', inline: true },
       { name: 'Nudge Time', value: schedule.nudgeTime ?? 'Off', inline: true },
       { name: 'Accountability', value: schedule.accountabilityLevel ?? 'medium', inline: true },
+      { name: 'Reflection', value: schedule.reflectionIntensity ?? 'off', inline: true },
     );
 
     await interaction.editReply({ embeds: [embed] });
@@ -255,6 +271,7 @@ async function handleSettings(
   if (parsedReminders !== undefined) updateData.reminderTimes = parsedReminders;
   if (sundayPlanningInput !== null) updateData.sundayPlanning = sundayPlanningInput;
   if (parsedNudgeTime !== undefined) updateData.nudgeTime = parsedNudgeTime;
+  if (reflectionIntensityInput) updateData.reflectionIntensity = reflectionIntensityInput;
 
   // Upsert MemberSchedule
   const schedule = await db.memberSchedule.upsert({
@@ -283,6 +300,7 @@ async function handleSettings(
     { name: 'Sunday Planning', value: schedule.sundayPlanning ? 'On' : 'Off', inline: true },
     { name: 'Nudge Time', value: schedule.nudgeTime ?? 'Off', inline: true },
     { name: 'Accountability', value: schedule.accountabilityLevel ?? 'medium', inline: true },
+    { name: 'Reflection', value: schedule.reflectionIntensity ?? 'off', inline: true },
   );
 
   await interaction.editReply({ embeds: [embed] });
