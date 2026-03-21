@@ -8,6 +8,7 @@
  * - DM conversations with context-aware AI responses
  * - Natural language timer starts via DM ("start a 45 min focus session on coding")
  * - Natural language reminder creation via DM ("remind me Tuesday at 3pm to call X")
+ * - Goal decomposition via DM ("break down my yearly goal", "decompose Build a SaaS")
  * - /ask command for chatting from any channel (ephemeral)
  * - /wipe-history to export and clear conversation data
  * - Per-member processing lock prevents race conditions
@@ -34,6 +35,7 @@ import { TIMER_DEFAULTS } from '../timer/constants.js';
 import { isReminderRequest, parseReminder } from '../reminders/parser.js';
 import { scheduleOneShot, scheduleRecurring } from '../reminders/scheduler.js';
 import { DiscordReminderDelivery } from '../reminders/delivery.js';
+import { isDecompositionRequest, extractDecompositionGoalName, runDecompositionFlow } from '../goals/decompose.js';
 import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
 
@@ -149,6 +151,27 @@ const aiAssistantModule: Module = {
             return;
           }
           // Couldn't parse time -- fall through to regular chat
+        }
+
+        // Check for goal decomposition intent (after reminder, before regular chat)
+        if (isDecompositionRequest(message.content)) {
+          const goalNameHint = extractDecompositionGoalName(message.content);
+
+          // Run decomposition flow -- it handles its own responses and errors
+          try {
+            await runDecompositionFlow(
+              client,
+              db,
+              account.memberId,
+              message.author.id,
+              ctx.events,
+              goalNameHint,
+            );
+          } catch (error) {
+            logger.error(`[ai-assistant] Decomposition flow error: ${String(error)}`);
+            await message.reply('Something went wrong with the decomposition. Try again or use /setgoal with the parent option.');
+          }
+          return; // Don't fall through to regular chat
         }
 
         // Show typing indicator
