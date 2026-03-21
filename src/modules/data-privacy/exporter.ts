@@ -38,6 +38,10 @@ export async function exportMemberData(
       seasonSnapshots: true,
       privateSpace: true,
       notificationPreference: true,
+      timerSessions: { orderBy: { startedAt: 'asc' } },
+      reminders: { orderBy: { createdAt: 'asc' } },
+      reflections: { orderBy: { createdAt: 'asc' } },
+      inspirations: { orderBy: { createdAt: 'asc' } },
     },
   });
 
@@ -174,6 +178,45 @@ export async function exportMemberData(
           levelUpAccountId: member.notificationPreference.levelUpAccountId,
         }
       : null,
+
+    timerSessions: member.timerSessions.map((t) => ({
+      id: t.id,
+      mode: t.mode,
+      status: t.status,
+      focus: t.focus,
+      workDuration: t.workDuration,
+      breakDuration: t.breakDuration,
+      totalWorkedMs: t.totalWorkedMs,
+      pomodoroCount: t.pomodoroCount,
+      xpAwarded: t.xpAwarded,
+      startedAt: t.startedAt,
+      endedAt: t.endedAt,
+    })),
+
+    reminders: member.reminders.map((r) => ({
+      id: r.id,
+      content: r.content,
+      fireAt: r.fireAt,
+      urgency: r.urgency,
+      cronExpression: r.cronExpression,
+      status: r.status,
+      createdAt: r.createdAt,
+    })),
+
+    reflections: member.reflections.map((r) => ({
+      id: r.id,
+      type: r.type,
+      question: r.question,
+      response: r.response,
+      insights: r.insights,
+      createdAt: r.createdAt,
+    })),
+
+    inspirations: member.inspirations.map((i) => ({
+      name: i.name,
+      context: i.context,
+      createdAt: i.createdAt,
+    })),
 
     sessionParticipation: sessionParticipation.map((sp) => ({
       sessionId: sp.sessionId,

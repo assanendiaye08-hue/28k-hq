@@ -45,8 +45,9 @@ export async function hardDeleteMember(
     if (ch) await ch.delete('Member data deletion').catch(() => {});
   }
 
-  // Step 3: Delete SessionParticipant records (no cascade from Member)
+  // Step 3: Delete records without cascade relations
   await db.sessionParticipant.deleteMany({ where: { memberId } });
+  await db.tokenUsage.deleteMany({ where: { memberId } });
 
   // Step 4: Delete Member record -- cascades to ALL related tables:
   // DiscordAccount, MemberProfile, PrivateSpace, CheckIn, Goal,
