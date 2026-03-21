@@ -17,6 +17,7 @@
  * Phase 6 commands: /notifications
  * Phase 7 commands: /cost (today, month, set-budget), /admin (set-model)
  * Phase 8 commands: /inspiration (add, remove, list)
+ * Phase 9 commands: /timer (start, pause, resume, stop, status)
  */
 
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
@@ -45,6 +46,7 @@ import {
 import { buildNotificationsCommand } from './modules/notification-router/commands.js';
 import { buildCostCommand, buildAdminSetModelCommand } from './modules/ai-admin/commands.js';
 import { buildInspirationCommand } from './modules/inspiration/commands.js';
+import { buildTimerCommand } from './modules/timer/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -128,6 +130,10 @@ const commands = [
   // --- Phase 8 Commands ---
 
   buildInspirationCommand(),
+
+  // --- Phase 9 Commands ---
+
+  buildTimerCommand(),
 ];
 
 // --- Deploy ---
