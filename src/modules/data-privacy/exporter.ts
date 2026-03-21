@@ -55,6 +55,14 @@ export async function exportMemberData(
     include: { session: true },
   });
 
+  // Direct query for LockInSession titles so the encryption extension fires
+  // (included/nested relations from sessionParticipant don't trigger decryption)
+  const sessionIds = [...new Set(sessionParticipation.map((sp) => sp.sessionId))];
+  const sessions = sessionIds.length > 0
+    ? await db.lockInSession.findMany({ where: { id: { in: sessionIds } } })
+    : [];
+  const sessionTitleMap = new Map(sessions.map((s) => [s.id, s.title]));
+
   // Build the structured export object
   const exportData = {
     exportVersion: EXPORT_VERSION,
@@ -229,7 +237,7 @@ export async function exportMemberData(
       joinedAt: sp.joinedAt,
       leftAt: sp.leftAt,
       session: {
-        title: sp.session.title,
+        title: sessionTitleMap.get(sp.sessionId) ?? sp.session.title,
         visibility: sp.session.visibility,
         status: sp.session.status,
         startedAt: sp.session.startedAt,
