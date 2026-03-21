@@ -77,7 +77,7 @@ Plans:
 **Goal**: Tauri app boots, authenticates, shows dashboard and goal hierarchy with dark+gold theme
 **Depends on**: Phase 15
 **Requirements**: APP-01, APP-02, APP-03, APP-04, APP-05, AUTH-04, DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, GOAL-01, GOAL-02
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 16-01-PLAN.md — Scaffold Tauri v2 app with system tray, Discord OAuth login, dark+gold theme
@@ -109,7 +109,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
 | 14. Monorepo Restructure | 2/2 | Complete    | 2026-03-21 | - |
 | 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
-| 16. Desktop Shell + Dashboard | 1/3 | In Progress|  | - |
+| 16. Desktop Shell + Dashboard | 2/3 | In Progress|  | - |
 | 17. Pomodoro Timer | v2.0 | 0/3 | Not started | - |
 | 18. Flowmodoro + Goals | v2.0 | 0/2 | Not started | - |
 | 19. Sync + Polish | v2.0 | 0/2 | Not started | - |

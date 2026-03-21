@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 16 of 19 (Desktop Shell + Dashboard + Goals)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-03-21 -- Completed 16-01 (Tauri v2 desktop app scaffold with auth, tray, theme)
+Last activity: 2026-03-21 -- Completed 16-02 (Dashboard page with app shell and five data cards)
 
-Progress: [#####░░░░░░░░░░░░░░░] 25% (v2.0) -- Phase 16 plan 1 of 3 complete (3 of 6 v2.0 phases)
+Progress: [########░░░░░░░░░░░░] 40% (v2.0) -- Phase 16 plan 2 of 3 complete (3 of 6 v2.0 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 40 (18 v1.0 + 17 v1.1 + 5 v2.0)
+- Total plans completed: 41 (18 v1.0 + 17 v1.1 + 6 v2.0)
 - Average duration: 5 min
-- Total execution time: 3.09 hours
+- Total execution time: 3.12 hours
 
 **By Phase (v1.1):**
 
@@ -41,11 +41,11 @@ Progress: [#####░░░░░░░░░░░░░░░] 25% (v2.0) -- Pha
 |-------|-------|-------|----------|
 | 14-monorepo-restructure | 2/2 | 14 min | 7 min |
 | 15-rest-api-authentication | 2/2 | 7 min | 4 min |
-| 16-desktop-shell-dashboard-goals | 1/3 | 6 min | 6 min |
+| 16-desktop-shell-dashboard-goals | 2/3 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 14-01 (6 min), 14-02 (8 min), 15-01 (3 min), 15-02 (4 min), 16-01 (6 min)
-- Trend: stable (desktop scaffold slightly longer due to multi-language Tauri setup)
+- Last 5 plans: 14-02 (8 min), 15-01 (3 min), 15-02 (4 min), 16-01 (6 min), 16-02 (2 min)
+- Trend: stable (dashboard was straightforward React composition)
 
 ## Accumulated Context
 
@@ -79,6 +79,9 @@ Recent decisions affecting current work:
 - [16-01]: tauri-plugin-oauth start() returns port, callback URL comes via onUrl() listener
 - [16-01]: @tauri-apps/plugin-store load() requires defaults:{} in v2 StoreOptions
 - [16-01]: Placeholder gold circle PNGs for tray/app icons until real ouroboros assets provided
+- [16-02]: Inline SVG icons for sidebar nav (2 icons, no icon library needed)
+- [16-02]: Fire emoji (unicode) for streak visual instead of custom SVG
+- [16-02]: Rank color from API hex integer converted to CSS hex string via toString(16).padStart(6,'0')
 
 ### Pending Todos
 
@@ -101,5 +104,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 16-01-PLAN.md (Tauri v2 desktop app scaffold with auth, tray, theme)
+Stopped at: Completed 16-02-PLAN.md (Dashboard page with app shell, sidebar, and five data cards)
 Resume file: None
