@@ -147,6 +147,23 @@ export async function setupServerChannels(
     throw new Error('Bot is not a member of the guild');
   }
 
+  // Clean up Discord's default categories and channels (they bypass our gating)
+  const defaultCategories = ['Text Channels', 'Voice Channels'];
+  for (const catName of defaultCategories) {
+    const defaultCat = guild.channels.cache.find(
+      (ch) => ch.type === ChannelType.GuildCategory && ch.name === catName,
+    );
+    if (defaultCat) {
+      // Delete child channels first
+      const children = guild.channels.cache.filter((ch) => ch.parentId === defaultCat.id);
+      for (const child of children.values()) {
+        await child.delete('Removing Discord defaults -- bot manages channel structure').catch(() => {});
+      }
+      await defaultCat.delete('Removing Discord defaults -- bot manages channel structure').catch(() => {});
+      logger.info(`Removed default Discord category: ${catName}`);
+    }
+  }
+
   let categoriesCreated = 0;
   let channelsCreated = 0;
 

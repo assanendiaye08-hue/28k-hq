@@ -79,6 +79,14 @@ async function setConfigValue(
 async function findOrCreateChannel(
   guild: Guild,
 ): Promise<TextChannel> {
+  // Find THE GRIND category and Member role for gating
+  const category = guild.channels.cache.find(
+    (ch) =>
+      ch.name === LEADERBOARD_CATEGORY_NAME &&
+      ch.type === ChannelType.GuildCategory,
+  );
+  const memberRole = guild.roles.cache.find((r) => r.name === 'Member');
+
   // Look for existing channel
   const existing = guild.channels.cache.find(
     (ch) =>
@@ -86,35 +94,43 @@ async function findOrCreateChannel(
       ch.type === ChannelType.GuildText,
   ) as TextChannel | undefined;
 
-  if (existing) return existing;
+  if (existing) {
+    // Fix permissions and parent if needed (migrate from ungated to gated)
+    if (category && existing.parentId !== category.id) {
+      await existing.setParent(category.id, { lockPermissions: true });
+    }
+    return existing;
+  }
 
-  // Find "The Hub" category
-  const category = guild.channels.cache.find(
-    (ch) =>
-      ch.name === LEADERBOARD_CATEGORY_NAME &&
-      ch.type === ChannelType.GuildCategory,
-  );
+  // Create the channel gated behind Member role
+  const overwrites: Array<{ id: string; deny?: bigint[]; allow?: bigint[] }> = [
+    {
+      id: guild.roles.everyone.id,
+      deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+    },
+    {
+      id: guild.client.user!.id,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.ManageMessages,
+      ],
+    },
+  ];
+  if (memberRole) {
+    overwrites.push({
+      id: memberRole.id,
+      allow: [PermissionFlagsBits.ViewChannel],
+      deny: [PermissionFlagsBits.SendMessages],
+    });
+  }
 
-  // Create the channel
   const channel = await guild.channels.create({
     name: LEADERBOARD_CHANNEL_NAME,
     type: ChannelType.GuildText,
     parent: category?.id,
     topic: 'Live leaderboards -- updated every 15 minutes',
-    permissionOverwrites: [
-      {
-        id: guild.roles.everyone.id,
-        deny: [PermissionFlagsBits.SendMessages],
-        allow: [PermissionFlagsBits.ViewChannel],
-      },
-      {
-        id: guild.client.user!.id,
-        allow: [
-          PermissionFlagsBits.SendMessages,
-          PermissionFlagsBits.ManageMessages,
-        ],
-      },
-    ],
+    permissionOverwrites: overwrites,
   });
 
   return channel;
