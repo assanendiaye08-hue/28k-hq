@@ -138,7 +138,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Member receives a monthly recap DM with AI-generated commentary covering patterns, growth areas, and suggestions -- drawing from check-ins, goals, timer sessions, reflections, and XP data for the month
   2. Member can react to their recap to share it to #wins channel -- providing social proof and motivation for the group
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 13-01-PLAN.md -- Recap module with data aggregation, AI-generated narrative, monthly cron, and share-to-#wins via reaction
 
 ## Progress
 
@@ -160,4 +163,4 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 10. Smart Reminders | 2/2 | Complete    | 2026-03-21 | - |
 | 11. Goal Hierarchy | 3/3 | Complete    | 2026-03-21 | - |
 | 12. Self-Evaluation and Reflection | 3/3 | Complete    | 2026-03-21 | - |
-| 13. Monthly Progress Recap | v1.1 | 0/0 | Not started | - |
+| 13. Monthly Progress Recap | v1.1 | 0/1 | Planned | - |
