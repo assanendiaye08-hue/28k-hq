@@ -93,7 +93,11 @@ Plans:
   3. Member can set recurring reminders ("every Monday at 9am remind me to...") that fire on schedule indefinitely until cancelled
   4. Reminder delivery uses a pluggable backend interface -- Discord DM implementation now, designed so Apple push notifications can be added later without rewriting the scheduler
   5. Pending reminders survive bot restarts and fire at their scheduled times after recovery
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md -- Prisma schema, chrono-node parser, delivery interface, constants, buttons, embeds
+- [ ] 10-02-PLAN.md -- Scheduler engine, slash commands, module registration, button handler, DM NLP integration
 
 ### Phase 11: Goal Hierarchy
 **Goal**: Members can organize goals in an optional hierarchy (yearly to daily) with cascading progress and Jarvis-assisted decomposition
@@ -143,7 +147,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 7. AI Infrastructure | v1.1 | Complete    | 2026-03-20 | - |
 | 8. Inspiration System | v1.1 | Complete    | 2026-03-20 | - |
 | 9. Productivity Timer | v1.1 | Complete    | 2026-03-21 | - |
-| 10. Smart Reminders | v1.1 | 0/0 | Not started | - |
+| 10. Smart Reminders | v1.1 | 0/2 | Planned | - |
 | 11. Goal Hierarchy | v1.1 | 0/0 | Not started | - |
 | 12. Self-Evaluation and Reflection | v1.1 | 0/0 | Not started | - |
 | 13. Monthly Progress Recap | v1.1 | 0/0 | Not started | - |
