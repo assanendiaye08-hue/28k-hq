@@ -20,6 +20,7 @@
 
 import {
   type ChatInputCommandInteraction,
+  type ButtonInteraction,
   SlashCommandBuilder,
   MessageFlags,
 } from 'discord.js';
@@ -53,6 +54,26 @@ function isError(result: SetupFlowResult | SetupFlowError): result is SetupFlowE
  */
 export async function handleSetup(
   interaction: ChatInputCommandInteraction,
+  ctx: ModuleContext,
+): Promise<void> {
+  return runSetup(interaction, ctx);
+}
+
+/**
+ * Handle the "Get Started" button click from #welcome.
+ */
+export async function handleSetupButton(
+  interaction: ButtonInteraction,
+  ctx: ModuleContext,
+): Promise<void> {
+  return runSetup(interaction, ctx);
+}
+
+/**
+ * Core setup logic shared by /setup command and Get Started button.
+ */
+async function runSetup(
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
   ctx: ModuleContext,
 ): Promise<void> {
   const { logger, events } = ctx;

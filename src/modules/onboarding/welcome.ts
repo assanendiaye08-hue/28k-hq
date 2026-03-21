@@ -8,8 +8,10 @@
  * The tone is real talk, not corporate motivational poster energy.
  */
 
-import { type TextChannel } from 'discord.js';
+import { type TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { brandEmbed } from '../../shared/embeds.js';
+
+export const SETUP_BUTTON_ID = 'setup_start';
 
 /**
  * Send the welcome manifesto embed to #welcome.
@@ -42,12 +44,20 @@ export async function sendWelcomeMessage(channel: TextChannel): Promise<void> {
     },
     {
       name: 'Get Started',
-      value: 'Type `/setup` **right here in this channel** to create your profile, choose your space, and unlock the server.',
+      value: 'Hit the button below to create your profile, choose your space, and unlock the server.',
       inline: false,
     },
   );
 
-  embed.setFooter({ text: 'Type /setup in this channel to get started' });
+  embed.setFooter({ text: 'Click the button to get started' });
 
-  await channel.send({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(SETUP_BUTTON_ID)
+      .setLabel('Get Started')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('🚀'),
+  );
+
+  await channel.send({ embeds: [embed], components: [row] });
 }
