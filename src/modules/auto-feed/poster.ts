@@ -70,11 +70,16 @@ export async function postFeedItems(
     (ch) => ch.name === 'RESOURCES' && ch.type === 4, // CategoryChannel
   );
 
+  if (!resourcesCategory) {
+    logger.warn(`RESOURCES category not found in guild ${guildId}, skipping feed posting`);
+    return 0;
+  }
+
   const feedChannel = guild.channels.cache.find(
     (ch) =>
       ch.name === FEED_CHANNEL_NAME &&
       ch.type === 0 && // TextChannel
-      (resourcesCategory ? ch.parentId === resourcesCategory.id : true),
+      ch.parentId === resourcesCategory.id,
   );
 
   if (!feedChannel || !('send' in feedChannel)) {

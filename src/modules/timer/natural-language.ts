@@ -84,6 +84,49 @@ export function isTimerRequest(message: string): boolean {
   return false;
 }
 
+// ─── Stop/Pause/Resume Keyword Detection ────────────────────────────────────
+
+const TIMER_STOP_PATTERNS: RegExp[] = [
+  /\b(stop|end|cancel|finish)\b.*\b(timer|pomodoro|session)\b/i,
+  /\b(timer|pomodoro|session)\b.*\b(stop|end|cancel|finish)\b/i,
+  /\bstop\s+(the\s+)?timer\b/i,
+];
+
+const TIMER_PAUSE_PATTERNS: RegExp[] = [
+  /\bpause\s+(the\s+)?timer\b/i,
+  /\bpause\s+(the\s+)?(pomodoro|session)\b/i,
+];
+
+const TIMER_RESUME_PATTERNS: RegExp[] = [
+  /\bresume\s+(the\s+)?timer\b/i,
+  /\bresume\s+(the\s+)?(pomodoro|session)\b/i,
+  /\bunpause\s+(the\s+)?timer\b/i,
+];
+
+/** Check if a message is a request to stop the active timer. */
+export function isTimerStopRequest(message: string): boolean {
+  for (const pattern of TIMER_STOP_PATTERNS) {
+    if (pattern.test(message)) return true;
+  }
+  return false;
+}
+
+/** Check if a message is a request to pause the active timer. */
+export function isTimerPauseRequest(message: string): boolean {
+  for (const pattern of TIMER_PAUSE_PATTERNS) {
+    if (pattern.test(message)) return true;
+  }
+  return false;
+}
+
+/** Check if a message is a request to resume a paused timer. */
+export function isTimerResumeRequest(message: string): boolean {
+  for (const pattern of TIMER_RESUME_PATTERNS) {
+    if (pattern.test(message)) return true;
+  }
+  return false;
+}
+
 // ─── Stage 2: AI Structured Output ──────────────────────────────────────────────
 
 const TIMER_PARSE_SYSTEM_PROMPT = `Parse whether this message is a request to start a timer/focus session. Extract mode (pomodoro for structured work/break cycles, proportional for free-form work where break is calculated from work time), work duration in minutes, break duration in minutes (only for pomodoro), and what they want to focus on. If the user just says 'pomodoro' or 'timer' without specifying, default to pomodoro 25/5. If they say 'focus session' or 'focus for X minutes' without specifying mode, default to pomodoro. If not a timer request, set isTimerRequest to false.`;

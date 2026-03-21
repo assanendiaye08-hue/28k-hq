@@ -206,7 +206,8 @@ export async function handleGoalAutocomplete(
         value: g.id,
       })),
     );
-  } catch {
+  } catch (error) {
+    console.warn('[goals] Autocomplete error:', error);
     await interaction.respond([]);
   }
 }
@@ -324,7 +325,7 @@ async function handleSetgoal(
   }
 
   if (parentId) {
-    const parentGoal = await db.goal.findUnique({ where: { id: parentId } });
+    const parentGoal = await db.goal.findFirst({ where: { id: parentId, memberId: account.memberId } });
     if (parentGoal) {
       embed.addFields({ name: 'Parent', value: parentGoal.title, inline: true });
     }

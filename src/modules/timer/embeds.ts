@@ -47,15 +47,19 @@ export function buildTimerEmbed(timer: ActiveTimer): EmbedBuilder {
   const xpSoFar = Math.floor(workedMin / 5);
 
   // Live countdown using Discord's relative timestamp (auto-updates in client)
+  // After pause/resume, remainingMs holds the actual interval duration left,
+  // which may be less than the full work/break duration.
   let countdownField: string;
   if (timer.state === 'paused') {
     countdownField = 'Paused';
   } else if (timer.state === 'working') {
-    const endsAt = Math.floor((timer.currentIntervalStart.getTime() + timer.workDuration * 60_000) / 1000);
+    const intervalMs = timer.remainingMs ?? timer.workDuration * 60_000;
+    const endsAt = Math.floor((timer.currentIntervalStart.getTime() + intervalMs) / 1000);
     countdownField = `<t:${endsAt}:R>`;
   } else {
     // on_break
-    const endsAt = Math.floor((timer.currentIntervalStart.getTime() + timer.breakDuration * 60_000) / 1000);
+    const intervalMs = timer.remainingMs ?? timer.breakDuration * 60_000;
+    const endsAt = Math.floor((timer.currentIntervalStart.getTime() + intervalMs) / 1000);
     countdownField = `<t:${endsAt}:R>`;
   }
 

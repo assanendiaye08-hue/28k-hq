@@ -143,6 +143,7 @@ export async function startTimerForMember(
     breakDuration?: number;
     focus?: string | null;
     goalId?: string | null;
+    responseChannelId?: string;
   } = {},
 ): Promise<ActiveTimer | null> {
   // Check if member already has an active timer
@@ -167,19 +168,31 @@ export async function startTimerForMember(
     goalId: options.goalId ?? null,
   });
 
-  // Send DM to user
+  // Send timer embed to response channel (private channel) or DM
   try {
-    const user = await client.users.fetch(discordId);
-    const dmChannel = await user.createDM();
-    const dmMessage = await dmChannel.send({
+    let sendChannel: DMChannel | import('discord.js').TextChannel | null = null;
+
+    if (options.responseChannelId) {
+      const ch = await client.channels.fetch(options.responseChannelId);
+      if (ch && ch.type === ChannelType.GuildText) {
+        sendChannel = ch as import('discord.js').TextChannel;
+      }
+    }
+
+    if (!sendChannel) {
+      const user = await client.users.fetch(discordId);
+      sendChannel = await user.createDM();
+    }
+
+    const dmMessage = await sendChannel.send({
       embeds: [buildTimerEmbed(timer)],
       components: [buildWorkButtons()],
     });
 
     timer.dmMessageId = dmMessage.id;
-    timer.dmChannelId = dmChannel.id;
+    timer.dmChannelId = sendChannel.id;
   } catch {
-    // If DM fails, clean up and return null
+    // If send fails, clean up and return null
     stopTimer(memberId);
     return null;
   }
@@ -188,8 +201,8 @@ export async function startTimerForMember(
   try {
     await deleteActiveTimerRecord(db, memberId);
     await createActiveTimerRecord(db, timer);
-  } catch {
-    // Non-critical -- timer works without DB record, just no restart recovery
+  } catch (error) {
+    console.warn('[timer] Failed to create active timer record:', error);
   }
 
   // Schedule work->break transition
@@ -334,8 +347,8 @@ async function handleButtonPause(
       prePauseState: timer.prePauseState,
       remainingMs: timer.remainingMs,
     });
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to update timer record on pause:', error);
   }
 }
 
@@ -373,8 +386,8 @@ async function handleButtonResume(
       prePauseState: timer.prePauseState,
       remainingMs: null,
     });
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to update timer record on resume:', error);
   }
 }
 
@@ -390,8 +403,8 @@ async function handleButtonStop(
   // Delete ACTIVE DB record
   try {
     await deleteActiveTimerRecord(db, memberId);
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to delete active timer record on stop:', error);
   }
 
   // Persist completed session
@@ -454,8 +467,8 @@ async function handleButtonSkipBreak(
       pomodoroCount: timer.pomodoroCount,
       timerState: timer.state,
     });
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to update timer record on skip break:', error);
   }
 }
 
@@ -503,7 +516,7 @@ async function handleWorkToBreak(
     const timer = stopTimer(memberId);
     if (!timer) return;
 
-    try { await deleteActiveTimerRecord(db, memberId); } catch {}
+    try { await deleteActiveTimerRecord(db, memberId); } catch (e) { console.warn('[timer] Failed to delete active record:', e); }
     const result = await persistTimerSession(db, timer, 'COMPLETED');
 
     try {
@@ -518,7 +531,7 @@ async function handleWorkToBreak(
           await dmChannel.send(`All ${timer.targetSessions} sessions done! ${result.durationMinutes} min worked. +${result.xpAwarded} XP.`);
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[timer] Failed to update DM on target sessions complete:', e); }
 
     ctx.events.emit('timerCompleted', memberId, result.durationMinutes);
     if (result.leveledUp) {
@@ -562,8 +575,8 @@ async function handleWorkToBreak(
       breakDuration: timer.breakDuration,
       timerState: timer.state,
     });
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to update timer record on work->break:', error);
   }
 
   // Schedule next transition based on mode
@@ -624,8 +637,8 @@ async function handleBreakToWork(
       pomodoroCount: timer.pomodoroCount,
       timerState: timer.state,
     });
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to update timer record on break->work:', error);
   }
 
   // Schedule next work->break transition
@@ -679,8 +692,8 @@ async function handleIdleTimeout(
   // Delete ACTIVE DB record
   try {
     await deleteActiveTimerRecord(db, memberId);
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to delete active timer record on idle timeout:', error);
   }
 
   // Persist as COMPLETED (they did work, just didn't come back from break)
@@ -710,8 +723,8 @@ async function handleIdleTimeout(
         );
       }
     }
-  } catch {
-    // Non-critical
+  } catch (error) {
+    console.warn('[timer] Failed to update DM on idle timeout:', error);
   }
 
   ctx.events.emit('timerCompleted', memberId, Math.floor(timer.totalWorkedMs / 60_000));
@@ -776,7 +789,7 @@ async function reconstructTimers(
         breakRatio: session.breakRatio,
         focus: session.focus,
         goalId: session.goalId,
-        currentIntervalStart: new Date(),
+        currentIntervalStart: session.lastStateChangeAt,
         totalWorkedMs: session.totalWorkedMs,
         totalBreakMs: session.totalBreakMs,
         pomodoroCount: session.pomodoroCount,
@@ -817,14 +830,17 @@ async function reconstructTimers(
         ctx.logger.warn(`[timer] Could not DM member ${session.memberId} for timer recovery`);
       }
 
-      // Schedule transition based on restored state
+      // Schedule transition based on restored state, using elapsed time since last state change
+      const elapsedSinceStateChange = now - session.lastStateChangeAt.getTime();
       if (restoredState === 'working') {
-        const remainingWorkMs = Math.max(0, timer.workDuration * 60_000 - elapsedMs);
+        const intervalMs = timer.workDuration * 60_000;
+        const remainingWorkMs = Math.max(0, intervalMs - elapsedSinceStateChange);
         scheduleTransition(session.memberId, remainingWorkMs, async () => {
           ctx.events.emit('timerTransition', session.memberId, 'work_to_break');
         });
       } else if (restoredState === 'on_break') {
-        const remainingBreakMs = Math.max(0, timer.breakDuration * 60_000 - elapsedMs);
+        const intervalMs = timer.breakDuration * 60_000;
+        const remainingBreakMs = Math.max(0, intervalMs - elapsedSinceStateChange);
         scheduleTransition(session.memberId, remainingBreakMs, async () => {
           ctx.events.emit('timerTransition', session.memberId, 'break_to_work');
         });
