@@ -43,7 +43,7 @@ Full details: .planning/milestones/v1.1-ROADMAP.md
 
 - [x] **Phase 14: Monorepo Restructure** - Extract shared packages, move bot to apps/bot, pnpm + Turborepo (completed 2026-03-21)
 - [x] **Phase 15: REST API + Authentication** - Fastify server with Discord OAuth, JWT auth, all data endpoints (1/2 plans complete) (completed 2026-03-21)
-- [ ] **Phase 16: Desktop Shell + Dashboard + Goals View** - Tauri app with auth, system tray, dashboard, read-only goals
+- [x] **Phase 16: Desktop Shell + Dashboard + Goals View** - Tauri app with auth, system tray, dashboard, read-only goals (completed 2026-03-21)
 - [ ] **Phase 17: Pomodoro Timer** - Full pomodoro mode with menu bar countdown, popover controls, transitions, sync
 - [ ] **Phase 18: Flowmodoro + Goals Editing** - Count-up timer mode and goal CRUD from desktop app
 - [ ] **Phase 19: Cross-Platform Sync + Polish** - Bot-desktop timer/goal sync, auto-updater, autostart
@@ -77,12 +77,12 @@ Plans:
 **Goal**: Tauri app boots, authenticates, shows dashboard and goal hierarchy with dark+gold theme
 **Depends on**: Phase 15
 **Requirements**: APP-01, APP-02, APP-03, APP-04, APP-05, AUTH-04, DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, GOAL-01, GOAL-02
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 16-01-PLAN.md — Scaffold Tauri v2 app with system tray, Discord OAuth login, dark+gold theme
-- [ ] 16-02-PLAN.md — Dashboard page with priorities, weekly goals, streak, rank, and quote cards
-- [ ] 16-03-PLAN.md — Goals page with recursive tree view, progress bars, and timeframe filtering
+- [x] 16-01-PLAN.md — Scaffold Tauri v2 app with system tray, Discord OAuth login, dark+gold theme
+- [x] 16-02-PLAN.md — Dashboard page with priorities, weekly goals, streak, rank, and quote cards
+- [x] 16-03-PLAN.md — Goals page with recursive tree view, progress bars, and timeframe filtering
 
 ### Phase 17: Pomodoro Timer
 **Goal**: Full pomodoro timer with menu bar countdown, popover controls, alarm transitions, API sync, persistence
@@ -109,7 +109,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
 | 14. Monorepo Restructure | 2/2 | Complete    | 2026-03-21 | - |
 | 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
-| 16. Desktop Shell + Dashboard | 2/3 | In Progress|  | - |
+| 16. Desktop Shell + Dashboard | 3/3 | Complete   | 2026-03-21 | - |
 | 17. Pomodoro Timer | v2.0 | 0/3 | Not started | - |
 | 18. Flowmodoro + Goals | v2.0 | 0/2 | Not started | - |
 | 19. Sync + Polish | v2.0 | 0/2 | Not started | - |

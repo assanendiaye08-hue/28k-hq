@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The desktop app extends this to their entire workstation.
-**Current focus:** v2.0 Phase 16 - Desktop Shell + Dashboard + Goals
+**Current focus:** v2.0 Phase 17 - Pomodoro Timer
 
 ## Current Position
 
-Phase: 16 of 19 (Desktop Shell + Dashboard + Goals)
-Plan: 2 of 3 in current phase
-Status: In Progress
-Last activity: 2026-03-21 -- Completed 16-02 (Dashboard page with app shell and five data cards)
+Phase: 17 of 19 (Pomodoro Timer)
+Plan: 0 of 3 in current phase
+Status: Ready
+Last activity: 2026-03-21 -- Completed 16-03 (Goals page with recursive tree view and timeframe filtering)
 
-Progress: [########░░░░░░░░░░░░] 40% (v2.0) -- Phase 16 plan 2 of 3 complete (3 of 6 v2.0 phases)
+Progress: [##########░░░░░░░░░░] 50% (v2.0) -- Phase 16 complete, Phase 17 ready (4 of 6 v2.0 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 41 (18 v1.0 + 17 v1.1 + 6 v2.0)
+- Total plans completed: 42 (18 v1.0 + 17 v1.1 + 7 v2.0)
 - Average duration: 5 min
-- Total execution time: 3.12 hours
+- Total execution time: 3.15 hours
 
 **By Phase (v1.1):**
 
@@ -41,11 +41,11 @@ Progress: [########░░░░░░░░░░░░] 40% (v2.0) -- Phase 16 
 |-------|-------|-------|----------|
 | 14-monorepo-restructure | 2/2 | 14 min | 7 min |
 | 15-rest-api-authentication | 2/2 | 7 min | 4 min |
-| 16-desktop-shell-dashboard-goals | 2/3 | 8 min | 4 min |
+| 16-desktop-shell-dashboard-goals | 3/3 | 10 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 14-02 (8 min), 15-01 (3 min), 15-02 (4 min), 16-01 (6 min), 16-02 (2 min)
-- Trend: stable (dashboard was straightforward React composition)
+- Last 5 plans: 15-01 (3 min), 15-02 (4 min), 16-01 (6 min), 16-02 (2 min), 16-03 (2 min)
+- Trend: stable (goals tree was straightforward recursive React composition)
 
 ## Accumulated Context
 
@@ -82,6 +82,9 @@ Recent decisions affecting current work:
 - [16-02]: Inline SVG icons for sidebar nav (2 icons, no icon library needed)
 - [16-02]: Fire emoji (unicode) for streak visual instead of custom SVG
 - [16-02]: Rank color from API hex integer converted to CSS hex string via toString(16).padStart(6,'0')
+- [16-03]: Auto-expand depth 0 and 1 after goal fetch for immediate visibility of top-level structure
+- [16-03]: Inline SVG icons for all goal status indicators (chevron, checkmark, X, clock)
+- [16-03]: GoalTree groups top-level goals by timeframe with section headers when mixed
 
 ### Pending Todos
 
@@ -104,5 +107,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 16-02-PLAN.md (Dashboard page with app shell, sidebar, and five data cards)
+Stopped at: Completed 16-03-PLAN.md (Goals page with recursive tree view, progress bars, timeframe filtering)
 Resume file: None
