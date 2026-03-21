@@ -47,6 +47,7 @@ model Member {
   timerSessions         TimerSession[]
   reminders             Reminder[]
   reflections           Reflection[]
+  refreshTokens         RefreshToken[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -525,6 +526,8 @@ model TimerSession {
   dmMessageId       String?      // Discord message ID of the live timer DM
   dmChannelId       String?      // Discord DM channel ID
   seasonId          String?
+  source            String       @default("BOT")   // "BOT" or "DESKTOP" -- where session originated
+  botNotified       Boolean      @default(false)    // Whether the bot has been notified of this session
 
   member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
   season  Season? @relation(fields: [seasonId], references: [id])
@@ -608,4 +611,21 @@ enum ReflectionType {
   DAILY
   WEEKLY
   MONTHLY
+}
+
+// ─── Phase 15: REST API Authentication ──────────────────────────────────────
+
+/// Refresh token for JWT token rotation. Each token is single-use;
+/// on refresh the old token is deleted and a new one is created.
+model RefreshToken {
+  id        String   @id @default(cuid())
+  memberId  String
+  token     String   @unique // Random 64-byte hex string
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([token, expiresAt])
 }
