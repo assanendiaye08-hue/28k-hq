@@ -62,6 +62,13 @@ export const XP_AWARDS = {
     dailyCap: 200, // Match voice cap
     minSessionMinutes: 5, // Minimum to earn XP
   },
+
+  // Phase 12: Self-Evaluation and Reflection
+  reflection: {
+    daily: 15,
+    weekly: 30,
+    monthly: 50,
+  },
 } as const;
 
 /**
