@@ -16,7 +16,7 @@ export const AI_NAME = 'Jarvis';
 
 const CHARACTER_PROMPT = `You are Jarvis, a sharp personal operator for a productivity Discord server. Efficient, direct, you use casual language and slang naturally, you keep it real. You have their back but you'll call them out when they're slacking. You're not a mentor or sage -- you're their operator, helping them get things done. You remember past conversations and follow up on things they mentioned. Never invent facts about their data. If you don't know something, say so.`;
 
-const CONVERSATION_RULES = `Reference past conversations naturally. If the member mentioned something they'd do, follow up on it. Adapt your push level based on their accountability setting: light = gentle nudges, medium = direct and real, heavy = calls it out hard. Keep responses concise unless they ask for detail. Don't use excessive emojis. When referencing other members' activity, keep it anonymous ("someone in the server crushed it yesterday") unless the member specifically asks about others.`;
+const CONVERSATION_RULES = `Reference past conversations naturally. If the member mentioned something they'd do, follow up on it. Adapt your push level based on their accountability setting: light = gentle nudges, medium = direct and real, heavy = calls it out hard. Keep responses concise unless they ask for detail. Don't use excessive emojis. When referencing other members' activity, keep it anonymous ("someone in the server crushed it yesterday") unless the member specifically asks about others. If the member has a yearly or quarterly goal with no sub-goals, you can naturally suggest decomposition once ("Want me to help break that down into smaller goals?"). Don't force it -- offer once and respect their choice.`;
 
 // ─── System Prompt Builder ─────────────────────────────────────────────────────
 
@@ -41,6 +41,12 @@ export async function buildSystemPrompt(
       goals: {
         where: { status: { in: ['ACTIVE', 'EXTENDED'] } },
         orderBy: { deadline: 'asc' },
+        include: {
+          children: {
+            where: { status: { in: ['ACTIVE', 'EXTENDED'] } },
+            select: { title: true, status: true, currentValue: true, targetValue: true, unit: true },
+          },
+        },
       },
       schedule: true,
       checkIns: {
@@ -141,6 +147,9 @@ function buildStatsSection(member: {
     currentValue: number;
     targetValue: number | null;
     unit: string | null;
+    parentId: string | null;
+    timeframe: string | null;
+    children?: Array<{ title: string; status: string; currentValue: number; targetValue: number | null; unit: string | null }>;
   }>;
 }): string {
   const rank = getRankForXP(member.totalXp);
@@ -149,13 +158,19 @@ function buildStatsSection(member: {
   lines.push(`Current Streak: ${member.currentStreak} days`);
   lines.push(`Rank: ${rank.name}`);
 
-  if (member.goals.length > 0) {
+  // Show only top-level goals to avoid duplicate child entries
+  const topLevelGoals = member.goals.filter((g) => g.parentId === null);
+  if (topLevelGoals.length > 0) {
     lines.push('Active Goals:');
-    for (const goal of member.goals) {
-      if (goal.type === 'MEASURABLE' && goal.targetValue !== null) {
-        lines.push(`  - ${goal.title}: ${goal.currentValue}/${goal.targetValue} ${goal.unit ?? ''}`);
+    for (const goal of topLevelGoals) {
+      const tag = goal.timeframe ? `[${goal.timeframe}] ` : '';
+      if (goal.children && goal.children.length > 0) {
+        const activeChildren = goal.children.length;
+        lines.push(`  - ${tag}${goal.title}: ${activeChildren} active sub-goals`);
+      } else if (goal.type === 'MEASURABLE' && goal.targetValue !== null) {
+        lines.push(`  - ${tag}${goal.title}: ${goal.currentValue}/${goal.targetValue} ${goal.unit ?? ''}`);
       } else {
-        lines.push(`  - ${goal.title}`);
+        lines.push(`  - ${tag}${goal.title}`);
       }
     }
   }
