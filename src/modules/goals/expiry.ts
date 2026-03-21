@@ -12,8 +12,10 @@
 
 import type { Client } from 'discord.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
+import type { IEventBus } from '../../shared/types.js';
 import { deliverNotification } from '../notification-router/router.js';
 import { infoEmbed } from '../../shared/embeds.js';
+import { recalculateParentProgress } from './hierarchy.js';
 
 /**
  * Check for expired goals and handle the extend/miss flow.
@@ -28,14 +30,17 @@ import { infoEmbed } from '../../shared/embeds.js';
 export async function checkExpiredGoals(
   db: ExtendedPrismaClient,
   client: Client,
+  events?: IEventBus,
 ): Promise<void> {
   const now = new Date();
 
-  // Pass 1: ACTIVE goals past deadline -> EXTENDED with extend prompt
+  // Pass 1: ACTIVE leaf/standalone goals past deadline -> EXTENDED with extend prompt
+  // Parent goals with children are excluded -- their status follows children via cascading.
   const expiredActive = await db.goal.findMany({
     where: {
       status: 'ACTIVE',
       deadline: { lt: now },
+      children: { none: {} },
     },
     include: { member: true },
   });
@@ -72,12 +77,14 @@ export async function checkExpiredGoals(
     }
   }
 
-  // Pass 2: EXTENDED goals past 24-hour window -> MISSED
+  // Pass 2: EXTENDED leaf/standalone goals past 24-hour window -> MISSED
+  // Parent goals excluded -- their status follows children via cascading.
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const expiredExtended = await db.goal.findMany({
     where: {
       status: 'EXTENDED',
       extendedAt: { lt: twentyFourHoursAgo },
+      children: { none: {} },
     },
   });
 
@@ -86,6 +93,12 @@ export async function checkExpiredGoals(
       where: { id: goal.id },
       data: { status: 'MISSED' },
     });
+
+    // Recalculate parent progress when a leaf goal is marked MISSED
+    // (MISSED children are excluded from countable ratio)
+    if (goal.parentId && events) {
+      await recalculateParentProgress(db, goal.parentId, events);
+    }
   }
 }
 

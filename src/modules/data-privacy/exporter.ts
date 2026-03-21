@@ -104,6 +104,9 @@ export async function exportMemberData(
       createdAt: g.createdAt,
       completedAt: g.completedAt,
       extendedAt: g.extendedAt,
+      parentId: g.parentId,
+      timeframe: g.timeframe,
+      depth: g.depth,
     })),
 
     xpHistory: member.xpTransactions.map((t) => ({

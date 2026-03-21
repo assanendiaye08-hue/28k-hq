@@ -66,12 +66,14 @@ export async function runRecoveryChecks(
   }
 
   // 2. Resolve expired goals (ACTIVE past deadline -> MISSED)
+  // Only leaf/standalone goals -- parent goals' status follows children via cascading.
   let expiredGoalCount = 0;
   try {
     const expiredGoals = await db.goal.findMany({
       where: {
         status: 'ACTIVE',
         deadline: { lt: now },
+        children: { none: {} },
       },
     });
 

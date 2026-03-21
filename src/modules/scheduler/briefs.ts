@@ -50,7 +50,7 @@ export interface MemberBriefData {
   streakMultiplier: number;
   currentRank: string;
   nextRankXp: string;
-  activeGoals: { title: string; type: string; currentValue: number; targetValue: number | null; unit: string | null }[];
+  activeGoals: { title: string; type: string; currentValue: number; targetValue: number | null; unit: string | null; timeframe: string | null; childCount: number }[];
   todayCheckIns: number;
   reminderTimes: string[];
   lastCheckInCategories: string[];
@@ -143,10 +143,14 @@ export function buildBriefTemplate(data: MemberBriefData): BriefTemplate {
 
   // Goals summary
   const goalsSummary = data.activeGoals.map((g) => {
-    if (g.type === 'MEASURABLE' && g.targetValue !== null) {
-      return `${g.title}: ${g.currentValue}/${g.targetValue} ${g.unit ?? ''}`.trim();
+    const tag = g.timeframe ? `[${g.timeframe}] ` : '';
+    if (g.childCount > 0) {
+      return `${tag}${g.title}: ${g.childCount} sub-goals`.trim();
     }
-    return g.title;
+    if (g.type === 'MEASURABLE' && g.targetValue !== null) {
+      return `${tag}${g.title}: ${g.currentValue}/${g.targetValue} ${g.unit ?? ''}`.trim();
+    }
+    return `${tag}${g.title}`.trim();
   });
 
   // Today's reminders
@@ -325,6 +329,9 @@ export async function sendBrief(
         goals: {
           where: { status: { in: ['ACTIVE', 'EXTENDED'] } },
           orderBy: { deadline: 'asc' },
+          include: {
+            _count: { select: { children: true } },
+          },
         },
       },
     });
@@ -374,6 +381,8 @@ export async function sendBrief(
         currentValue: g.currentValue,
         targetValue: g.targetValue,
         unit: g.unit,
+        timeframe: g.timeframe,
+        childCount: g._count.children,
       })),
       todayCheckIns,
       reminderTimes: schedule.reminderTimes,

@@ -152,6 +152,12 @@ export async function assembleContext(
       goals: {
         where: { status: { in: ['ACTIVE', 'EXTENDED'] } },
         orderBy: { deadline: 'asc' },
+        include: {
+          children: {
+            where: { status: { in: ['ACTIVE', 'EXTENDED', 'COMPLETED'] } },
+            select: { title: true, status: true },
+          },
+        },
       },
       schedule: true,
       checkIns: {
@@ -482,6 +488,9 @@ function buildMemberContext(member: {
     targetValue: number | null;
     unit: string | null;
     status: string;
+    parentId: string | null;
+    timeframe: string | null;
+    children?: Array<{ title: string; status: string }>;
   }>;
   schedule: {
     timezone: string;
@@ -526,12 +535,24 @@ function buildMemberContext(member: {
   }
 
   if (member.goals.length > 0) {
-    lines.push('\nActive Goals:');
-    for (const goal of member.goals) {
-      if (goal.type === 'MEASURABLE' && goal.targetValue !== null) {
-        lines.push(`  - ${goal.title}: ${goal.currentValue}/${goal.targetValue} ${goal.unit ?? ''}`);
-      } else {
-        lines.push(`  - ${goal.title} (${goal.status})`);
+    // Show only top-level goals (parentId === null) to avoid duplicate child entries.
+    // Children are shown indented under their parent.
+    const topLevelGoals = member.goals.filter((g) => g.parentId === null);
+    if (topLevelGoals.length > 0) {
+      lines.push('\nActive Goals:');
+      for (const goal of topLevelGoals) {
+        const tag = goal.timeframe ? `[${goal.timeframe}] ` : '';
+        if (goal.children && goal.children.length > 0) {
+          const completedChildren = goal.children.filter((c) => c.status === 'COMPLETED').length;
+          lines.push(`  - ${tag}${goal.title}: ${completedChildren}/${goal.children.length} sub-goals`);
+          for (const child of goal.children) {
+            lines.push(`    > ${child.title}: ${child.status}`);
+          }
+        } else if (goal.type === 'MEASURABLE' && goal.targetValue !== null) {
+          lines.push(`  - ${tag}${goal.title}: ${goal.currentValue}/${goal.targetValue} ${goal.unit ?? ''}`);
+        } else {
+          lines.push(`  - ${tag}${goal.title} (${goal.status})`);
+        }
       }
     }
   }
