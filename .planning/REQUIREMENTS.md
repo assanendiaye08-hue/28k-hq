@@ -26,8 +26,8 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 
 - [x] **GOAL-01**: Member can set goals at any level (yearly, quarterly, monthly, weekly, daily) -- optional depth, not forced
 - [x] **GOAL-02**: Child goals cascade progress to parent goals -- completing a weekly goal updates the monthly goal it belongs to
-- [ ] **GOAL-03**: Jarvis can help decompose a big goal into smaller sub-goals through a conversational DM flow
-- [ ] **GOAL-04**: Member can view their goal tree showing the hierarchy and progress at each level
+- [x] **GOAL-03**: Jarvis can help decompose a big goal into smaller sub-goals through a conversational DM flow
+- [x] **GOAL-04**: Member can view their goal tree showing the hierarchy and progress at each level
 
 ### Self-Evaluation
 
@@ -108,8 +108,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REMIND-04 | Phase 10 | Complete |
 | GOAL-01 | Phase 11 | Complete |
 | GOAL-02 | Phase 11 | Complete |
-| GOAL-03 | Phase 11 | Pending |
-| GOAL-04 | Phase 11 | Pending |
+| GOAL-03 | Phase 11 | Complete |
+| GOAL-04 | Phase 11 | Complete |
 | REFLECT-01 | Phase 12 | Pending |
 | REFLECT-02 | Phase 12 | Pending |
 | REFLECT-03 | Phase 12 | Pending |

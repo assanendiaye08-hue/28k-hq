@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 11 of 13 (Goal Hierarchy)
-Plan: 1 of 3
-Status: In Progress
-Last activity: 2026-03-21 -- Completed 11-01 (Goal hierarchy schema and cascading engine)
+Plan: 3 of 3
+Status: Phase Complete
+Last activity: 2026-03-21 -- Completed 11-03 (AI-assisted goal decomposition DM flow)
 
-Progress: [████████████████░░░░] 77% (v1.1)
+Progress: [█████████████████░░░] 83% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 29 (18 v1.0 + 11 v1.1)
+- Total plans completed: 31 (18 v1.0 + 13 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.29 hours
+- Total execution time: 2.39 hours
 
 **By Phase (v1.0):**
 
@@ -42,10 +42,10 @@ Progress: [████████████████░░░░] 77% (v1
 | 08-inspiration-system | 2/2 | 5 min | 3 min |
 | 09-productivity-timer | 3/3 | 16 min | 5 min |
 | 10-smart-reminders | 2/2 | 8 min | 4 min |
-| 11-goal-hierarchy | 1/3 | 4 min | 4 min |
+| 11-goal-hierarchy | 3/3 | 10 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 09-03 (2 min), 10-01 (3 min), 10-02 (5 min), 11-01 (4 min)
+- Last 5 plans: 10-01 (3 min), 10-02 (5 min), 11-01 (4 min), 11-02 (3 min), 11-03 (3 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -99,6 +99,13 @@ Recent decisions affecting current work:
 - [11-01]: CANCELLED status not added to GoalStatus enum; MISSED children excluded from countable ratio instead
 - [11-01]: events parameter optional on checkExpiredGoals for backward compat with existing scheduler caller
 - [11-01]: Decomposition suggestion in CONVERSATION_RULES (prompt engineering, no command handler)
+- [11-03]: responseFormat uses jsonSchema (camelCase) matching codebase convention, not json_schema from plan
+- [11-03]: Decomposition intent placed third in DM handler priority: timer > reminder > decomposition > chat
+- [11-03]: Max 3 edit rounds before auto-proceeding to prevent infinite DM loops
+- [Phase 11-02]: Timeframe overrides deadline only when parseDeadline falls back to 7-day default (isFallbackDeadline heuristic)
+- [Phase 11-02]: Tree view rendered in monospace code block for alignment in Discord embed
+- [Phase 11-02]: List view filters to parentId: null and shows child counts for parent goals
+- [Phase 11-02]: Timeframe string cast to GoalTimeframe enum union type since command choices restrict valid values
 
 ### Pending Todos
 
@@ -111,5 +118,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 11-01-PLAN.md
+Stopped at: Completed 11-03-PLAN.md (Phase 11 complete)
 Resume file: None

@@ -29,7 +29,7 @@ Full details: .planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 8: Inspiration System** - Members set people they admire, Jarvis references them naturally (completed 2026-03-20)
 - [x] **Phase 9: Productivity Timer** - Pomodoro and proportional break timers with XP integration (completed 2026-03-21)
 - [x] **Phase 10: Smart Reminders** - Natural language time-based reminders with urgency tiers (completed 2026-03-21)
-- [ ] **Phase 11: Goal Hierarchy** - Optional yearly-to-daily goal decomposition with Jarvis-assisted breakdown
+- [x] **Phase 11: Goal Hierarchy** - Optional yearly-to-daily goal decomposition with Jarvis-assisted breakdown (completed 2026-03-21)
 - [ ] **Phase 12: Self-Evaluation and Reflection** - Configurable intensity reflection flows with AI-personalized questions
 - [ ] **Phase 13: Monthly Progress Recap** - AI-generated monthly summary DM, shareable to #wins
 
@@ -108,12 +108,12 @@ Plans:
   2. Completing a child goal automatically updates progress on its parent goal, cascading up the hierarchy
   3. Member can ask Jarvis to help break down a big goal into smaller sub-goals through a conversational DM flow, and the resulting sub-goals are created and linked automatically
   4. Member can view their goal tree showing the full hierarchy and progress at each level
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 11-01-PLAN.md -- Prisma schema migration, hierarchy.ts cascading engine, backward-compatible module updates
-- [ ] 11-02-PLAN.md -- Command extensions (/setgoal parent+timeframe, /goals tree view, /progress parent guard)
-- [ ] 11-03-PLAN.md -- AI-assisted goal decomposition DM flow with natural language intent detection
+- [x] 11-01-PLAN.md -- Prisma schema migration, hierarchy.ts cascading engine, backward-compatible module updates
+- [x] 11-02-PLAN.md -- Command extensions (/setgoal parent+timeframe, /goals tree view, /progress parent guard)
+- [x] 11-03-PLAN.md -- AI-assisted goal decomposition DM flow with natural language intent detection
 
 ### Phase 12: Self-Evaluation and Reflection
 **Goal**: Members receive AI-personalized reflection prompts at their chosen intensity, and their responses feed back into Jarvis for smarter suggestions
@@ -153,6 +153,6 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 8. Inspiration System | v1.1 | Complete    | 2026-03-20 | - |
 | 9. Productivity Timer | v1.1 | Complete    | 2026-03-21 | - |
 | 10. Smart Reminders | 2/2 | Complete    | 2026-03-21 | - |
-| 11. Goal Hierarchy | 1/3 | In Progress|  | - |
+| 11. Goal Hierarchy | 3/3 | Complete   | 2026-03-21 | - |
 | 12. Self-Evaluation and Reflection | v1.1 | 0/0 | Not started | - |
 | 13. Monthly Progress Recap | v1.1 | 0/0 | Not started | - |
