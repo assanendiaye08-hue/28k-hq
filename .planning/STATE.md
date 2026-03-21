@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 Phase: 13 of 13 (Monthly Progress Recap)
 Plan: 1 of 1
 Status: Complete
-Last activity: 2026-03-21 - Completed quick task 1: Fix 7 audit bugs: encryption, role stripping, setup transaction, notification routing, skip weekly, timer recovery
+Last activity: 2026-03-21 - Completed quick task 2: Fix 4 audit follow-ups: reminder message binding, session title export, setup rerun guard, timer prePauseState
 
 Progress: [████████████████████] 100% (v1.1)
 
@@ -138,9 +138,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Fix 7 audit bugs: encryption, role stripping, setup transaction, notification routing, skip weekly, timer recovery | 2026-03-21 | 0ef0d93 | [1-fix-7-audit-bugs-encryption-role-strippi](./quick/1-fix-7-audit-bugs-encryption-role-strippi/) |
+| 2 | Fix 4 audit follow-ups: reminder message binding, session title export, setup rerun guard, timer prePauseState | 2026-03-21 | f65ca12 | [2-fix-4-audit-follow-ups-reminder-message-](./quick/2-fix-4-audit-follow-ups-reminder-message-/) |
 
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed quick-fix-1 (7 audit bugs across encryption, data-privacy, notifications, reminders, timer)
+Stopped at: Completed quick-fix-2 (4 audit follow-ups: reminder binding, session title export, setup rerun, timer prePauseState)
 Resume file: None
