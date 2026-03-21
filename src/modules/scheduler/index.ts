@@ -9,6 +9,7 @@
  * 5. Schedule global daily interest tag cleanup
  * 6. Schedule global evening nudge sweep (21:00 UTC fallback)
  * 7. Schedule monthly reflection sweep (28th at 18:00 UTC)
+ * 8. Schedule monthly recap sweep (1st at 10:00 UTC)
  *
  * All scheduled tasks rebuild on bot restart from database state.
  */
@@ -26,6 +27,7 @@ import { checkExpiredGoals } from '../goals/expiry.js';
 import { cleanupUnusedTags } from '../server-setup/interest-tags.js';
 import { sendNudge } from '../ai-assistant/nudge.js';
 import { runReflectionFlow } from '../reflection/flow.js';
+import { sendRecap } from '../recap/generator.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -279,6 +281,30 @@ const schedulerModule: Module = {
     }, { name: 'monthly-reflection-sweep' });
 
     logger.info('Scheduled monthly reflection sweep (28th at 18:00 UTC)');
+
+    // 9. Schedule monthly recap sweep on the 1st at 10:00 UTC
+    cron.schedule('0 10 1 * *', async () => {
+      try {
+        const members = await db.member.findMany({
+          where: { schedule: { isNot: null } },
+          select: { id: true },
+        });
+
+        for (const member of members) {
+          try {
+            await sendRecap(client, db, member.id);
+          } catch (error) {
+            logger.error(`Monthly recap failed for ${member.id}: ${String(error)}`);
+          }
+        }
+
+        logger.info(`Monthly recap sweep completed: ${members.length} members`);
+      } catch (error) {
+        logger.error(`Monthly recap sweep failed: ${String(error)}`);
+      }
+    }, { name: 'monthly-recap-sweep' });
+
+    logger.info('Scheduled monthly recap sweep (1st at 10:00 UTC)');
     logger.info('Scheduler module registered');
   },
 };
