@@ -1,0 +1,9 @@
+{
+  "name": "@28k/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'API not yet implemented'",
+    "build": "echo 'API not yet implemented'"
+  }
+}

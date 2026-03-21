@@ -15,6 +15,8 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/api: {}
+
   apps/bot:
     dependencies:
       '@28k/db':
@@ -66,6 +68,8 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  apps/desktop: {}
 
   packages/db:
     dependencies:
