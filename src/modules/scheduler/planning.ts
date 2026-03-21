@@ -372,6 +372,12 @@ async function extractGoalsFromText(
       return [{ title: text, type: 'freetext' }];
     }
 
+    // Validate and normalize goal types
+    for (const goal of goals) {
+      const normalizedType = String(goal.type).toLowerCase();
+      goal.type = (normalizedType === 'measurable' ? 'measurable' : 'freetext') as 'measurable' | 'freetext';
+    }
+
     logger.debug(`Extracted ${goals.length} goals from planning text`);
     return goals;
   } catch (error) {

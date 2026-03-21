@@ -107,8 +107,8 @@ export class DiscordReminderDelivery implements ReminderDeliveryBackend {
           }) as Message;
           return { messageId: message.id, success: true };
         }
-      } catch {
-        // Direct DM failed -- fall through to notification router
+      } catch (error) {
+        console.warn(`[reminders] Direct DM failed for low-urgency reminder to ${memberId}:`, error);
       }
     }
 
@@ -171,8 +171,8 @@ export class DiscordReminderDelivery implements ReminderDeliveryBackend {
         const message = await user.send(sendPayload) as Message;
         return { messageId: message.id, success: true };
       }
-    } catch {
-      // Direct DM failed -- fall back to notification router
+    } catch (error) {
+      console.warn(`[reminders] Direct DM failed for high-urgency reminder to ${memberId}:`, error);
     }
 
     // Fallback: use notification router (no message ID available)

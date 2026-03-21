@@ -429,6 +429,25 @@ export async function runDecompositionFlow(
       );
       return;
     }
+
+    // Validate and normalize each subgoal
+    for (const sg of subgoals) {
+      // Normalize type to uppercase, must be MEASURABLE or FREETEXT
+      const normalizedType = String(sg.type).toUpperCase();
+      sg.type = (normalizedType === 'MEASURABLE' ? 'MEASURABLE' : 'FREETEXT') as 'MEASURABLE' | 'FREETEXT';
+
+      // Validate targetValue for MEASURABLE goals
+      if (sg.type === 'MEASURABLE' && sg.targetValue != null) {
+        sg.targetValue = Math.min(Math.max(1, Math.round(sg.targetValue)), 1000);
+      } else if (sg.type === 'FREETEXT') {
+        sg.targetValue = null;
+      }
+
+      // Cap unit length
+      if (sg.unit && sg.unit.length > 50) {
+        sg.unit = sg.unit.slice(0, 50);
+      }
+    }
   } catch {
     await dm.send(
       "I couldn't parse the AI suggestions. Try again later or create sub-goals manually.",
