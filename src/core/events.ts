@@ -37,6 +37,7 @@ export type BotEventMap = {
   timerStarted: [memberId: string, mode: string];
   timerCompleted: [memberId: string, totalWorkedMinutes: number];
   timerCancelled: [memberId: string];
+  timerTransition: [memberId: string, type: string];
   buttonInteraction: [interaction: unknown];
 };
 
