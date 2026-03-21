@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 17 of 19 (Pomodoro Timer)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-03-22 -- Completed 17-01 (Timer engine foundation)
+Last activity: 2026-03-22 -- Completed 17-02 (Timer UI with popover)
 
-Progress: [###########░░░░░░░░░] 55% (v2.0) -- Phase 17 in progress, Plan 01 complete (4 of 6 v2.0 phases)
+Progress: [###########░░░░░░░░░] 55% (v2.0) -- Phase 17 in progress, Plan 02 complete (4 of 6 v2.0 phases)
 
 ## Performance Metrics
 
@@ -42,11 +42,11 @@ Progress: [###########░░░░░░░░░] 55% (v2.0) -- Phase 17 in pro
 | 14-monorepo-restructure | 2/2 | 14 min | 7 min |
 | 15-rest-api-authentication | 2/2 | 7 min | 4 min |
 | 16-desktop-shell-dashboard-goals | 3/3 | 10 min | 3 min |
-| 17-pomodoro-timer | 1/3 | 3 min | 3 min |
+| 17-pomodoro-timer | 2/3 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 15-02 (4 min), 16-01 (6 min), 16-02 (2 min), 16-03 (2 min), 17-01 (3 min)
-- Trend: stable (timer engine is mostly new file creation with straightforward patterns)
+- Last 5 plans: 16-01 (6 min), 16-02 (2 min), 16-03 (2 min), 17-01 (3 min), 17-02 (5 min)
+- Trend: stable (timer UI is component creation with established patterns)
 
 ## Accumulated Context
 
@@ -89,6 +89,9 @@ Recent decisions affecting current work:
 - [17-01]: Timestamp-based countdown (Date.now() - phaseStartedAt) instead of tick counting for drift-free accuracy
 - [17-01]: Notification plugin added to Rust builder for phase completion alerts in Plan 02
 - [17-01]: Timer persistence uses same plugin-store v2 load() with defaults:{} pattern from Phase 16
+- [17-02]: Rust emits tray-icon-clicked event to JS for state-based routing (popover vs main window)
+- [17-02]: Popover uses persistence for state recovery since Tauri WebviewWindows have separate JS contexts
+- [17-02]: Cross-window sync via Tauri event bus: popover emits timer-state-changed, main syncs from persistence
 
 ### Pending Todos
 
@@ -111,5 +114,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 17-01-PLAN.md (Timer engine foundation with state machine, tray, persistence, audio)
+Stopped at: Completed 17-02-PLAN.md (Timer UI with setup form, display, popover, and tray routing)
 Resume file: None
