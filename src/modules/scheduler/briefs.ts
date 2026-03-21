@@ -193,6 +193,7 @@ export async function generateBrief(
   memberData: MemberBriefData,
   memberId: string,
   db: ExtendedPrismaClient,
+  recentReflections: Array<{ type: string; insights: string | null; createdAt: Date }> = [],
 ): Promise<string> {
   // Check cache
   const todayKey = new TZDate(new Date(), memberData.timezone)
@@ -220,7 +221,7 @@ export async function generateBrief(
 
     // Build Jarvis system prompt layered with brief-specific addendum
     const aceSystemPrompt = await buildSystemPrompt(db, memberId);
-    const briefAddendum = `\n\nWrite a morning brief for this member. Keep it 3-6 sentences. Include their personal stats, reference any ongoing conversations or commitments they mentioned, add a community highlight if something interesting happened. Make it feel like their personal operator catching them up.`;
+    const briefAddendum = `\n\nWrite a morning brief for this member. Keep it 3-6 sentences. Include their personal stats, reference any ongoing conversations or commitments they mentioned, add a community highlight if something interesting happened. If they have recent reflection insights, weave one reference in naturally -- e.g. "You mentioned mornings are your peak time, so here's your brief early." Don't force it if no reflections exist. Make it feel like their personal operator catching them up.`;
 
     // Build user message with full context
     const userParts: string[] = [
@@ -241,6 +242,15 @@ export async function generateBrief(
     userParts.push(
       `Community pulse: ${pulse.todayCheckInCount} members checked in today, ${pulse.weeklyVoiceMinutes} voice minutes this week, ${pulse.recentWinsCount} wins and ${pulse.recentLessonsCount} lessons posted in last 24h.`,
     );
+
+    // Reflection context
+    const reflectionsWithInsights = recentReflections.filter((r) => r.insights);
+    if (reflectionsWithInsights.length > 0) {
+      const reflectionContext = reflectionsWithInsights
+        .map((r) => `[${r.type}] ${r.insights}`)
+        .join('; ');
+      userParts.push(`Recent reflection insights: ${reflectionContext}`);
+    }
 
     // Empty state nudge
     if (memberData.activeGoals.length === 0) {
@@ -342,6 +352,14 @@ export async function sendBrief(
       return;
     }
 
+    // Load recent reflections with insights for brief enrichment
+    const recentReflections = await db.reflection.findMany({
+      where: { memberId, insights: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: { type: true, insights: true, createdAt: true },
+    });
+
     const timezone = schedule.timezone;
     const now = new TZDate(new Date(), timezone);
     const todayStart = startOfDay(now);
@@ -389,19 +407,25 @@ export async function sendBrief(
       lastCheckInCategories: lastCheckIn?.categories ?? [],
     };
 
-    // Generate brief with full AI context
-    const briefText = await generateBrief(memberData, memberId, db);
+    // Generate brief with full AI context (including reflections)
+    const briefText = await generateBrief(memberData, memberId, db, recentReflections);
 
     // Build branded embed (amber/gold)
+    const embedFields = [
+      { name: 'XP', value: `${member.totalXp.toLocaleString()}`, inline: true },
+      { name: 'Streak', value: `${member.currentStreak} days`, inline: true },
+      { name: 'Active Goals', value: `${member.goals.length}`, inline: true },
+    ];
+
+    if (recentReflections.length > 0) {
+      embedFields.push({ name: 'Reflections', value: `${recentReflections.length} recent`, inline: true });
+    }
+
     const embed = new EmbedBuilder()
       .setColor(BRAND_COLORS.primary)
       .setTitle('Morning Brief')
       .setDescription(briefText)
-      .addFields(
-        { name: 'XP', value: `${member.totalXp.toLocaleString()}`, inline: true },
-        { name: 'Streak', value: `${member.currentStreak} days`, inline: true },
-        { name: 'Active Goals', value: `${member.goals.length}`, inline: true },
-      )
+      .addFields(...embedFields)
       .setFooter({ text: `${currentRank.name} | Use /settings to customize` })
       .setTimestamp();
 
