@@ -43,6 +43,7 @@ model Member {
   memberAIBudget        MemberAIBudget?
   inspirations          Inspiration[]
   timerSessions         TimerSession[]
+  reminders             Reminder[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -411,6 +412,7 @@ model NotificationPreference {
   nudgeAccountId        String? // Discord account ID for accountability nudges
   sessionAlertAccountId String? // Discord account ID for session invites
   levelUpAccountId      String? // Discord account ID for level-up alerts
+  reminderAccountId     String? // Discord account ID for reminders
 
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
@@ -503,6 +505,44 @@ model TimerSession {
 
   @@index([memberId, status])
   @@index([status])
+}
+
+// ─── Phase 10: Smart Reminders ─────────────────────────────────────────────
+
+/// Scheduled reminder with urgency tiers, recurrence support, and restart recovery.
+/// Active state uses setTimeout in-memory; DB record persists across restarts.
+model Reminder {
+  id             String          @id @default(cuid())
+  memberId       String
+  content        String          // What to remind about (plain text)
+  urgency        ReminderUrgency @default(LOW)
+  fireAt         DateTime?       // Next fire time (null for cancelled/fired)
+  cronExpression String?         // For recurring reminders (e.g., "30 9 * * 1" = every Monday 9:30)
+  status         ReminderStatus  @default(PENDING)
+  skipUntil      DateTime?       // Skip next occurrence before this time
+  repeatCount    Int             @default(0) // How many times high urgency has repeated
+  acknowledged   Boolean         @default(false) // Whether member acknowledged high urgency
+  dmMessageId    String?         // Discord message ID for button tracking
+  createdAt      DateTime        @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, status])
+  @@index([status, fireAt])
+}
+
+/// Reminder urgency tier -- determines delivery style.
+enum ReminderUrgency {
+  LOW
+  HIGH
+}
+
+/// Reminder lifecycle status.
+enum ReminderStatus {
+  PENDING
+  ACTIVE
+  FIRED
+  CANCELLED
 }
 
 /// Timer mode -- Pomodoro (structured cycles) or Proportional (free-form with ratio-based breaks).
