@@ -7,6 +7,7 @@
  * Features:
  * - DM conversations with context-aware AI responses
  * - Natural language timer starts via DM ("start a 45 min focus session on coding")
+ * - Natural language reminder creation via DM ("remind me Tuesday at 3pm to call X")
  * - /ask command for chatting from any channel (ephemeral)
  * - /wipe-history to export and clear conversation data
  * - Per-member processing lock prevents race conditions
@@ -30,6 +31,11 @@ import { isTimerRequest, parseTimerRequest } from '../timer/natural-language.js'
 import { getActiveTimer } from '../timer/engine.js';
 import { startTimerForMember } from '../timer/index.js';
 import { TIMER_DEFAULTS } from '../timer/constants.js';
+import { isReminderRequest, parseReminder } from '../reminders/parser.js';
+import { scheduleOneShot, scheduleRecurring } from '../reminders/scheduler.js';
+import { DiscordReminderDelivery } from '../reminders/delivery.js';
+import { format } from 'date-fns';
+import { TZDate } from '@date-fns/tz';
 
 const aiAssistantModule: Module = {
   name: 'ai-assistant',
@@ -96,6 +102,53 @@ const aiAssistantModule: Module = {
             return;
           }
           // AI says it's not actually a timer request -- fall through to regular chat
+        }
+
+        // Check for reminder intent (after timer -- timer is more specific, per Pitfall 7)
+        if (isReminderRequest(message.content)) {
+          const schedule = await db.memberSchedule.findUnique({
+            where: { memberId: account.memberId },
+          });
+          const timezone = schedule?.timezone || 'UTC';
+
+          const parsed = parseReminder(message.content, timezone);
+          if (parsed) {
+            // Create reminder in DB
+            const reminder = await db.reminder.create({
+              data: {
+                memberId: account.memberId,
+                content: parsed.content,
+                urgency: parsed.urgency,
+                fireAt: parsed.fireAt,
+                cronExpression: parsed.cronExpression,
+                status: parsed.isRecurring ? 'ACTIVE' : 'PENDING',
+              },
+            });
+
+            // Schedule it
+            const delivery = new DiscordReminderDelivery(client, db);
+            if (parsed.isRecurring) {
+              await scheduleRecurring(reminder, delivery, db, client);
+            } else {
+              scheduleOneShot(reminder, delivery, db, client);
+            }
+
+            // Confirm to member
+            if (parsed.fireAt) {
+              const fireTime = new TZDate(parsed.fireAt, timezone);
+              const timeDisplay = format(fireTime, "EEE, MMM d 'at' h:mm a");
+              await message.reply(`Reminder set: "${parsed.content}" -- ${timeDisplay}`);
+            } else {
+              await message.reply(`Reminder set: "${parsed.content}"`);
+            }
+
+            // Timezone warning
+            if (timezone === 'UTC' && !schedule?.timezone) {
+              await message.reply('Tip: Set your timezone with /settings so reminders fire at your local time.');
+            }
+            return;
+          }
+          // Couldn't parse time -- fall through to regular chat
         }
 
         // Show typing indicator
