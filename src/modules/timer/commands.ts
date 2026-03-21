@@ -12,9 +12,11 @@
  */
 
 import {
+  ChannelType,
   SlashCommandBuilder,
   type AutocompleteInteraction,
   type ChatInputCommandInteraction,
+  type DMChannel,
 } from 'discord.js';
 import type { ModuleContext } from '../../shared/types.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
@@ -265,8 +267,9 @@ async function handlePause(
   try {
     if (timer.dmChannelId && timer.dmMessageId) {
       const channel = await interaction.client.channels.fetch(timer.dmChannelId);
-      if (channel?.isDMBased()) {
-        const message = await channel.messages.fetch(timer.dmMessageId);
+      if (channel && channel.type === ChannelType.DM) {
+        const dmChannel = channel as DMChannel;
+        const message = await dmChannel.messages.fetch(timer.dmMessageId);
         await message.edit({
           embeds: [buildTimerEmbed(timer)],
           components: [buildPausedButtons()],
@@ -282,6 +285,9 @@ async function handlePause(
     await updateTimerRecord(db, memberId, {
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
+      timerState: timer.state,
+      prePauseState: timer.prePauseState,
+      remainingMs: timer.remainingMs,
     });
   } catch {
     // DB update failure is non-critical for pause
@@ -306,9 +312,10 @@ async function handleResume(
   try {
     if (timer.dmChannelId && timer.dmMessageId) {
       const channel = await interaction.client.channels.fetch(timer.dmChannelId);
-      if (channel?.isDMBased()) {
+      if (channel && channel.type === ChannelType.DM) {
+        const dmChannel = channel as DMChannel;
         const { buildBreakButtons } = await import('./buttons.js');
-        const message = await channel.messages.fetch(timer.dmMessageId);
+        const message = await dmChannel.messages.fetch(timer.dmMessageId);
         const buttons =
           timer.state === 'working' ? buildWorkButtons() : buildBreakButtons();
         await message.edit({
@@ -335,6 +342,9 @@ async function handleResume(
     await updateTimerRecord(db, memberId, {
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
+      timerState: timer.state,
+      prePauseState: timer.prePauseState,
+      remainingMs: null,
     });
   } catch {
     // DB update failure is non-critical for resume
@@ -372,8 +382,9 @@ async function handleStop(
   try {
     if (timer.dmChannelId && timer.dmMessageId) {
       const channel = await interaction.client.channels.fetch(timer.dmChannelId);
-      if (channel?.isDMBased()) {
-        const message = await channel.messages.fetch(timer.dmMessageId);
+      if (channel && channel.type === ChannelType.DM) {
+        const dmChannel = channel as DMChannel;
+        const message = await dmChannel.messages.fetch(timer.dmMessageId);
         await message.edit({
           embeds: [
             buildTimerCompletedEmbed(

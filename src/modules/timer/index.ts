@@ -332,6 +332,7 @@ async function handleButtonPause(
       totalBreakMs: timer.totalBreakMs,
       timerState: timer.state,
       prePauseState: timer.prePauseState,
+      remainingMs: timer.remainingMs,
     });
   } catch {
     // Non-critical
@@ -370,6 +371,7 @@ async function handleButtonResume(
       totalBreakMs: timer.totalBreakMs,
       timerState: timer.state,
       prePauseState: timer.prePauseState,
+      remainingMs: null,
     });
   } catch {
     // Non-critical
@@ -750,7 +752,7 @@ async function reconstructTimers(
         dmMessageId: null,
         dmChannelId: null,
         startedAt: session.startedAt,
-        remainingMs: null,
+        remainingMs: session.remainingMs ?? null,
       };
 
       restoreTimer(session.memberId, timer);
