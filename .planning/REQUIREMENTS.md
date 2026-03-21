@@ -44,10 +44,10 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 
 ### Smart Reminders
 
-- [ ] **REMIND-01**: Member can set time-based reminders using natural language ("remind me Tuesday at 3pm to call X") parsed via chrono-node
-- [ ] **REMIND-02**: Reminders support urgency tiers -- low (quiet DM) and high (DM with emphasis + repeat if not acknowledged)
-- [ ] **REMIND-03**: Member can set recurring reminders ("every Monday at 9am remind me to...")
-- [ ] **REMIND-04**: Reminder delivery uses a pluggable backend interface -- Discord DM for now, designed for future Apple ecosystem integration
+- [x] **REMIND-01**: Member can set time-based reminders using natural language ("remind me Tuesday at 3pm to call X") parsed via chrono-node
+- [x] **REMIND-02**: Reminders support urgency tiers -- low (quiet DM) and high (DM with emphasis + repeat if not acknowledged)
+- [x] **REMIND-03**: Member can set recurring reminders ("every Monday at 9am remind me to...")
+- [x] **REMIND-04**: Reminder delivery uses a pluggable backend interface -- Discord DM for now, designed for future Apple ecosystem integration
 
 ### Monthly Recap
 
@@ -102,10 +102,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIMER-02 | Phase 9 | Complete |
 | TIMER-03 | Phase 9 | Complete |
 | TIMER-04 | Phase 9 | Complete |
-| REMIND-01 | Phase 10 | Pending |
-| REMIND-02 | Phase 10 | Pending |
-| REMIND-03 | Phase 10 | Pending |
-| REMIND-04 | Phase 10 | Pending |
+| REMIND-01 | Phase 10 | Complete |
+| REMIND-02 | Phase 10 | Complete |
+| REMIND-03 | Phase 10 | Complete |
+| REMIND-04 | Phase 10 | Complete |
 | GOAL-01 | Phase 11 | Pending |
 | GOAL-02 | Phase 11 | Pending |
 | GOAL-03 | Phase 11 | Pending |

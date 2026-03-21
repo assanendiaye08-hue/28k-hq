@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 9 complete (Productivity Timer -- all plans done)
+**Current focus:** Phase 10 in progress (Smart Reminders)
 
 ## Current Position
 
-Phase: 9 of 13 (Productivity Timer)
-Plan: 3 of 3
-Status: Phase Complete
-Last activity: 2026-03-21 -- Completed 09-03 (Natural language timer starts)
+Phase: 10 of 13 (Smart Reminders)
+Plan: 1 of 2
+Status: In Progress
+Last activity: 2026-03-21 -- Completed 10-01 (Reminder foundation)
 
-Progress: [█████████████░░░░░░░] 65% (v1.1)
+Progress: [██████████████░░░░░░] 68% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26 (18 v1.0 + 8 v1.1)
+- Total plans completed: 27 (18 v1.0 + 9 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.08 hours
+- Total execution time: 2.13 hours
 
 **By Phase (v1.0):**
 
@@ -41,11 +41,11 @@ Progress: [█████████████░░░░░░░] 65% (v1
 | 07-ai-infrastructure | 3/3 | 20 min | 7 min |
 | 08-inspiration-system | 2/2 | 5 min | 3 min |
 | 09-productivity-timer | 3/3 | 16 min | 5 min |
+| 10-smart-reminders | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 08-01 (3 min), 08-02 (2 min), 09-01 (5 min), 09-02 (9 min), 09-03 (2 min)
+- Last 5 plans: 08-02 (2 min), 09-01 (5 min), 09-02 (9 min), 09-03 (2 min), 10-01 (3 min)
 - Trend: stable
-| Phase 09 P03 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +85,11 @@ Recent decisions affecting current work:
 - [09-03]: Keyword pre-filter rejects questions about timers via separate QUESTION_PATTERNS array
 - [09-03]: AI parse uses member's own budget (not system) since it is member-initiated
 - [09-03]: startTimerForMember reused from timer/index.ts to avoid duplicating timer start logic
+- [10-01]: chrono-node forwardDate with member timezone for future-biased time parsing
+- [10-01]: Two-stage parser (regex intent + chrono extraction) avoids AI calls per reminder parse
+- [10-01]: Direct DM for high urgency to get message ID; deliverNotification fallback for routing
+- [10-01]: Cron expression format: minute hour * * cronDay from chrono + recurrence pattern
+- [10-01]: reminderAccountId added to NotificationPreference for per-type routing
 
 ### Pending Todos
 
@@ -97,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 09-03-PLAN.md
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
