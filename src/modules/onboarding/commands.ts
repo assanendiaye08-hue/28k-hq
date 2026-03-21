@@ -260,7 +260,7 @@ async function runSetup(
       throw txError;
     }
 
-    // 4c: Send recovery key via DM (non-critical, after transaction success)
+    // 4c: Send recovery key + welcome guide via DM (non-critical, after transaction success)
     try {
       const dm = await guildMember.createDM();
       await dm.send(
@@ -269,11 +269,39 @@ async function runSetup(
         `\`\`\`\n${recoveryKey}\n\`\`\`\n\n` +
         "Keep this private. Don't share it with anyone.",
       );
+
+      // Send feature guide
+      await dm.send(
+        "**Here's what you've unlocked:**\n\n" +
+        "**Jarvis (that's me)** — DM me anytime. I know your goals, track your streaks, and keep you accountable. " +
+        "I can also start timers, set reminders, and break down goals — just tell me in plain English.\n\n" +
+        "`/checkin` — Log what you worked on today and earn XP\n" +
+        "`/setgoal` — Set targets with deadlines\n" +
+        "`/timer start` — Focused work sessions (pomodoro or free-form)\n" +
+        "`/remind` — Set reminders, or just DM me \"remind me tomorrow at 9am to...\"\n" +
+        "`/leaderboard` — See the rankings\n" +
+        "`/profile` — View or edit your profile\n" +
+        "`/settings` — Configure daily briefs, nudges, and reflection intensity\n\n" +
+        "Start with `/checkin` in the server to log your first activity, or just DM me here.",
+      );
     } catch {
       logger.warn(
         `Could not send recovery key to ${guildMember.user.tag} via DM. ` +
         'They may have closed DMs after setup.',
       );
+    }
+
+    // 4c2: Seed initial conversation so Jarvis has context for first interaction
+    try {
+      await db.conversationMessage.create({
+        data: {
+          memberId: memberRecord.id,
+          role: 'assistant',
+          content: `Hey ${displayName}! I'm Jarvis, your personal operator. I've got your profile loaded — I know what you're working on and what you're aiming for. DM me anytime you need help, want to set goals, start a focus timer, or just need someone to keep you accountable. Let's get to work.`,
+        },
+      });
+    } catch {
+      logger.warn('Could not seed initial conversation message');
     }
 
     // 4d: Assign Member role (non-critical, idempotent)
