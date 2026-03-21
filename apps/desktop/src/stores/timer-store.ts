@@ -14,6 +14,7 @@ import { apiFetch } from '../api/client';
 import { TIMER_DEFAULTS } from '@28k/shared';
 import {
   saveTimerState,
+  loadTimerState,
   clearTimerState,
   type SavedTimerState,
 } from '../lib/timer-persistence';
@@ -77,6 +78,7 @@ interface TimerState {
   transitionToBreak: () => void;
   transitionToWork: () => void;
   restore: (saved: SavedTimerState) => void;
+  syncFromPersistence: () => Promise<void>;
   updateFocus: (newFocus: string) => void;
 }
 
@@ -433,6 +435,28 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       if (remaining <= 0) {
         get().completePhase();
       }
+    }
+  },
+
+  syncFromPersistence: async () => {
+    const saved = await loadTimerState();
+    if (saved) {
+      get().restore(saved);
+    } else {
+      // No persisted state -- timer was stopped externally
+      set({
+        phase: 'idle',
+        sessionId: null,
+        phaseStartedAt: null,
+        phaseDurationMs: 0,
+        totalWorkedMs: 0,
+        totalBreakMs: 0,
+        pomodoroCount: 0,
+        prePausePhase: null,
+        pauseRemainingMs: 0,
+        focus: '',
+        goalId: null,
+      });
     }
   },
 
