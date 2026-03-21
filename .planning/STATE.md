@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 9 (Productivity Timer -- engine and type system foundation complete)
+**Current focus:** Phase 9 complete (Productivity Timer -- all plans done)
 
 ## Current Position
 
 Phase: 9 of 13 (Productivity Timer)
-Plan: 2 of 3
-Status: In Progress
-Last activity: 2026-03-21 -- Completed 09-02 (Timer interaction layer)
+Plan: 3 of 3
+Status: Phase Complete
+Last activity: 2026-03-21 -- Completed 09-03 (Natural language timer starts)
 
-Progress: [████████████░░░░░░░░] 60% (v1.1)
+Progress: [█████████████░░░░░░░] 65% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 25 (18 v1.0 + 7 v1.1)
+- Total plans completed: 26 (18 v1.0 + 8 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.04 hours
+- Total execution time: 2.08 hours
 
 **By Phase (v1.0):**
 
@@ -40,11 +40,12 @@ Progress: [████████████░░░░░░░░] 60% (v1
 |-------|-------|-------|----------|
 | 07-ai-infrastructure | 3/3 | 20 min | 7 min |
 | 08-inspiration-system | 2/2 | 5 min | 3 min |
-| 09-productivity-timer | 2/3 | 14 min | 7 min |
+| 09-productivity-timer | 3/3 | 16 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-03 (5 min), 08-01 (3 min), 08-02 (2 min), 09-01 (5 min), 09-02 (9 min)
+- Last 5 plans: 08-01 (3 min), 08-02 (2 min), 09-01 (5 min), 09-02 (9 min), 09-03 (2 min)
 - Trend: stable
+| Phase 09 P03 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [09-02]: timerTransition internal event for decoupling command handlers from transition orchestration
 - [09-02]: ChannelType.DM narrowing instead of isDMBased() to avoid PartialGroupDMChannel type issues
 - [09-02]: Restart recovery sends NEW DM messages instead of editing old ones (Pitfall 5)
+- [09-03]: Keyword pre-filter rejects questions about timers via separate QUESTION_PATTERNS array
+- [09-03]: AI parse uses member's own budget (not system) since it is member-initiated
+- [09-03]: startTimerForMember reused from timer/index.ts to avoid duplicating timer start logic
 
 ### Pending Todos
 
@@ -93,5 +97,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 09-02-PLAN.md
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
