@@ -11,13 +11,18 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { withEncryption } from './encryption.js';
+
+const connectionString = process.env.DATABASE_URL ?? 'postgresql://user:password@localhost:5432/discord_hustler';
+const adapter = new PrismaPg({ connectionString });
 
 /**
  * Create the base PrismaClient singleton.
- * Logging is enabled in development for query debugging.
+ * Prisma 7 requires a database adapter for the client engine.
  */
 const basePrisma = new PrismaClient({
+  adapter,
   log:
     process.env.NODE_ENV === 'development'
       ? ['query', 'warn', 'error']
