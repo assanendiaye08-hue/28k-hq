@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 Phase: 13 of 13 (Monthly Progress Recap)
 Plan: 1 of 1
 Status: Complete
-Last activity: 2026-03-21 - Completed quick task 2: Fix 4 audit follow-ups: reminder message binding, session title export, setup rerun guard, timer prePauseState
+Last activity: 2026-03-21 - Completed quick task 3: Fix reminder routing bypass and timer remainingMs persistence regressions
 
 Progress: [████████████████████] 100% (v1.1)
 
@@ -139,9 +139,10 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 1 | Fix 7 audit bugs: encryption, role stripping, setup transaction, notification routing, skip weekly, timer recovery | 2026-03-21 | 0ef0d93 | [1-fix-7-audit-bugs-encryption-role-strippi](./quick/1-fix-7-audit-bugs-encryption-role-strippi/) |
 | 2 | Fix 4 audit follow-ups: reminder message binding, session title export, setup rerun guard, timer prePauseState | 2026-03-21 | f65ca12 | [2-fix-4-audit-follow-ups-reminder-message-](./quick/2-fix-4-audit-follow-ups-reminder-message-/) |
+| 3 | Fix reminder routing bypass and timer remainingMs persistence regressions | 2026-03-21 | ffc12a7 | [3-fix-reminder-routing-bypass-regression-a](./quick/3-fix-reminder-routing-bypass-regression-a/) |
 
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed quick-fix-2 (4 audit follow-ups: reminder binding, session title export, setup rerun, timer prePauseState)
+Stopped at: Completed quick-3 (reminder routing bypass fix and timer remainingMs persistence)
 Resume file: None
