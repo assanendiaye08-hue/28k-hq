@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 12 in progress (Self-Evaluation and Reflection)
+**Current focus:** v1.1 milestone COMPLETE
 
 ## Current Position
 
-Phase: 12 of 13 (Self-Evaluation and Reflection)
-Plan: 3 of 3
-Status: In Progress
-Last activity: 2026-03-21 -- Completed 12-03 (Jarvis reflection intelligence integration)
+Phase: 13 of 13 (Monthly Progress Recap)
+Plan: 1 of 1
+Status: Complete
+Last activity: 2026-03-21 -- Completed 13-01 (Monthly progress recap module)
 
-Progress: [██████████████████░░] 91% (v1.1)
+Progress: [████████████████████] 100% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34 (18 v1.0 + 16 v1.1)
+- Total plans completed: 35 (18 v1.0 + 17 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.57 hours
+- Total execution time: 2.64 hours
 
 **By Phase (v1.0):**
 
@@ -44,9 +44,10 @@ Progress: [██████████████████░░] 91% (v1
 | 10-smart-reminders | 2/2 | 8 min | 4 min |
 | 11-goal-hierarchy | 3/3 | 10 min | 3 min |
 | 12-self-evaluation-and-reflection | 3/3 | 10 min | 3 min |
+| 13-monthly-progress-recap | 1/1 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 11-02 (3 min), 11-03 (3 min), 12-01 (4 min), 12-02 (3 min), 12-03 (3 min)
+- Last 5 plans: 11-03 (3 min), 12-01 (4 min), 12-02 (3 min), 12-03 (3 min), 13-01 (4 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -118,6 +119,11 @@ Recent decisions affecting current work:
 - [Phase 12-02]: Medium intensity uses Mon/Wed/Fri (dayOfWeek 1,3,5) for 3 days/week daily reflections
 - [Phase 12-02]: Fallback template questions per type when AI degrades (never fails silently)
 - [Phase 12-02]: Monthly cron at 18:00 UTC on 28th queries medium+heavy members directly
+- [13-01]: pendingRecaps Map bridges generator.ts and index.ts reaction listener across module files
+- [13-01]: Direct DM via user.send() instead of deliverNotification to get Message object for reaction tracking
+- [13-01]: Trophy emoji checked as both Unicode and name 'trophy' for custom/standard emoji compatibility
+- [13-01]: Public recap shows stats + Jarvis quote only (no personal insights, reflections, or suggestions)
+- [13-01]: Template fallback formats stats as clean text when AI is unavailable or budget exceeded
 
 ### Pending Todos
 
@@ -130,5 +136,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 12-02-PLAN.md
+Stopped at: Completed 13-01-PLAN.md (FINAL plan of v1.1 milestone)
 Resume file: None

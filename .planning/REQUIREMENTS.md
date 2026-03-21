@@ -51,8 +51,8 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 
 ### Monthly Recap
 
-- [ ] **RECAP-01**: Member receives a monthly progress recap via DM -- AI-generated commentary on patterns, growth, and suggestions based on the month's data
-- [ ] **RECAP-02**: Member can react to share their recap to #wins channel -- social proof and motivation
+- [x] **RECAP-01**: Member receives a monthly progress recap via DM -- AI-generated commentary on patterns, growth, and suggestions based on the month's data
+- [x] **RECAP-02**: Member can react to share their recap to #wins channel -- social proof and motivation
 
 ## v2 Requirements
 
@@ -114,8 +114,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REFLECT-02 | Phase 12 | Complete |
 | REFLECT-03 | Phase 12 | Complete |
 | REFLECT-04 | Phase 12 | Complete |
-| RECAP-01 | Phase 13 | Pending |
-| RECAP-02 | Phase 13 | Pending |
+| RECAP-01 | Phase 13 | Complete |
+| RECAP-02 | Phase 13 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 26 total

@@ -31,7 +31,7 @@ Full details: .planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 10: Smart Reminders** - Natural language time-based reminders with urgency tiers (completed 2026-03-21)
 - [x] **Phase 11: Goal Hierarchy** - Optional yearly-to-daily goal decomposition with Jarvis-assisted breakdown (completed 2026-03-21)
 - [x] **Phase 12: Self-Evaluation and Reflection** - Configurable intensity reflection flows with AI-personalized questions (completed 2026-03-21)
-- [ ] **Phase 13: Monthly Progress Recap** - AI-generated monthly summary DM, shareable to #wins
+- [x] **Phase 13: Monthly Progress Recap** - AI-generated monthly summary DM, shareable to #wins (completed 2026-03-21)
 
 ## Phase Details
 
@@ -138,7 +138,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Member receives a monthly recap DM with AI-generated commentary covering patterns, growth areas, and suggestions -- drawing from check-ins, goals, timer sessions, reflections, and XP data for the month
   2. Member can react to their recap to share it to #wins channel -- providing social proof and motivation for the group
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 13-01-PLAN.md -- Recap module with data aggregation, AI-generated narrative, monthly cron, and share-to-#wins via reaction
@@ -163,4 +163,4 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 10. Smart Reminders | 2/2 | Complete    | 2026-03-21 | - |
 | 11. Goal Hierarchy | 3/3 | Complete    | 2026-03-21 | - |
 | 12. Self-Evaluation and Reflection | 3/3 | Complete    | 2026-03-21 | - |
-| 13. Monthly Progress Recap | v1.1 | 0/1 | Planned | - |
+| 13. Monthly Progress Recap | 1/1 | Complete   | 2026-03-21 | - |
