@@ -47,6 +47,7 @@ import { buildNotificationsCommand } from './modules/notification-router/command
 import { buildCostCommand, buildAdminSetModelCommand } from './modules/ai-admin/commands.js';
 import { buildInspirationCommand } from './modules/inspiration/commands.js';
 import { buildTimerCommand } from './modules/timer/commands.js';
+import { buildRemindCommand, buildRemindersCommand } from './modules/reminders/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -134,6 +135,11 @@ const commands = [
   // --- Phase 9 Commands ---
 
   buildTimerCommand(),
+
+  // --- Phase 10 Commands ---
+
+  buildRemindCommand(),
+  buildRemindersCommand(),
 ];
 
 // --- Deploy ---
