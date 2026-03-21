@@ -14,7 +14,7 @@ export const TOP_N = 10;
 export const LEADERBOARD_CHANNEL_NAME = 'leaderboard';
 
 /** Category under which the leaderboard channel is placed. */
-export const LEADERBOARD_CATEGORY_NAME = 'The Hub';
+export const LEADERBOARD_CATEGORY_NAME = 'THE GRIND';
 
 /** BotConfig keys for storing persistent leaderboard message IDs. */
 export const BOT_CONFIG_KEYS = {

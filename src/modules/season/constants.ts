@@ -24,4 +24,4 @@ export const SEASON_CHECK_CRON = '0 0 * * *';
 export const HALL_OF_FAME_CHANNEL_NAME = 'hall-of-fame';
 
 /** Category under which the hall-of-fame channel is placed. */
-export const HALL_OF_FAME_CATEGORY_NAME = 'The Hub';
+export const HALL_OF_FAME_CATEGORY_NAME = 'THE GRIND';
