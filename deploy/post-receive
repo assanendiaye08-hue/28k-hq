@@ -22,26 +22,30 @@ do
     echo "========================================"
 
     echo ""
-    echo "[1/5] Checking out latest code..."
+    echo "[1/6] Checking out latest code..."
     git --work-tree="$TARGET" --git-dir="$GIT_DIR" checkout -f "$BRANCH"
 
     cd "$TARGET" || exit 1
 
     echo ""
-    echo "[2/5] Installing dependencies..."
-    npm ci --production=false
+    echo "[2/6] Enabling pnpm..."
+    corepack enable
 
     echo ""
-    echo "[3/5] Building TypeScript..."
-    npm run build
+    echo "[3/6] Installing dependencies..."
+    pnpm install --frozen-lockfile
 
     echo ""
-    echo "[4/5] Running database migrations..."
-    npx prisma migrate deploy
+    echo "[4/6] Generating Prisma client + building bot..."
+    pnpm turbo build --filter @28k/bot
 
     echo ""
-    echo "[5/5] Restarting bot..."
-    pm2 restart discord-hustler 2>/dev/null || pm2 start ecosystem.config.cjs
+    echo "[5/6] Running database migrations..."
+    pnpm --filter @28k/db db:deploy
+
+    echo ""
+    echo "[6/6] Restarting bot..."
+    pm2 restart 28k-bot 2>/dev/null || pm2 start ecosystem.config.cjs
 
     echo ""
     echo "========================================"

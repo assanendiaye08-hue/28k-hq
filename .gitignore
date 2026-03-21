@@ -1,15 +1,15 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
+# Build output (per-app)
+apps/*/dist/
+packages/*/dist/
 
 # Environment variables
 .env
 
 # Database files
 *.db
-prisma/*.db
 
 # IDE
 .vscode/
@@ -35,7 +35,6 @@ coverage/
 packages/db/generated/
 
 # Prisma migrations (local dev only)
-prisma/migrations/
 packages/db/prisma/migrations/
 
 # Turbo cache

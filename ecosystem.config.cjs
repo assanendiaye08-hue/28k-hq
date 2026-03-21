@@ -3,15 +3,15 @@
  *
  * Usage:
  *   pm2 start ecosystem.config.cjs        # Start the bot
- *   pm2 restart discord-hustler            # Restart after deploy
- *   pm2 logs discord-hustler               # View logs
+ *   pm2 restart 28k-bot                   # Restart after deploy
+ *   pm2 logs 28k-bot                      # View logs
  *   pm2 monit                              # Monitor in real-time
  */
 module.exports = {
   apps: [
     {
-      name: 'discord-hustler',
-      script: './dist/index.js',
+      name: '28k-bot',
+      script: './apps/bot/dist/index.js',
       env: {
         NODE_ENV: 'production',
       },
