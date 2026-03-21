@@ -508,6 +508,7 @@ model TimerSession {
   focus             String?      // What they were working on (free text)
   timerState        String?      // Persisted timer state for recovery (working/on_break/paused)
   prePauseState     String?      // Pre-pause state for recovery (working/on_break when paused)
+  remainingMs       Int?         // Remaining interval ms when paused (for recovery)
   goalId            String?      // Linked goal ID if any
   workDuration      Int          // Configured work interval in minutes
   breakDuration     Int          // Configured break interval in minutes

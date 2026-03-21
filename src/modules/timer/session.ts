@@ -149,6 +149,7 @@ export async function createActiveTimerRecord(
       focus: timer.focus,
       timerState: timer.state,
       prePauseState: timer.prePauseState,
+      remainingMs: timer.remainingMs,
       goalId: timer.goalId,
       workDuration: timer.workDuration,
       breakDuration: timer.breakDuration,
@@ -182,6 +183,7 @@ export async function updateTimerRecord(
     breakDuration?: number;
     timerState?: string;
     prePauseState?: string | null;
+    remainingMs?: number | null;
   },
 ): Promise<void> {
   await db.timerSession.updateMany({
