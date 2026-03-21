@@ -2,7 +2,7 @@
  * Per-member scheduler lifecycle manager.
  *
  * Maintains a Map of memberId -> Map<taskType, ScheduledTask>.
- * Task types: 'brief', 'reminder-HH:mm', 'planning', 'nudge'.
+ * Task types: 'brief', 'reminder-HH:mm', 'planning', 'nudge', 'reflection'.
  *
  * On bot restart, rebuildAll reads all MemberSchedule records from the
  * database and recreates cron tasks for each member. No data is lost.
@@ -14,6 +14,7 @@
 import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
 import winston from 'winston';
+import { REFLECTION_CONFIG } from '../reflection/constants.js';
 
 const logger = winston.createLogger({
   level: 'debug',
@@ -35,6 +36,7 @@ export interface MemberSchedule {
   sundayPlanning: boolean;
   accountabilityLevel: string;
   nudgeTime: string | null;
+  reflectionIntensity: string;
 }
 
 /**
@@ -124,6 +126,25 @@ export class SchedulerManager {
   }
 
   /**
+   * Schedule an evening reflection cron task for a member.
+   * Replaces any existing reflection task for this member.
+   *
+   * @param memberId - The member ID
+   * @param cronExpr - Cron expression for reflection time
+   * @param timezone - IANA timezone string
+   * @param fn - Async function to call when the task fires
+   */
+  scheduleReflection(
+    memberId: string,
+    cronExpr: string,
+    timezone: string,
+    fn: () => Promise<void>,
+  ): void {
+    this.setTask(memberId, 'reflection', cronExpr, timezone, fn);
+    logger.info(`Scheduled reflection for ${memberId}: "${cronExpr}" (${timezone})`);
+  }
+
+  /**
    * Stop and remove all scheduled tasks for a member.
    */
   unscheduleAll(memberId: string): void {
@@ -148,6 +169,7 @@ export class SchedulerManager {
    * @param reminderFn - Factory function for reminder task callbacks
    * @param planningFn - Factory function for planning session callbacks
    * @param nudgeFn - Factory function for nudge task callbacks
+   * @param reflectionFn - Factory function for reflection task callbacks
    */
   rebuildAll(
     schedules: MemberSchedule[],
@@ -155,6 +177,7 @@ export class SchedulerManager {
     reminderFn: (memberId: string) => () => Promise<void>,
     planningFn: (memberId: string) => () => Promise<void>,
     nudgeFn?: (memberId: string) => () => Promise<void>,
+    reflectionFn?: (memberId: string) => () => Promise<void>,
   ): void {
     // Stop all existing tasks first
     for (const memberId of this.tasks.keys()) {
@@ -165,6 +188,7 @@ export class SchedulerManager {
     let reminderCount = 0;
     let planningCount = 0;
     let nudgeCount = 0;
+    let reflectionCount = 0;
 
     for (const schedule of schedules) {
       const { memberId, timezone } = schedule;
@@ -196,11 +220,18 @@ export class SchedulerManager {
         this.scheduleNudge(memberId, cronExpr, timezone, nudgeFn(memberId));
         nudgeCount++;
       }
+
+      // Schedule reflection if intensity is not 'off' and reflectionFn provided
+      if (schedule.reflectionIntensity !== 'off' && reflectionFn) {
+        const cronExpr = `${REFLECTION_CONFIG.dailyCronMinute} ${REFLECTION_CONFIG.dailyCronHour} * * *`;
+        this.scheduleReflection(memberId, cronExpr, timezone, reflectionFn(memberId));
+        reflectionCount++;
+      }
     }
 
     logger.info(
       `Rebuilt all tasks: ${schedules.length} members, ` +
-      `${briefCount} briefs, ${reminderCount} reminders, ${planningCount} planning sessions, ${nudgeCount} nudges`,
+      `${briefCount} briefs, ${reminderCount} reminders, ${planningCount} planning sessions, ${nudgeCount} nudges, ${reflectionCount} reflections`,
     );
   }
 
@@ -214,6 +245,7 @@ export class SchedulerManager {
    * @param reminderFn - Factory for reminder callback
    * @param planningFn - Factory for planning callback
    * @param nudgeFn - Factory for nudge callback
+   * @param reflectionFn - Factory for reflection callback
    */
   updateMemberSchedule(
     memberId: string,
@@ -222,6 +254,7 @@ export class SchedulerManager {
     reminderFn: (memberId: string) => () => Promise<void>,
     planningFn: (memberId: string) => () => Promise<void>,
     nudgeFn?: (memberId: string) => () => Promise<void>,
+    reflectionFn?: (memberId: string) => () => Promise<void>,
   ): void {
     // Stop existing tasks
     this.unscheduleAll(memberId);
@@ -248,6 +281,12 @@ export class SchedulerManager {
       const [hours, minutes] = schedule.nudgeTime.split(':');
       const cronExpr = `${minutes} ${hours} * * *`;
       this.scheduleNudge(memberId, cronExpr, timezone, nudgeFn(memberId));
+    }
+
+    // Schedule reflection if intensity is not 'off' and reflectionFn provided
+    if (schedule.reflectionIntensity !== 'off' && reflectionFn) {
+      const cronExpr = `${REFLECTION_CONFIG.dailyCronMinute} ${REFLECTION_CONFIG.dailyCronHour} * * *`;
+      this.scheduleReflection(memberId, cronExpr, timezone, reflectionFn(memberId));
     }
 
     logger.info(`Updated schedule for ${memberId}`);

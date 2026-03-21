@@ -65,6 +65,16 @@ function makeNudgeFn(client: Client, db: ExtendedPrismaClient) {
   return (memberId: string) => () => sendNudge(client, db, memberId);
 }
 
+/**
+ * Create reflection callback factory (stub).
+ * Placeholder until reflection DM flow is wired in Plan 02.
+ */
+function makeReflectionFn(_client: Client, _db: ExtendedPrismaClient) {
+  return (memberId: string) => async () => {
+    logger.info(`Reflection callback not yet wired for ${memberId} (stub -- Plan 12-02)`);
+  };
+}
+
 const schedulerModule: Module = {
   name: 'scheduler',
 
@@ -82,6 +92,7 @@ const schedulerModule: Module = {
     const reminderFn = makeReminderFn(client, db);
     const planningFn = makePlanningFn(client, db, ctx);
     const nudgeFn = makeNudgeFn(client, db);
+    const reflectionFn = makeReflectionFn(client, db);
 
     // 3. Rebuild all tasks on Discord ready event
     client.once('ready', async () => {
@@ -99,9 +110,10 @@ const schedulerModule: Module = {
           sundayPlanning: s.sundayPlanning,
           accountabilityLevel: s.accountabilityLevel,
           nudgeTime: s.nudgeTime,
+          reflectionIntensity: s.reflectionIntensity,
         }));
 
-        manager.rebuildAll(scheduleData, briefFn, reminderFn, planningFn, nudgeFn);
+        manager.rebuildAll(scheduleData, briefFn, reminderFn, planningFn, nudgeFn, reflectionFn);
         logger.info(`Rebuilt ${scheduleData.length} member schedules on ready`);
       } catch (error) {
         logger.error(`Failed to rebuild schedules on ready: ${String(error)}`);
@@ -131,6 +143,7 @@ const schedulerModule: Module = {
           sundayPlanning: schedule.sundayPlanning,
           accountabilityLevel: schedule.accountabilityLevel,
           nudgeTime: schedule.nudgeTime,
+          reflectionIntensity: schedule.reflectionIntensity,
         };
 
         manager.updateMemberSchedule(
@@ -140,6 +153,7 @@ const schedulerModule: Module = {
           reminderFn,
           planningFn,
           nudgeFn,
+          reflectionFn,
         );
         logger.info(`Rebuilt schedule for ${memberId} after update`);
       } catch (error) {
