@@ -61,12 +61,18 @@ export async function handleSetup(
 
 /**
  * Handle the "Get Started" button click from #welcome.
+ * Replies instantly (no "thinking...") and runs the same setup logic.
  */
 export async function handleSetupButton(
   interaction: ButtonInteraction,
   ctx: ModuleContext,
 ): Promise<void> {
-  return runSetup(interaction, ctx);
+  // Reply instantly instead of deferring (avoids "thinking..." noise)
+  await interaction.reply({
+    content: "Check your DMs! I've sent you a message to get started.",
+    flags: MessageFlags.Ephemeral,
+  });
+  return runSetup(interaction, ctx, true);
 }
 
 /**
@@ -75,12 +81,15 @@ export async function handleSetupButton(
 async function runSetup(
   interaction: ChatInputCommandInteraction | ButtonInteraction,
   ctx: ModuleContext,
+  alreadyReplied = false,
 ): Promise<void> {
   const { logger, events } = ctx;
   const db = ctx.db as ExtendedPrismaClient;
 
-  // Step 1: Defer reply immediately (ephemeral)
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  // Step 1: Defer reply immediately (ephemeral) — skip if button already replied
+  if (!alreadyReplied) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  }
 
   const member = interaction.member;
   if (!member || !interaction.guild) {

@@ -188,6 +188,11 @@ export async function setupServerChannels(
         logger.debug(`Channel already exists: ${channelDef.name} in ${categoryDef.name}`);
         channelsCreated++;
 
+        // Sync channel permissions with category (Discord doesn't auto-propagate category changes)
+        if (!categoryDef.public && 'lockPermissions' in existingChannel) {
+          await (existingChannel as { lockPermissions: () => Promise<unknown> }).lockPermissions();
+        }
+
         // Ensure #welcome has the latest manifesto on every startup
         if (channelDef.name === 'welcome' && categoryDef.name === 'WELCOME' && existingChannel.isTextBased()) {
           const welcomeCh = existingChannel as TextChannel;
