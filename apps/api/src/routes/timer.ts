@@ -39,6 +39,8 @@ const createTimerSchema = z.object({
   focus: z.string().max(200).optional(),
   goalId: z.string().optional(),
   targetSessions: z.number().int().min(1).max(12).nullish(),
+  longBreakDuration: z.number().int().min(1).max(60).nullish(),
+  longBreakInterval: z.number().int().min(1).max(12).nullish(),
 });
 
 const updateTimerSchema = z.object({
@@ -69,7 +71,7 @@ export default async function timerRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() });
     }
 
-    const { mode, workDuration, breakDuration, breakRatio, focus, goalId, targetSessions } = parsed.data;
+    const { mode, workDuration, breakDuration, breakRatio, focus, goalId, targetSessions, longBreakDuration, longBreakInterval } = parsed.data;
 
     // Check for existing active timer (one-per-member enforcement)
     const existing = await fastify.db.timerSession.findFirst({
@@ -104,6 +106,9 @@ export default async function timerRoutes(fastify: FastifyInstance) {
         workDuration,
         breakDuration,
         breakRatio,
+        targetSessions: targetSessions ?? null,
+        longBreakDuration: longBreakDuration ?? null,
+        longBreakInterval: longBreakInterval ?? null,
         source: 'DESKTOP',
         timerState: 'working',
         lastStateChangeAt: new Date(),

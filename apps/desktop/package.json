@@ -12,6 +12,7 @@
     "@28k/shared": "workspace:*",
     "@fabianlars/tauri-plugin-oauth": "^2.0.0",
     "@tauri-apps/api": "^2.10.0",
+    "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-opener": "^2.0.0",
     "@tauri-apps/plugin-positioner": "^2.0.0",
     "@tauri-apps/plugin-store": "^2.0.0",
