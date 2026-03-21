@@ -6,17 +6,9 @@ import { tryRestoreSession } from './api/auth';
 import { getAccessToken } from './api/client';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { GoalsPage } from './pages/GoalsPage';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
-
-function GoalsPlaceholder() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <h1 className="text-2xl font-bold text-text-primary">Goals</h1>
-      <p className="text-text-tertiary">Goals view coming soon</p>
-    </div>
-  );
-}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -105,7 +97,7 @@ export function App() {
           element={
             <AuthGate>
               <AppShell>
-                <GoalsPlaceholder />
+                <GoalsPage />
               </AppShell>
             </AuthGate>
           }
