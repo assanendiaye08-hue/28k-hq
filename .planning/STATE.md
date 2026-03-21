@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The desktop app extends this to their entire workstation.
-**Current focus:** v2.0 Phase 14 - Monorepo Restructure
+**Current focus:** v2.0 Phase 15 - REST API Authentication
 
 ## Current Position
 
-Phase: 14 of 19 (Monorepo Restructure)
-Plan: 2 of 2 in current phase (COMPLETE)
+Phase: 15 of 19 (REST API Authentication)
+Plan: 1 of 1 in current phase (COMPLETE)
 Status: Phase Complete
-Last activity: 2026-03-21 -- Completed 14-02 (bot migration + shared package + app scaffolds)
+Last activity: 2026-03-21 -- Completed 15-01 (API server + Discord OAuth + JWT auth)
 
-Progress: [##░░░░░░░░░░░░░░░░░░] 8% (v2.0) -- Phase 14 complete (1 of 6 v2.0 phases)
+Progress: [####░░░░░░░░░░░░░░░░] 17% (v2.0) -- Phase 15 complete (2 of 6 v2.0 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37 (18 v1.0 + 17 v1.1 + 2 v2.0)
+- Total plans completed: 38 (18 v1.0 + 17 v1.1 + 3 v2.0)
 - Average duration: 5 min
-- Total execution time: 2.87 hours
+- Total execution time: 2.92 hours
 
 **By Phase (v1.1):**
 
@@ -40,10 +40,11 @@ Progress: [##░░░░░░░░░░░░░░░░░░] 8% (v2.0) -
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 14-monorepo-restructure | 2/2 | 14 min | 7 min |
+| 15-rest-api-authentication | 1/1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 12-02 (3 min), 12-03 (3 min), 13-01 (4 min), 14-01 (6 min), 14-02 (8 min)
-- Trend: slight increase (monorepo migration is larger scope)
+- Last 5 plans: 12-03 (3 min), 13-01 (4 min), 14-01 (6 min), 14-02 (8 min), 15-01 (3 min)
+- Trend: stable (API auth was straightforward)
 
 ## Accumulated Context
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - [14-02]: Added crypto functions to @28k/db barrel export for onboarding module
 - [14-02]: All bot imports use @28k/db and @28k/shared -- no relative db/shared paths remain
 - [v2.0 Roadmap]: Windows has no menu bar text -- needs mini-window fallback for timer countdown display
+- [15-01]: Fastify plugin pattern: fp() for infrastructure, plain async for routes (encapsulation)
+- [15-01]: JWT payload: sub=memberId, did=discordId (minimal claims for identity)
+- [15-01]: Refresh token rotation: delete old, create new on each refresh (prevents reuse)
+- [15-01]: Per-route rate limits on auth (5/min discord, 10/min refresh) + global 100/min
 
 ### Pending Todos
 
@@ -87,5 +92,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 14-02-PLAN.md (bot migration + shared package + app scaffolds) -- Phase 14 complete
+Stopped at: Completed 15-01-PLAN.md (API server + Discord OAuth + JWT auth) -- Phase 15 complete
 Resume file: None
