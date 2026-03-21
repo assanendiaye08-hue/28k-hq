@@ -57,7 +57,7 @@ Full details: .planning/milestones/v1.1-ROADMAP.md
   2. `packages/db` exports Prisma client importable by bot and API without TS2742 errors
   3. `packages/shared` exports XP engine, rank constants, timer constants, brand colors
   4. `pnpm install` resolves all dependencies in strict mode
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 14-01-PLAN.md — Monorepo skeleton (pnpm, Turborepo, tsconfig) + extract packages/db
@@ -96,7 +96,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 |-------|-----------|----------------|--------|-----------|
 | 1-6 | v1.0 | 18/18 | Complete | 2026-03-20 |
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
-| 14. Monorepo Restructure | v2.0 | 0/2 | Not started | - |
+| 14. Monorepo Restructure | 1/2 | In Progress|  | - |
 | 15. REST API + Auth | v2.0 | 0/3 | Not started | - |
 | 16. Desktop Shell + Dashboard | v2.0 | 0/3 | Not started | - |
 | 17. Pomodoro Timer | v2.0 | 0/3 | Not started | - |
