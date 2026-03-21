@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 11 in progress (Goal Hierarchy)
+**Current focus:** Phase 12 in progress (Self-Evaluation and Reflection)
 
 ## Current Position
 
-Phase: 11 of 13 (Goal Hierarchy)
-Plan: 3 of 3
-Status: Phase Complete
-Last activity: 2026-03-21 -- Completed 11-03 (AI-assisted goal decomposition DM flow)
+Phase: 12 of 13 (Self-Evaluation and Reflection)
+Plan: 1 of 3
+Status: In Progress
+Last activity: 2026-03-21 -- Completed 12-01 (Reflection data foundation)
 
-Progress: [█████████████████░░░] 83% (v1.1)
+Progress: [█████████████████░░░] 86% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31 (18 v1.0 + 13 v1.1)
+- Total plans completed: 32 (18 v1.0 + 14 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.39 hours
+- Total execution time: 2.46 hours
 
 **By Phase (v1.0):**
 
@@ -43,9 +43,10 @@ Progress: [█████████████████░░░] 83% (v1
 | 09-productivity-timer | 3/3 | 16 min | 5 min |
 | 10-smart-reminders | 2/2 | 8 min | 4 min |
 | 11-goal-hierarchy | 3/3 | 10 min | 3 min |
+| 12-self-evaluation-and-reflection | 1/3 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 10-01 (3 min), 10-02 (5 min), 11-01 (4 min), 11-02 (3 min), 11-03 (3 min)
+- Last 5 plans: 10-02 (5 min), 11-01 (4 min), 11-02 (3 min), 11-03 (3 min), 12-01 (4 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -106,6 +107,9 @@ Recent decisions affecting current work:
 - [Phase 11-02]: Tree view rendered in monospace code block for alignment in Discord embed
 - [Phase 11-02]: List view filters to parentId: null and shows child counts for parent goals
 - [Phase 11-02]: Timeframe string cast to GoalTimeframe enum union type since command choices restrict valid values
+- [12-01]: reflectionIntensity uses String type (not enum) matching accountabilityLevel pattern
+- [12-01]: Stub makeReflectionFn logs placeholder until Plan 12-02 wires real reflection DM flow
+- [12-01]: Daily reflection cron at 8 PM member local time via REFLECTION_CONFIG constants
 
 ### Pending Todos
 
@@ -118,5 +122,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 11-03-PLAN.md (Phase 11 complete)
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None

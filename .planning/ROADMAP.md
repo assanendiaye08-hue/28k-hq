@@ -124,7 +124,7 @@ Plans:
   2. Reflection questions are personalized based on the member's actual recent activity (goals worked on, timer sessions, check-in patterns) -- not generic templates
   3. Past reflection responses appear in Jarvis's context and are referenced in morning briefs, nudges, and conversations -- the member can see the feedback loop working
   4. Jarvis uses reflection data to make forward-looking suggestions (what to focus on next week, patterns to break, strengths to lean into) that feel specific to the member
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 12-01-PLAN.md -- Prisma Reflection model, MemberSchedule intensity field, constants, SchedulerManager extension, /settings integration
@@ -159,5 +159,5 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 9. Productivity Timer | v1.1 | Complete    | 2026-03-21 | - |
 | 10. Smart Reminders | 2/2 | Complete    | 2026-03-21 | - |
 | 11. Goal Hierarchy | 3/3 | Complete    | 2026-03-21 | - |
-| 12. Self-Evaluation and Reflection | v1.1 | 0/3 | Planning complete | - |
+| 12. Self-Evaluation and Reflection | 1/3 | In Progress|  | - |
 | 13. Monthly Progress Recap | v1.1 | 0/0 | Not started | - |

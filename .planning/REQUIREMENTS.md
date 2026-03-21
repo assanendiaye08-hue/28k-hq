@@ -31,7 +31,7 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 
 ### Self-Evaluation
 
-- [ ] **REFLECT-01**: Member can configure reflection intensity (light: 1/week, medium: 3-4/week + monthly, heavy: daily + weekly + monthly)
+- [x] **REFLECT-01**: Member can configure reflection intensity (light: 1/week, medium: 3-4/week + monthly, heavy: daily + weekly + monthly)
 - [ ] **REFLECT-02**: Jarvis asks AI-personalized reflection questions based on the member's actual activity -- not generic templates
 - [ ] **REFLECT-03**: Reflection data feeds back into Jarvis's context -- referenced in briefs, nudges, and conversations to give targeted suggestions
 - [ ] **REFLECT-04**: Reflection responses inform Jarvis's forward-looking suggestions (what to focus on next week, patterns to break, strengths to lean into)
@@ -110,7 +110,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOAL-02 | Phase 11 | Complete |
 | GOAL-03 | Phase 11 | Complete |
 | GOAL-04 | Phase 11 | Complete |
-| REFLECT-01 | Phase 12 | Pending |
+| REFLECT-01 | Phase 12 | Complete |
 | REFLECT-02 | Phase 12 | Pending |
 | REFLECT-03 | Phase 12 | Pending |
 | REFLECT-04 | Phase 12 | Pending |
