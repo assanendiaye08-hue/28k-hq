@@ -8,6 +8,7 @@
  * 4. Schedule global hourly goal expiry check
  * 5. Schedule global daily interest tag cleanup
  * 6. Schedule global evening nudge sweep (21:00 UTC fallback)
+ * 7. Schedule monthly reflection sweep (28th at 18:00 UTC)
  *
  * All scheduled tasks rebuild on bot restart from database state.
  */
@@ -24,6 +25,7 @@ import { runPlanningSession } from './planning.js';
 import { checkExpiredGoals } from '../goals/expiry.js';
 import { cleanupUnusedTags } from '../server-setup/interest-tags.js';
 import { sendNudge } from '../ai-assistant/nudge.js';
+import { runReflectionFlow } from '../reflection/flow.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -53,9 +55,19 @@ function makeReminderFn(client: Client, db: ExtendedPrismaClient) {
 
 /**
  * Create planning session callback factory.
+ * Chains weekly reflection BEFORE the planning session if member
+ * has reflectionIntensity !== 'off'.
  */
 function makePlanningFn(client: Client, db: ExtendedPrismaClient, ctx: ModuleContext) {
-  return (memberId: string) => () => runPlanningSession(client, db, memberId, ctx.events);
+  return (memberId: string) => async () => {
+    // Run weekly reflection first (if enabled)
+    const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
+    if (schedule && schedule.reflectionIntensity !== 'off') {
+      await runReflectionFlow(client, db, memberId, 'WEEKLY');
+    }
+    // Then run planning session
+    await runPlanningSession(client, db, memberId, ctx.events);
+  };
 }
 
 /**
@@ -66,12 +78,30 @@ function makeNudgeFn(client: Client, db: ExtendedPrismaClient) {
 }
 
 /**
- * Create reflection callback factory (stub).
- * Placeholder until reflection DM flow is wired in Plan 02.
+ * Create daily reflection callback factory.
+ * Checks member's reflectionIntensity and day-of-week to determine
+ * whether to fire a daily reflection:
+ * - off: no reflections
+ * - light: weekly only (handled by planning chain, not daily cron)
+ * - medium: Mon(1), Wed(3), Fri(5) only
+ * - heavy: every day
  */
-function makeReflectionFn(_client: Client, _db: ExtendedPrismaClient) {
+function makeReflectionFn(client: Client, db: ExtendedPrismaClient) {
   return (memberId: string) => async () => {
-    logger.info(`Reflection callback not yet wired for ${memberId} (stub -- Plan 12-02)`);
+    const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
+    if (!schedule) return;
+
+    const intensity = schedule.reflectionIntensity;
+    if (intensity === 'off' || intensity === 'light') return; // light = weekly only, handled by planning
+
+    if (intensity === 'medium') {
+      // 3 days: Mon(1), Wed(3), Fri(5)
+      const dayOfWeek = new Date().getDay(); // 0=Sun
+      if (![1, 3, 5].includes(dayOfWeek)) return;
+    }
+    // heavy = every day
+
+    await runReflectionFlow(client, db, memberId, 'DAILY');
   };
 }
 
@@ -225,6 +255,30 @@ const schedulerModule: Module = {
     });
 
     logger.info('Scheduled evening nudge sweep (21:00 UTC)');
+
+    // 8. Schedule monthly reflection sweep on the 28th at 18:00 UTC
+    // Runs for all members with reflectionIntensity in ['medium', 'heavy']
+    cron.schedule('0 18 28 * *', async () => {
+      try {
+        const schedules = await db.memberSchedule.findMany({
+          where: { reflectionIntensity: { in: ['medium', 'heavy'] } },
+        });
+
+        for (const schedule of schedules) {
+          try {
+            await runReflectionFlow(client, db, schedule.memberId, 'MONTHLY');
+          } catch (error) {
+            logger.error(`Monthly reflection failed for ${schedule.memberId}: ${String(error)}`);
+          }
+        }
+
+        logger.info(`Monthly reflection sweep completed: ${schedules.length} members`);
+      } catch (error) {
+        logger.error(`Monthly reflection sweep failed: ${String(error)}`);
+      }
+    }, { name: 'monthly-reflection-sweep' });
+
+    logger.info('Scheduled monthly reflection sweep (28th at 18:00 UTC)');
     logger.info('Scheduler module registered');
   },
 };
