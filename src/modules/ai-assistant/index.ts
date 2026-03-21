@@ -65,8 +65,13 @@ const aiAssistantModule: Module = {
           where: { discordId: message.author.id },
         });
 
-        // Ignore DMs from non-registered users
-        if (!account) return;
+        // Guide unregistered users to /setup
+        if (!account) {
+          await message.reply(
+            "Hey! I don't recognize you yet. Run `/setup` in the server first to create your profile, then we can talk.",
+          );
+          return;
+        }
 
         // Check for timer intent before regular chat processing
         if (isTimerRequest(message.content)) {

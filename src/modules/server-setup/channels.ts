@@ -17,10 +17,12 @@ import {
   type Guild,
   type Role,
   type CategoryChannel,
+  type TextChannel,
   ChannelType,
   PermissionFlagsBits,
 } from 'discord.js';
 import type { Logger } from 'winston';
+import { sendWelcomeMessage } from '../onboarding/welcome.js';
 
 /**
  * Category definitions with their channels and permission requirements.
@@ -205,24 +207,29 @@ export async function setupServerChannels(
         });
 
         // Bot can send messages in #welcome
-        await created.permissionOverwrites.edit(botMember.id, {
+        await created.permissionOverwrites.edit(botMember, {
           ViewChannel: true,
           SendMessages: true,
           EmbedLinks: true,
         });
+
+        // Send the welcome manifesto
+        await sendWelcomeMessage(created as TextChannel);
+        logger.info('Sent welcome manifesto to #welcome');
       }
 
       // Special handling for #bot-log channel -- owner-only visibility
       if (channelDef.name === 'bot-log' && categoryDef.name === 'BOT OPS') {
         // Grant guild owner full access
-        await created.permissionOverwrites.edit(guild.ownerId, {
+        const owner = await guild.members.fetch(guild.ownerId);
+        await created.permissionOverwrites.edit(owner, {
           ViewChannel: true,
           ReadMessageHistory: true,
           SendMessages: true,
         });
 
         // Bot needs to post recovery summaries
-        await created.permissionOverwrites.edit(botMember.id, {
+        await created.permissionOverwrites.edit(botMember, {
           ViewChannel: true,
           SendMessages: true,
           EmbedLinks: true,
