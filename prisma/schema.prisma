@@ -42,6 +42,7 @@ model Member {
   notificationPreference NotificationPreference?
   memberAIBudget        MemberAIBudget?
   inspirations          Inspiration[]
+  timerSessions         TimerSession[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -204,6 +205,7 @@ enum XPSource {
   LESSON_POST
   RESOURCE_SHARE
   SESSION_HOST
+  TIMER_SESSION
 }
 
 /// Per-member schedule preferences for briefs, reminders, and planning.
@@ -282,6 +284,7 @@ model Season {
 
   voiceSessions VoiceSession[]
   snapshots     SeasonSnapshot[]
+  timerSessions TimerSession[]
 
   @@index([active])
 }
@@ -467,4 +470,50 @@ model Inspiration {
 
   @@unique([memberId, name])
   @@index([memberId])
+}
+
+// ─── Phase 9: Productivity Timer ─────────────────────────────────────────────
+
+/// Personal productivity timer session. Supports Pomodoro (structured work/break cycles)
+/// and Proportional (work freely, get proportional break) modes.
+/// Active state is held in-memory; DB record is created on start for restart recovery.
+model TimerSession {
+  id                String       @id @default(cuid())
+  memberId          String
+  mode              TimerMode
+  status            TimerStatus  @default(ACTIVE)
+  focus             String?      // What they were working on (free text)
+  goalId            String?      // Linked goal ID if any
+  workDuration      Int          // Configured work interval in minutes
+  breakDuration     Int          // Configured break interval in minutes
+  breakRatio        Float        @default(5.0) // For proportional mode
+  totalWorkedMs     Int          @default(0)   // Total work time in milliseconds
+  totalBreakMs      Int          @default(0)   // Total break time in milliseconds
+  pomodoroCount     Int          @default(0)   // Completed work intervals
+  xpAwarded         Int          @default(0)
+  startedAt         DateTime     @default(now())
+  endedAt           DateTime?
+  lastStateChangeAt DateTime     @default(now()) // For restart recovery elapsed time calculation
+  dmMessageId       String?      // Discord message ID of the live timer DM
+  dmChannelId       String?      // Discord DM channel ID
+  seasonId          String?
+
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  season  Season? @relation(fields: [seasonId], references: [id])
+
+  @@index([memberId, status])
+  @@index([status])
+}
+
+/// Timer mode -- Pomodoro (structured cycles) or Proportional (free-form with ratio-based breaks).
+enum TimerMode {
+  POMODORO
+  PROPORTIONAL
+}
+
+/// Timer session lifecycle status.
+enum TimerStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }

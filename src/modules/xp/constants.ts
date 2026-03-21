@@ -54,6 +54,13 @@ export const XP_AWARDS = {
 
   // Phase 5: Session hosting bonus
   sessionHost: 10, // Small bonus for hosting a session with 2+ participants (not time-based)
+
+  // Phase 9: Productivity Timer
+  timer: {
+    xpPer5Minutes: 1, // 1 XP per 5 minutes of work
+    dailyCap: 200, // Match voice cap
+    minSessionMinutes: 5, // Minimum to earn XP
+  },
 } as const;
 
 /**
