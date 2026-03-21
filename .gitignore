@@ -25,3 +25,11 @@ logs/
 
 # Coverage
 coverage/
+
+# Planning / workflow artifacts
+.planning/
+.agents/
+.claude/
+
+# Prisma migrations (local dev only)
+prisma/migrations/
