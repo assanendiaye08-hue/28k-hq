@@ -1,0 +1,236 @@
+/**
+ * TimerSetup
+ *
+ * Configuration form for starting a pomodoro timer session.
+ * Fields: focus, work/break/long break durations, sessions, auto-start toggles.
+ */
+
+import { useState } from 'react';
+import { useTimerStore } from '../../stores/timer-store';
+import { TIMER_DEFAULTS } from '@28k/shared';
+import { preloadAlarm } from '../../lib/timer-audio';
+import { Card } from '../common/Card';
+
+export function TimerSetup() {
+  const start = useTimerStore((s) => s.start);
+
+  const [focus, setFocus] = useState('');
+  const [workDuration, setWorkDuration] = useState<number>(TIMER_DEFAULTS.defaultWorkMinutes);
+  const [breakDuration, setBreakDuration] = useState<number>(TIMER_DEFAULTS.defaultBreakMinutes);
+  const [longBreakDuration, setLongBreakDuration] = useState(15);
+  const [longBreakInterval, setLongBreakInterval] = useState(4);
+  const [targetSessions, setTargetSessions] = useState<number | null>(4);
+  const [unlimited, setUnlimited] = useState(false);
+  const [autoStartBreak, setAutoStartBreak] = useState(false);
+  const [autoStartWork, setAutoStartWork] = useState(false);
+  const [focusError, setFocusError] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleStart = async () => {
+    if (!focus.trim()) {
+      setFocusError(true);
+      return;
+    }
+    setFocusError(false);
+    setApiError('');
+    setIsSubmitting(true);
+
+    try {
+      preloadAlarm();
+      await start({
+        focus: focus.trim(),
+        workDuration,
+        breakDuration,
+        longBreakDuration,
+        longBreakInterval,
+        targetSessions: unlimited ? null : targetSessions,
+        autoStartBreak,
+        autoStartWork,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to start timer';
+      if (message.includes('409') || message.includes('active')) {
+        setApiError('A timer is already active. Stop it first.');
+      } else {
+        setApiError(message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const inputClass =
+    'bg-surface-2 border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand outline-none w-full';
+
+  return (
+    <Card title="Start Timer">
+      <div className="space-y-4">
+        {/* Focus */}
+        <div>
+          <label className="block text-text-secondary text-sm mb-1">Focus</label>
+          <input
+            type="text"
+            value={focus}
+            onChange={(e) => {
+              setFocus(e.target.value);
+              if (focusError) setFocusError(false);
+            }}
+            placeholder="What are you working on?"
+            className={`${inputClass} ${focusError ? 'border-error' : ''}`}
+          />
+          {focusError && (
+            <p className="text-error text-xs mt-1">Focus is required</p>
+          )}
+        </div>
+
+        {/* Work / Break durations */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-text-secondary text-sm mb-1">Work (min)</label>
+            <input
+              type="number"
+              min={1}
+              max={180}
+              value={workDuration}
+              onChange={(e) => setWorkDuration(Math.max(1, Math.min(180, Number(e.target.value))))}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-text-secondary text-sm mb-1">Break (min)</label>
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={breakDuration}
+              onChange={(e) => setBreakDuration(Math.max(1, Math.min(60, Number(e.target.value))))}
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        {/* Long break */}
+        <div>
+          <label className="block text-text-secondary text-sm mb-1">Long break</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={longBreakDuration}
+              onChange={(e) => setLongBreakDuration(Math.max(1, Math.min(60, Number(e.target.value))))}
+              className={inputClass}
+              title="Duration (min)"
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-text-tertiary text-sm shrink-0">every</span>
+              <input
+                type="number"
+                min={1}
+                max={12}
+                value={longBreakInterval}
+                onChange={(e) => setLongBreakInterval(Math.max(1, Math.min(12, Number(e.target.value))))}
+                className={inputClass}
+                title="Every N sessions"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Sessions */}
+        <div>
+          <label className="block text-text-secondary text-sm mb-1">Sessions</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={targetSessions ?? 4}
+              onChange={(e) => setTargetSessions(Math.max(1, Math.min(12, Number(e.target.value))))}
+              disabled={unlimited}
+              className={`${inputClass} ${unlimited ? 'opacity-50' : ''}`}
+            />
+            <label className="flex items-center gap-2 cursor-pointer shrink-0">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={unlimited}
+                onClick={() => {
+                  setUnlimited(!unlimited);
+                  if (!unlimited) setTargetSessions(null);
+                  else setTargetSessions(4);
+                }}
+                className={`relative w-9 h-5 rounded-full transition-colors ${
+                  unlimited ? 'bg-brand' : 'bg-surface-3'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    unlimited ? 'translate-x-4' : ''
+                  }`}
+                />
+              </button>
+              <span className="text-text-secondary text-sm">{unlimited ? '\u221E' : ''}</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Auto-start toggles */}
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoStartBreak}
+              onClick={() => setAutoStartBreak(!autoStartBreak)}
+              className={`relative w-9 h-5 rounded-full transition-colors ${
+                autoStartBreak ? 'bg-brand' : 'bg-surface-3'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  autoStartBreak ? 'translate-x-4' : ''
+                }`}
+              />
+            </button>
+            <span className="text-text-secondary text-sm">Auto-start break</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoStartWork}
+              onClick={() => setAutoStartWork(!autoStartWork)}
+              className={`relative w-9 h-5 rounded-full transition-colors ${
+                autoStartWork ? 'bg-brand' : 'bg-surface-3'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  autoStartWork ? 'translate-x-4' : ''
+                }`}
+              />
+            </button>
+            <span className="text-text-secondary text-sm">Auto-start work</span>
+          </label>
+        </div>
+
+        {/* Error message */}
+        {apiError && (
+          <p className="text-error text-sm">{apiError}</p>
+        )}
+
+        {/* Start button */}
+        <button
+          onClick={handleStart}
+          disabled={isSubmitting}
+          className="w-full bg-brand hover:bg-brand/90 text-surface-base font-semibold py-3 px-8 rounded-lg transition-colors disabled:opacity-50"
+        >
+          {isSubmitting ? 'Starting...' : 'Start Timer'}
+        </button>
+      </div>
+    </Card>
+  );
+}

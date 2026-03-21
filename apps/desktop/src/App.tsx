@@ -7,6 +7,7 @@ import { getAccessToken } from './api/client';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GoalsPage } from './pages/GoalsPage';
+import { TimerPage } from './pages/TimerPage';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 
@@ -88,6 +89,16 @@ export function App() {
             <AuthGate>
               <AppShell>
                 <DashboardPage />
+              </AppShell>
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/timer"
+          element={
+            <AuthGate>
+              <AppShell>
+                <TimerPage />
               </AppShell>
             </AuthGate>
           }
