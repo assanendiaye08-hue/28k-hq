@@ -25,6 +25,7 @@ export const XP_AWARDS = {
     measurableComplete: 100, // Completing a measurable goal
     freetextComplete: 75, // Completing a free-text goal
     progressUpdate: 10, // Each progress increment on measurable goal
+    parentAutoComplete: 50, // Reduced XP for auto-completed parent (vs 100/75 for manual)
   },
   streak: {
     dailyBonus: 5, // Bonus XP per day of current streak (5, 10, 15...)

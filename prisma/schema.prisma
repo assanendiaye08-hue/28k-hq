@@ -159,10 +159,19 @@ model Goal {
   completedAt  DateTime?
   extendedAt   DateTime?  // If member chose to extend
 
+  // Hierarchy fields (Phase 11)
+  parentId  String?        // FK to parent goal (null = standalone/top-level)
+  timeframe GoalTimeframe? // Timeframe level (null = legacy standalone)
+  depth     Int            @default(0) // 0 = top-level, 1-3 = nested depth
+
+  parent   Goal?  @relation("GoalHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Goal[] @relation("GoalHierarchy")
+
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([memberId, status])
   @@index([deadline, status])
+  @@index([parentId])
 }
 
 /// Goal type -- measurable with numeric tracking or free-text qualitative.
@@ -177,6 +186,14 @@ enum GoalStatus {
   COMPLETED
   MISSED
   EXTENDED
+}
+
+/// Goal timeframe level for hierarchical goals.
+enum GoalTimeframe {
+  YEARLY
+  QUARTERLY
+  MONTHLY
+  WEEKLY
 }
 
 /// Immutable XP transaction log. Every XP award is recorded here.
