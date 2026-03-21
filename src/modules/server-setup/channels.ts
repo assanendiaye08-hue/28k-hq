@@ -187,6 +187,17 @@ export async function setupServerChannels(
       if (existingChannel) {
         logger.debug(`Channel already exists: ${channelDef.name} in ${categoryDef.name}`);
         channelsCreated++;
+
+        // Ensure #welcome has the manifesto (may have been missed if created before this code existed)
+        if (channelDef.name === 'welcome' && categoryDef.name === 'WELCOME' && existingChannel.isTextBased()) {
+          const messages = await (existingChannel as TextChannel).messages.fetch({ limit: 5 });
+          const hasBotMessage = messages.some((m) => m.author.id === botMember.id);
+          if (!hasBotMessage) {
+            await sendWelcomeMessage(existingChannel as TextChannel);
+            logger.info('Sent welcome manifesto to existing #welcome channel');
+          }
+        }
+
         continue;
       }
 
