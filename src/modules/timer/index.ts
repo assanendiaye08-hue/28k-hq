@@ -331,6 +331,7 @@ async function handleButtonPause(
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
       timerState: timer.state,
+      prePauseState: timer.prePauseState,
     });
   } catch {
     // Non-critical
@@ -368,6 +369,7 @@ async function handleButtonResume(
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
       timerState: timer.state,
+      prePauseState: timer.prePauseState,
     });
   } catch {
     // Non-critical
@@ -735,7 +737,7 @@ async function reconstructTimers(
         memberId: session.memberId,
         mode: session.mode === 'POMODORO' ? 'pomodoro' : 'proportional',
         state: restoredState,
-        prePauseState: restoredState === 'paused' ? 'working' : null,
+        prePauseState: (session.prePauseState as ActiveTimer['prePauseState']) ?? (restoredState === 'paused' ? 'working' : null),
         workDuration: session.workDuration,
         breakDuration: session.breakDuration,
         breakRatio: session.breakRatio,

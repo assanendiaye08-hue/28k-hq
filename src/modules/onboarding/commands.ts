@@ -76,6 +76,27 @@ export async function handleSetup(
     return;
   }
 
+  // Step 2b: Check for partial setup (DB records exist but role missing)
+  const existingAccount = await db.discordAccount.findUnique({
+    where: { discordId: interaction.user.id },
+    include: { member: true },
+  });
+
+  if (existingAccount) {
+    // DB records exist from a previous partial run -- recover by assigning role
+    try {
+      if (memberRole) {
+        await guildMember.roles.add(memberRole, 'Recovered from incomplete /setup');
+      }
+      await interaction.editReply("You're already set up! All channels should be unlocked.");
+    } catch {
+      await interaction.editReply(
+        'Your account exists but I couldn\'t assign the role. Please contact an admin.',
+      );
+    }
+    return;
+  }
+
   // Step 3: Run DM conversation flow
   const result = await runSetupFlow(guildMember, logger);
 
