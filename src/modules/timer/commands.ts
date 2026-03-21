@@ -53,6 +53,13 @@ export function buildTimerCommand(): SlashCommandBuilder {
         .setDescription('Start a focus timer')
         .addStringOption((opt) =>
           opt
+            .setName('focus')
+            .setDescription('What are you working on?')
+            .setRequired(true)
+            .setMaxLength(100),
+        )
+        .addStringOption((opt) =>
+          opt
             .setName('mode')
             .setDescription('Timer mode (default: pomodoro)')
             .setRequired(false)
@@ -76,13 +83,6 @@ export function buildTimerCommand(): SlashCommandBuilder {
             .setRequired(false)
             .setMinValue(1)
             .setMaxValue(60),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName('focus')
-            .setDescription('What are you working on?')
-            .setRequired(true)
-            .setMaxLength(100),
         )
         .addIntegerOption((opt) =>
           opt
