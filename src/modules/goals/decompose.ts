@@ -397,8 +397,8 @@ export async function runDecompositionFlow(
                 properties: {
                   title: { type: 'string' },
                   type: { type: 'string', enum: ['MEASURABLE', 'FREETEXT'] },
-                  targetValue: { type: ['number', 'null'] },
-                  unit: { type: ['string', 'null'] },
+                  targetValue: { anyOf: [{ type: 'number' }, { type: 'null' }] },
+                  unit: { anyOf: [{ type: 'string' }, { type: 'null' }] },
                 },
                 required: ['title', 'type', 'targetValue', 'unit'],
                 additionalProperties: false,

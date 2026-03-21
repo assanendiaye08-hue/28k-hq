@@ -167,7 +167,7 @@ export async function runReflectionFlow(
               properties: {
                 acknowledgment: { type: 'string' },
                 hasFollowUp: { type: 'boolean' },
-                followUpQuestion: { type: ['string', 'null'] },
+                followUpQuestion: { anyOf: [{ type: 'string' }, { type: 'null' }] },
               },
               required: ['acknowledgment', 'hasFollowUp', 'followUpQuestion'],
               additionalProperties: false,
