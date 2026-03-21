@@ -506,6 +506,7 @@ model TimerSession {
   mode              TimerMode
   status            TimerStatus  @default(ACTIVE)
   focus             String?      // What they were working on (free text)
+  timerState        String?      // Persisted timer state for recovery (working/on_break/paused)
   goalId            String?      // Linked goal ID if any
   workDuration      Int          // Configured work interval in minutes
   breakDuration     Int          // Configured break interval in minutes

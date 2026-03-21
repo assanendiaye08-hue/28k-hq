@@ -240,7 +240,7 @@ async function handleSkipNextButton(
       return;
     }
 
-    await skipNextOccurrence(fallbackReminder.id, db);
+    await skipNextOccurrence(fallbackReminder.id, db, fallbackReminder.cronExpression);
     await interaction.followUp({
       content: 'Next occurrence skipped. The series will continue after that.',
       ephemeral: true,
@@ -248,7 +248,7 @@ async function handleSkipNextButton(
     return;
   }
 
-  await skipNextOccurrence(reminder.id, db);
+  await skipNextOccurrence(reminder.id, db, reminder.cronExpression);
   await interaction.followUp({
     content: 'Next occurrence skipped. The series will continue after that.',
     ephemeral: true,

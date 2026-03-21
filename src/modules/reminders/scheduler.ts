@@ -335,16 +335,25 @@ export async function acknowledgeReminder(
 /**
  * Skip the next occurrence of a recurring reminder.
  * Sets skipUntil so the cron callback silently skips once.
+ *
+ * Duration is cron-aware: daily reminders (day-of-week = *) skip ~23 hours,
+ * weekly reminders (specific day-of-week) skip ~6 days 23 hours.
  */
 export async function skipNextOccurrence(
   reminderId: string,
   db: ExtendedPrismaClient,
+  cronExpression?: string | null,
 ): Promise<void> {
-  // Set skipUntil far enough to cover the next fire.
-  // For simplicity: set to now + 23 hours for daily, now + 6 days + 23 hours for weekly.
-  // The cron callback checks skipUntil > now and clears it after skipping.
-  // Using a generous 23 hours covers most cases without complex cron expression parsing.
-  const skipUntil = new Date(Date.now() + 23 * 60 * 60 * 1000);
+  // Determine skip duration based on cron expression.
+  // Cron format: minute hour * * dayOfWeek
+  // If day-of-week is '*' (or no cron), it's daily -> skip 23 hours.
+  // If day-of-week is specific (e.g., '1' for Monday), it's weekly -> skip ~6d 23h.
+  const isWeekly = cronExpression ? cronExpression.split(' ')[4] !== '*' : false;
+  const skipMs = isWeekly
+    ? (6 * 24 + 23) * 3600_000    // ~6 days 23 hours for weekly
+    : 23 * 3600_000;               // ~23 hours for daily
+
+  const skipUntil = new Date(Date.now() + skipMs);
 
   await db.reminder.update({
     where: { id: reminderId },

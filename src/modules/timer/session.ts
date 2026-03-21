@@ -147,6 +147,7 @@ export async function createActiveTimerRecord(
       mode: timer.mode === 'pomodoro' ? 'POMODORO' : 'PROPORTIONAL',
       status: 'ACTIVE',
       focus: timer.focus,
+      timerState: timer.state,
       goalId: timer.goalId,
       workDuration: timer.workDuration,
       breakDuration: timer.breakDuration,
@@ -178,6 +179,7 @@ export async function updateTimerRecord(
     dmMessageId?: string;
     dmChannelId?: string;
     breakDuration?: number;
+    timerState?: string;
   },
 ): Promise<void> {
   await db.timerSession.updateMany({
