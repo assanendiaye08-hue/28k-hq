@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand colors from @28k/shared BRAND_COLORS */
+  --color-brand: #f59e0b;
+  --color-brand-light: #fbbf24;
+  --color-brand-dim: #b45309;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Dark theme surface colors */
+  --color-surface-base: #0f0f0f;
+  --color-surface-1: #1a1a1a;
+  --color-surface-2: #262626;
+  --color-surface-3: #333333;
+
+  /* Text colors */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #a3a3a3;
+  --color-text-tertiary: #737373;
+
+  /* Border */
+  --color-border: #333333;
+  --color-border-brand: #f59e0b40;
+
+  /* Rank colors (from RANK_PROGRESSION) */
+  --color-rank-rookie: #9e9e9e;
+  --color-rank-grinder: #4caf50;
+  --color-rank-hustler: #2196f3;
+  --color-rank-boss: #9c27b0;
+  --color-rank-mogul: #ff9800;
+  --color-rank-legend: #ffd700;
+}
+
+body {
+  @apply bg-surface-base text-text-primary;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}

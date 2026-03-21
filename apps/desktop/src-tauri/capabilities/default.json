@@ -1,0 +1,16 @@
+{
+  "identifier": "default",
+  "description": "Default capability set for the 28K HQ desktop app",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "store:default",
+    "positioner:default",
+    "opener:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-close",
+    "core:window:allow-is-visible"
+  ]
+}
