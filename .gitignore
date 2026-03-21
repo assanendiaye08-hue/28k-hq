@@ -31,5 +31,12 @@ coverage/
 .agents/
 .claude/
 
+# Prisma generated client (regenerated on install)
+packages/db/generated/
+
 # Prisma migrations (local dev only)
 prisma/migrations/
+packages/db/prisma/migrations/
+
+# Turbo cache
+.turbo/
