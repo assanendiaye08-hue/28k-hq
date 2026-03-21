@@ -65,8 +65,10 @@ export class DiscordReminderDelivery implements ReminderDeliveryBackend {
   }
 
   /**
-   * Low urgency: plain text via notification router.
-   * No need for message ID -- low urgency doesn't repeat.
+   * Low urgency: plain text via notification router for non-recurring reminders.
+   * For recurring low-urgency (buttons present), attempts direct DM first to get
+   * the Message object back for Skip Next button binding via dmMessageId.
+   * Falls back to deliverNotification if direct DM fails or no buttons.
    */
   private async deliverLowUrgency(
     memberId: string,
@@ -80,6 +82,27 @@ export class DiscordReminderDelivery implements ReminderDeliveryBackend {
       ? buildDelayedReminderContent(content)
       : buildLowUrgencyContent(content);
 
+    // Recurring low-urgency: try direct DM to get message ID for Skip Next binding
+    if (options?.buttons) {
+      try {
+        const account = await this.db.discordAccount.findFirst({
+          where: { memberId },
+        });
+
+        if (account) {
+          const user = await this.client.users.fetch(account.discordId);
+          const message = await user.send({
+            content: text,
+            components: [options.buttons],
+          }) as Message;
+          return { messageId: message.id, success: true };
+        }
+      } catch {
+        // Direct DM failed -- fall through to notification router
+      }
+    }
+
+    // Non-recurring or direct DM failed: use notification router (no message ID)
     const deliveryContent: Record<string, unknown> = { content: text };
     if (options?.buttons) {
       deliveryContent.components = [options.buttons];
