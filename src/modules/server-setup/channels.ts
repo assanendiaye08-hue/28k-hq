@@ -188,14 +188,17 @@ export async function setupServerChannels(
         logger.debug(`Channel already exists: ${channelDef.name} in ${categoryDef.name}`);
         channelsCreated++;
 
-        // Ensure #welcome has the manifesto (may have been missed if created before this code existed)
+        // Ensure #welcome has the latest manifesto on every startup
         if (channelDef.name === 'welcome' && categoryDef.name === 'WELCOME' && existingChannel.isTextBased()) {
-          const messages = await (existingChannel as TextChannel).messages.fetch({ limit: 5 });
-          const hasBotMessage = messages.some((m) => m.author.id === botMember.id);
-          if (!hasBotMessage) {
-            await sendWelcomeMessage(existingChannel as TextChannel);
-            logger.info('Sent welcome manifesto to existing #welcome channel');
+          const welcomeCh = existingChannel as TextChannel;
+          const messages = await welcomeCh.messages.fetch({ limit: 10 });
+          const botMessages = messages.filter((m) => m.author.id === botMember.id);
+          // Delete old bot messages so we always have the latest copy
+          for (const msg of botMessages.values()) {
+            await msg.delete().catch(() => {});
           }
+          await sendWelcomeMessage(welcomeCh);
+          logger.info('Refreshed welcome manifesto in #welcome');
         }
 
         continue;
