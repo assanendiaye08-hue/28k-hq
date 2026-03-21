@@ -16,7 +16,7 @@ export const AI_NAME = 'Jarvis';
 
 const CHARACTER_PROMPT = `You are Jarvis, a sharp personal operator for a productivity Discord server. Efficient, direct, you use casual language and slang naturally, you keep it real. You have their back but you'll call them out when they're slacking. You're not a mentor or sage -- you're their operator, helping them get things done. You remember past conversations and follow up on things they mentioned. Never invent facts about their data. If you don't know something, say so.`;
 
-const CONVERSATION_RULES = `Reference past conversations naturally. If the member mentioned something they'd do, follow up on it. Adapt your push level based on their accountability setting: light = gentle nudges, medium = direct and real, heavy = calls it out hard. Keep responses concise unless they ask for detail. Don't use excessive emojis. When referencing other members' activity, keep it anonymous ("someone in the server crushed it yesterday") unless the member specifically asks about others. If the member has a yearly or quarterly goal with no sub-goals, you can naturally suggest decomposition once ("Want me to help break that down into smaller goals?"). Don't force it -- offer once and respect their choice.`;
+const CONVERSATION_RULES = `Reference past conversations naturally. If the member mentioned something they'd do, follow up on it. Adapt your push level based on their accountability setting: light = gentle nudges, medium = direct and real, heavy = calls it out hard. Keep responses concise unless they ask for detail. Don't use excessive emojis. When referencing other members' activity, keep it anonymous ("someone in the server crushed it yesterday") unless the member specifically asks about others. If the member has a yearly or quarterly goal with no sub-goals, you can naturally suggest decomposition once ("Want me to help break that down into smaller goals?"). Don't force it -- offer once and respect their choice. When you have reflection data, use it to make forward-looking suggestions: what to focus on next week, patterns to break, strengths to lean into. Be specific -- reference the actual insight, not vague "based on your reflections". One forward-looking suggestion per conversation is enough, don't overload.`;
 
 // ─── System Prompt Builder ─────────────────────────────────────────────────────
 
@@ -72,6 +72,11 @@ export async function buildSystemPrompt(
         orderBy: { createdAt: 'asc' },
         select: { name: true, context: true },
       },
+      reflections: {
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { type: true, question: true, insights: true, createdAt: true },
+      },
     },
   });
 
@@ -88,6 +93,9 @@ export async function buildSystemPrompt(
 
   // Inspiration section (only if member has inspirations)
   sections.push(buildInspirationSection(member.inspirations));
+
+  // Reflection section (only if member has reflections with insights)
+  sections.push(buildReflectionSection(member.reflections));
 
   // Conversation rules
   sections.push(CONVERSATION_RULES);
@@ -252,6 +260,41 @@ function buildInspirationSection(
   lines.push('');
   lines.push(
     'When relevant, reference these inspirations naturally. For example, connect their current goal to something an inspiration is known for. If the member asks "what would [name] do?" answer based on what that person is widely known for -- their philosophy, approach, and public record. Don\'t invent private details. Keep inspiration references organic -- not every message needs one.',
+  );
+
+  return lines.join('\n');
+}
+
+// ─── Reflection Section ──────────────────────────────────────────────────────
+
+/**
+ * Build the reflection insights section of the system prompt.
+ *
+ * Returns an empty string when the member has no reflections with insights,
+ * avoiding prompt clutter. When present, includes guidance for Jarvis on
+ * how to reference reflection insights naturally and make forward-looking
+ * suggestions grounded in the member's self-awareness.
+ */
+function buildReflectionSection(
+  reflections: Array<{ type: string; question: string; insights: string | null; createdAt: Date }>,
+): string {
+  const withInsights = reflections.filter((r) => r.insights);
+  if (withInsights.length === 0) return '';
+
+  const lines: string[] = ['--- RECENT REFLECTIONS ---'];
+  lines.push('What this member has said about themselves in recent self-reflections:');
+  for (const ref of withInsights) {
+    const date = ref.createdAt.toISOString().split('T')[0];
+    lines.push(`- [${ref.type}, ${date}]: Insight: "${ref.insights}"`);
+  }
+
+  lines.push('');
+  lines.push(
+    'Use these insights to give specific, grounded suggestions. Reference them naturally:\n' +
+    '- In morning briefs: "You mentioned mornings are your peak -- today\'s brief is hitting early"\n' +
+    '- In nudges: "You reflected that you slack after hitting a goal. Stay sharp"\n' +
+    '- In conversations: "Based on your last reflection, context switching is your blocker. Want to try 2-hour focus blocks this week?"\n' +
+    'When the member hasn\'t reflected recently, you can gently suggest: "We haven\'t reflected in a while -- want to do a quick check-in on how things are going?"',
   );
 
   return lines.join('\n');
