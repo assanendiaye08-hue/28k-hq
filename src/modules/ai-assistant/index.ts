@@ -6,6 +6,7 @@
  *
  * Features:
  * - DM conversations with context-aware AI responses
+ * - Natural language timer starts via DM ("start a 45 min focus session on coding")
  * - /ask command for chatting from any channel (ephemeral)
  * - /wipe-history to export and clear conversation data
  * - Per-member processing lock prevents race conditions
@@ -25,6 +26,10 @@ import {
   splitMessage,
 } from './commands.js';
 import { handleChat } from './chat.js';
+import { isTimerRequest, parseTimerRequest } from '../timer/natural-language.js';
+import { getActiveTimer } from '../timer/engine.js';
+import { startTimerForMember } from '../timer/index.js';
+import { TIMER_DEFAULTS } from '../timer/constants.js';
 
 const aiAssistantModule: Module = {
   name: 'ai-assistant',
@@ -54,6 +59,44 @@ const aiAssistantModule: Module = {
 
         // Ignore DMs from non-registered users
         if (!account) return;
+
+        // Check for timer intent before regular chat processing
+        if (isTimerRequest(message.content)) {
+          // Already has an active timer -- tell them
+          if (getActiveTimer(account.memberId)) {
+            await message.reply(
+              "You already have a timer running. Say 'stop timer' or use /timer stop first.",
+            );
+            return;
+          }
+
+          const parsed = await parseTimerRequest(db, account.memberId, message.content);
+          if (parsed.isTimerRequest) {
+            const timer = await startTimerForMember(
+              client,
+              db,
+              ctx.events,
+              account.memberId,
+              message.author.id,
+              {
+                mode: parsed.mode ?? 'pomodoro',
+                workDuration: parsed.workMinutes ?? TIMER_DEFAULTS.defaultWorkMinutes,
+                breakDuration: parsed.breakMinutes ?? TIMER_DEFAULTS.defaultBreakMinutes,
+                focus: parsed.focus,
+                goalId: null,
+              },
+            );
+
+            if (!timer) {
+              await message.reply(
+                'Could not start the timer. Please enable DMs from this server and try again.',
+              );
+            }
+            // Timer started successfully -- DM with embed+buttons already sent by startTimerForMember
+            return;
+          }
+          // AI says it's not actually a timer request -- fall through to regular chat
+        }
 
         // Show typing indicator
         await message.channel.sendTyping();
