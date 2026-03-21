@@ -85,12 +85,22 @@ export class DiscordReminderDelivery implements ReminderDeliveryBackend {
     // Recurring low-urgency: try direct DM to get message ID for Skip Next binding
     if (options?.buttons) {
       try {
-        const account = await this.db.discordAccount.findFirst({
+        let targetDiscordId: string | null = null;
+
+        const prefs = await this.db.notificationPreference.findUnique({
           where: { memberId },
         });
+        if (prefs?.reminderAccountId) {
+          targetDiscordId = prefs.reminderAccountId;
+        } else {
+          const account = await this.db.discordAccount.findFirst({
+            where: { memberId },
+          });
+          targetDiscordId = account?.discordId ?? null;
+        }
 
-        if (account) {
-          const user = await this.client.users.fetch(account.discordId);
+        if (targetDiscordId) {
+          const user = await this.client.users.fetch(targetDiscordId);
           const message = await user.send({
             content: text,
             components: [options.buttons],
@@ -136,14 +146,24 @@ export class DiscordReminderDelivery implements ReminderDeliveryBackend {
   ): Promise<{ messageId: string | null; success: boolean }> {
     const embed = buildHighUrgencyEmbed(content);
 
-    // Try direct DM to get message ID back
+    // Try direct DM to get message ID back (respects routing preference)
     try {
-      const account = await this.db.discordAccount.findFirst({
+      let targetDiscordId: string | null = null;
+
+      const prefs = await this.db.notificationPreference.findUnique({
         where: { memberId },
       });
+      if (prefs?.reminderAccountId) {
+        targetDiscordId = prefs.reminderAccountId;
+      } else {
+        const account = await this.db.discordAccount.findFirst({
+          where: { memberId },
+        });
+        targetDiscordId = account?.discordId ?? null;
+      }
 
-      if (account) {
-        const user = await this.client.users.fetch(account.discordId);
+      if (targetDiscordId) {
+        const user = await this.client.users.fetch(targetDiscordId);
         const sendPayload: Record<string, unknown> = { embeds: [embed] };
         if (options?.buttons) {
           sendPayload.components = [options.buttons];
