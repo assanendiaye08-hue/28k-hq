@@ -20,7 +20,7 @@ Requirements for v1.1 Depth milestone. Each maps to roadmap phases.
 - [x] **TIMER-01**: Member can start a pomodoro timer with configurable work/break lengths (default 25/5) via /timer command
 - [x] **TIMER-02**: Member can start a proportional break timer -- work as long as you want, press pause, get a break relative to time worked (default 5:1 ratio)
 - [x] **TIMER-03**: Member can define what they're working on when starting a timer -- tied to an active goal or free-text description
-- [ ] **TIMER-04**: Timer sessions award XP on completion and are tracked for stats (duration, what was worked on)
+- [x] **TIMER-04**: Timer sessions award XP on completion and are tracked for stats (duration, what was worked on)
 
 ### Goal Hierarchy
 
@@ -101,7 +101,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIMER-01 | Phase 9 | Complete |
 | TIMER-02 | Phase 9 | Complete |
 | TIMER-03 | Phase 9 | Complete |
-| TIMER-04 | Phase 9 | Pending |
+| TIMER-04 | Phase 9 | Complete |
 | REMIND-01 | Phase 10 | Pending |
 | REMIND-02 | Phase 10 | Pending |
 | REMIND-03 | Phase 10 | Pending |

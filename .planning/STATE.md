@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 9 of 13 (Productivity Timer)
-Plan: 1 of 3
+Plan: 2 of 3
 Status: In Progress
-Last activity: 2026-03-21 -- Completed 09-01 (Timer foundation)
+Last activity: 2026-03-21 -- Completed 09-02 (Timer interaction layer)
 
-Progress: [███████░░░░░░░░░░░░░] 33% (v1.1)
+Progress: [████████████░░░░░░░░] 60% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 24 (18 v1.0 + 6 v1.1)
+- Total plans completed: 25 (18 v1.0 + 7 v1.1)
 - Average duration: 5 min
-- Total execution time: 1.89 hours
+- Total execution time: 2.04 hours
 
 **By Phase (v1.0):**
 
@@ -40,10 +40,10 @@ Progress: [███████░░░░░░░░░░░░░] 33% (v1
 |-------|-------|-------|----------|
 | 07-ai-infrastructure | 3/3 | 20 min | 7 min |
 | 08-inspiration-system | 2/2 | 5 min | 3 min |
-| 09-productivity-timer | 1/3 | 5 min | 5 min |
+| 09-productivity-timer | 2/3 | 14 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-02 (9 min), 07-03 (5 min), 08-01 (3 min), 08-02 (2 min), 09-01 (5 min)
+- Last 5 plans: 07-03 (5 min), 08-01 (3 min), 08-02 (2 min), 09-01 (5 min), 09-02 (9 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -77,6 +77,10 @@ Recent decisions affecting current work:
 - [09-01]: remainingMs field on ActiveTimer so callers can re-schedule transitions after resume
 - [09-01]: Proportional break calculated from current work interval only (not cumulative totalWorkedMs)
 - [09-01]: Amber/warning color for paused state distinct from success (working) and info (break)
+- [09-02]: Global button routing added to index.ts between autocomplete and command checks
+- [09-02]: timerTransition internal event for decoupling command handlers from transition orchestration
+- [09-02]: ChannelType.DM narrowing instead of isDMBased() to avoid PartialGroupDMChannel type issues
+- [09-02]: Restart recovery sends NEW DM messages instead of editing old ones (Pitfall 5)
 
 ### Pending Todos
 
@@ -89,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 09-01-PLAN.md
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
