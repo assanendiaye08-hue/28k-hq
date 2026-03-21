@@ -37,7 +37,7 @@ Full details: .planning/milestones/v1.1-ROADMAP.md
 
 </details>
 
-### 🚧 v2.0 Desktop Companion App (Phases 14-19)
+### v2.0 Desktop Companion App (Phases 14-19)
 
 **Milestone Goal:** Extend the platform from Discord-only to a three-app system (bot + API + desktop) with a Tauri desktop companion app providing menu bar timer, goal hierarchy views, and daily dashboard.
 
@@ -88,6 +88,12 @@ Plans:
 **Goal**: Full pomodoro timer with menu bar countdown, popover controls, alarm transitions, API sync, persistence
 **Depends on**: Phase 16
 **Requirements**: TMR-01, TMR-02, TMR-03, TMR-04, TMR-05, TMR-06, TMR-07, TMR-08, TMR-09, TMR-10, TMR-11, TMR-12
+**Plans:** 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Timer engine: Zustand store, schema migration, tray helper, persistence, audio
+- [ ] 17-02-PLAN.md — Timer UI: setup form, running display, popover window, tray click routing
+- [ ] 17-03-PLAN.md — Timer transitions: alarm foreground, work/break screens, API sync with XP
 
 ### Phase 18: Flowmodoro + Goals Editing
 **Goal**: Count-up timer mode with auto-calculated breaks, plus goal CRUD from desktop app
