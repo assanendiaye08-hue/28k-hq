@@ -10,6 +10,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_oauth::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             // Build tray menu
             let show =

@@ -1,16 +1,24 @@
 {
   "identifier": "default",
   "description": "Default capability set for the 28K HQ desktop app",
-  "windows": ["main"],
+  "windows": ["main", "timer-popover", "timer-mini"],
   "permissions": [
     "core:default",
     "store:default",
     "positioner:default",
     "opener:default",
+    "notification:default",
+    "tray:default",
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-set-focus",
     "core:window:allow-close",
-    "core:window:allow-is-visible"
+    "core:window:allow-is-visible",
+    "core:window:allow-create",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-request-user-attention",
+    "core:window:allow-unminimize",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position"
   ]
 }

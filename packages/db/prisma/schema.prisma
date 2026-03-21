@@ -526,6 +526,9 @@ model TimerSession {
   dmMessageId       String?      // Discord message ID of the live timer DM
   dmChannelId       String?      // Discord DM channel ID
   seasonId          String?
+  targetSessions    Int?         // Number of pomodoro sessions to chain (1-12, null=unlimited)
+  longBreakDuration Int?         // Long break duration in minutes
+  longBreakInterval Int?         // Every N sessions, use long break instead of normal break
   source            String       @default("BOT")   // "BOT" or "DESKTOP" -- where session originated
   botNotified       Boolean      @default(false)    // Whether the bot has been notified of this session
 
