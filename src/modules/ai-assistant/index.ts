@@ -28,6 +28,7 @@ import {
   splitMessage,
 } from './commands.js';
 import { handleChat } from './chat.js';
+import { activeSetupUsers } from '../onboarding/setup-flow.js';
 import { isTimerRequest, parseTimerRequest } from '../timer/natural-language.js';
 import { getActiveTimer } from '../timer/engine.js';
 import { startTimerForMember } from '../timer/index.js';
@@ -59,6 +60,9 @@ const aiAssistantModule: Module = {
 
         // Only handle DM-based messages
         if (!message.channel.isDMBased()) return;
+
+        // Skip if user is currently in the setup flow
+        if (activeSetupUsers.has(message.author.id)) return;
 
         // Resolve Discord ID to memberId
         const account = await db.discordAccount.findUnique({

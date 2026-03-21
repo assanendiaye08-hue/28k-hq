@@ -20,6 +20,9 @@ import {
 import type { Logger } from 'winston';
 import { SETUP_TIMEOUT_MS } from '../../shared/constants.js';
 
+/** Track users currently in setup flow so other DM listeners can skip them. */
+export const activeSetupUsers = new Set<string>();
+
 /**
  * Setup question definition.
  */
@@ -126,88 +129,96 @@ export async function runSetupFlow(
   member: GuildMember,
   logger: Logger,
 ): Promise<SetupFlowResult | SetupFlowError> {
+  // Mark user as in setup flow so AI assistant skips their DMs
+  activeSetupUsers.add(member.id);
+
   // Step 1: Open DM channel
   let dm: DMChannel;
   try {
     dm = await member.createDM();
   } catch {
+    activeSetupUsers.delete(member.id);
     logger.warn(`Could not open DM with ${member.user.tag} -- DMs may be closed`);
     return { error: 'dms_closed' };
   }
 
-  // Step 2: Send intro message
   try {
+    // Step 2: Send intro message
+    try {
+      await dm.send(
+        "Hey! Let's get you set up. I'm going to ask you a few questions so I can tailor " +
+        "the server to you. Just answer naturally -- no wrong answers.",
+      );
+    } catch {
+      logger.warn(`Could not send DM to ${member.user.tag} -- DMs likely closed`);
+      return { error: 'dms_closed' };
+    }
+
+    // Step 3: Ask questions one at a time
+    const answers: Record<string, string> = {};
+
+    for (let i = 0; i < QUESTIONS.length; i++) {
+      const q = QUESTIONS[i];
+
+      await dm.send(q.question);
+
+      const response = await awaitResponse(dm, member.id);
+
+      if (response === null) {
+        // Timeout
+        await dm.send(
+          "No worries, you can run /setup again whenever you're ready.",
+        ).catch(() => {
+          // Member may have closed DMs or left the server
+        });
+        logger.info(`Setup flow timed out for ${member.user.tag} on question: ${q.key}`);
+        return { error: 'timeout' };
+      }
+
+      answers[q.key] = response;
+
+      // Send varied acknowledgment (not after the last question -- go straight to space preference)
+      if (i < QUESTIONS.length - 1) {
+        await dm.send(ACKNOWLEDGMENTS[i % ACKNOWLEDGMENTS.length]);
+      }
+    }
+
+    // Step 4: Ask about private space preference
     await dm.send(
-      "Hey! Let's get you set up. I'm going to ask you a few questions so I can tailor " +
-      "the server to you. Just answer naturally -- no wrong answers.",
+      "Last thing -- where do you want your private space? This is where I'll send you " +
+      "briefs, track your stuff, and where you can talk to the AI assistant.\n\n" +
+      "**1.** Right here in DMs (fully private, just you and me)\n" +
+      "**2.** A private channel in the server (more integrated, still only visible to you)\n\n" +
+      "Reply **1** or **2**",
     );
-  } catch {
-    logger.warn(`Could not send DM to ${member.user.tag} -- DMs likely closed`);
-    return { error: 'dms_closed' };
-  }
 
-  // Step 3: Ask questions one at a time
-  const answers: Record<string, string> = {};
+    const spaceResponse = await awaitResponse(dm, member.id);
 
-  for (let i = 0; i < QUESTIONS.length; i++) {
-    const q = QUESTIONS[i];
-
-    await dm.send(q.question);
-
-    const response = await awaitResponse(dm, member.id);
-
-    if (response === null) {
-      // Timeout
+    if (spaceResponse === null) {
       await dm.send(
         "No worries, you can run /setup again whenever you're ready.",
-      ).catch(() => {
-        // Member may have closed DMs or left the server
-      });
-      logger.info(`Setup flow timed out for ${member.user.tag} on question: ${q.key}`);
+      ).catch(() => {});
+      logger.info(`Setup flow timed out for ${member.user.tag} on space preference`);
       return { error: 'timeout' };
     }
 
-    answers[q.key] = response;
+    // Parse space preference -- default to DM if unclear
+    const trimmed = spaceResponse.trim();
+    const spaceType: 'DM' | 'CHANNEL' =
+      trimmed === '2' || trimmed.toLowerCase().includes('channel') || trimmed.toLowerCase().includes('server')
+        ? 'CHANNEL'
+        : 'DM';
 
-    // Send varied acknowledgment (not after the last question -- go straight to space preference)
-    if (i < QUESTIONS.length - 1) {
-      await dm.send(ACKNOWLEDGMENTS[i % ACKNOWLEDGMENTS.length]);
-    }
+    logger.info(
+      `Setup flow complete for ${member.user.tag}: space=${spaceType}, answers=${Object.keys(answers).length}`,
+    );
+
+    return {
+      answers,
+      spaceType,
+      displayName: member.displayName,
+    };
+  } finally {
+    activeSetupUsers.delete(member.id);
   }
-
-  // Step 4: Ask about private space preference
-  await dm.send(
-    "Last thing -- where do you want your private space? This is where I'll send you " +
-    "briefs, track your stuff, and where you can talk to the AI assistant.\n\n" +
-    "**1.** Right here in DMs (fully private, just you and me)\n" +
-    "**2.** A private channel in the server (more integrated, still only visible to you)\n\n" +
-    "Reply **1** or **2**",
-  );
-
-  const spaceResponse = await awaitResponse(dm, member.id);
-
-  if (spaceResponse === null) {
-    await dm.send(
-      "No worries, you can run /setup again whenever you're ready.",
-    ).catch(() => {});
-    logger.info(`Setup flow timed out for ${member.user.tag} on space preference`);
-    return { error: 'timeout' };
-  }
-
-  // Parse space preference -- default to DM if unclear
-  const trimmed = spaceResponse.trim();
-  const spaceType: 'DM' | 'CHANNEL' =
-    trimmed === '2' || trimmed.toLowerCase().includes('channel') || trimmed.toLowerCase().includes('server')
-      ? 'CHANNEL'
-      : 'DM';
-
-  logger.info(
-    `Setup flow complete for ${member.user.tag}: space=${spaceType}, answers=${Object.keys(answers).length}`,
-  );
-
-  return {
-    answers,
-    spaceType,
-    displayName: member.displayName,
-  };
 }
