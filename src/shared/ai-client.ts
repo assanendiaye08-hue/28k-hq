@@ -183,13 +183,31 @@ export async function callAI(
    * Using stream: false ensures the SDK returns ChatResponse (not EventStream).
    */
   async function sendToModel(model: string): Promise<ChatResponse> {
+    // OpenRouter models don't support json_schema — convert to json_object
+    // and inject the schema into the system prompt instead
+    let messages = options.messages;
+    let responseFormat = options.responseFormat as Record<string, unknown> | undefined;
+
+    if (responseFormat && (responseFormat as { type: string }).type === 'json_schema') {
+      const schema = (responseFormat as { json_schema?: { schema?: object } }).json_schema?.schema;
+      responseFormat = { type: 'json_object' as const };
+      if (schema) {
+        const schemaInstruction = `\n\nRespond with ONLY valid JSON matching this schema:\n${JSON.stringify(schema, null, 2)}`;
+        messages = messages.map((msg, i) =>
+          i === 0 && msg.role === 'system'
+            ? { ...msg, content: msg.content + schemaInstruction }
+            : msg,
+        );
+      }
+    }
+
     const params: ChatGenerationParams & { stream: false } = {
       model,
-      messages: options.messages,
+      messages,
       stream: false,
     };
-    if (options.responseFormat) {
-      params.responseFormat = options.responseFormat as ChatGenerationParams['responseFormat'];
+    if (responseFormat) {
+      params.responseFormat = responseFormat as ChatGenerationParams['responseFormat'];
     }
     return openrouter.chat.send({ chatGenerationParams: params });
   }
