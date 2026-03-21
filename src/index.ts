@@ -109,6 +109,10 @@ async function main(): Promise<void> {
       events.emit('autocomplete', interaction);
       return;
     }
+    if (interaction.isButton()) {
+      events.emit('buttonInteraction', interaction);
+      return;
+    }
     if (!interaction.isChatInputCommand()) return;
     await commands.handleInteraction(interaction, ctx);
   });
