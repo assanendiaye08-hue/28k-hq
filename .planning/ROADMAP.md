@@ -77,6 +77,12 @@ Plans:
 **Goal**: Tauri app boots, authenticates, shows dashboard and goal hierarchy with dark+gold theme
 **Depends on**: Phase 15
 **Requirements**: APP-01, APP-02, APP-03, APP-04, APP-05, AUTH-04, DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, GOAL-01, GOAL-02
+**Plans:** 3 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Scaffold Tauri v2 app with system tray, Discord OAuth login, dark+gold theme
+- [ ] 16-02-PLAN.md — Dashboard page with priorities, weekly goals, streak, rank, and quote cards
+- [ ] 16-03-PLAN.md — Goals page with recursive tree view, progress bars, and timeframe filtering
 
 ### Phase 17: Pomodoro Timer
 **Goal**: Full pomodoro timer with menu bar countdown, popover controls, alarm transitions, API sync, persistence
