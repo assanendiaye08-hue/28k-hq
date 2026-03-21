@@ -19,15 +19,23 @@ import {
   type SavedTimerState,
 } from '../lib/timer-persistence';
 import { updateTrayTitle } from '../lib/timer-tray';
+import { onPhaseComplete, onSessionComplete } from '../lib/timer-notifications';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type TimerPhase = 'idle' | 'working' | 'on_break' | 'paused' | 'transition';
+export type TransitionType = 'work_done' | 'break_done' | 'session_complete' | null;
 
 interface StopResponse {
   xpAwarded: number;
   leveledUp: boolean;
   newRank: { name: string; color: number } | null;
+}
+
+interface LastStopResult {
+  xpAwarded: number;
+  leveledUp: boolean;
+  newRank: string | null;
 }
 
 interface StartConfig {
@@ -65,6 +73,10 @@ interface TimerState {
   focus: string;
   goalId: string | null;
 
+  // Transition state
+  transitionType: TransitionType;
+  lastStopResult: LastStopResult | null;
+
   // Computed
   getRemainingMs: () => number;
   isLongBreak: () => boolean;
@@ -80,6 +92,7 @@ interface TimerState {
   restore: (saved: SavedTimerState) => void;
   syncFromPersistence: () => Promise<void>;
   updateFocus: (newFocus: string) => void;
+  clearLastStopResult: () => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -104,6 +117,7 @@ function buildSaveState(state: TimerState): SavedTimerState {
     autoStartWork: state.autoStartWork,
     focus: state.focus,
     goalId: state.goalId,
+    transitionType: state.transitionType,
   };
 }
 
@@ -131,6 +145,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   autoStartWork: false,
   focus: '',
   goalId: null,
+
+  // Transition state
+  transitionType: null,
+  lastStopResult: null,
 
   // ── Computed ──
 
@@ -305,6 +323,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       pauseRemainingMs: 0,
       focus: '',
       goalId: null,
+      transitionType: null,
+      lastStopResult: null,
     });
 
     clearTimerState().catch(() => {});
@@ -320,6 +340,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       totalWorkedMs, totalBreakMs, pomodoroCount,
       targetSessions, longBreakDuration, longBreakInterval,
       breakDuration, workDuration, autoStartBreak, autoStartWork,
+      focus,
     } = state;
 
     if (phase === 'working') {
@@ -327,11 +348,51 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       const newTotalWorkedMs = totalWorkedMs + elapsed;
       const newPomodoroCount = pomodoroCount + 1;
 
+      // Trigger alarm + foreground for work completion
+      onPhaseComplete('working', focus).catch(() => {});
+
       // Check if target sessions reached
       if (targetSessions !== null && newPomodoroCount >= targetSessions) {
-        // Use set then call stop
-        set({ totalWorkedMs: newTotalWorkedMs, pomodoroCount: newPomodoroCount });
-        get().stop();
+        // Show session complete transition instead of going idle
+        set({
+          totalWorkedMs: newTotalWorkedMs,
+          pomodoroCount: newPomodoroCount,
+          phase: 'transition',
+          transitionType: 'session_complete',
+          phaseStartedAt: null,
+        });
+
+        // Call stop API in background to get XP
+        const { sessionId } = get();
+        if (sessionId) {
+          apiFetch<StopResponse>(`/timer/${sessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'stop',
+              totalWorkedMs: newTotalWorkedMs,
+              totalBreakMs,
+              pomodoroCount: newPomodoroCount,
+            }),
+          })
+            .then((res) => {
+              set({
+                lastStopResult: {
+                  xpAwarded: res.xpAwarded,
+                  leveledUp: res.leveledUp,
+                  newRank: res.newRank?.name ?? null,
+                },
+              });
+              onSessionComplete(focus, res.xpAwarded).catch(() => {});
+            })
+            .catch(() => {
+              set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
+            });
+        } else {
+          set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
+        }
+
+        saveTimerState(buildSaveState(get())).catch(() => {});
         return;
       }
 
@@ -346,10 +407,12 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           phaseDurationMs: nextBreakMs,
           totalWorkedMs: newTotalWorkedMs,
           pomodoroCount: newPomodoroCount,
+          transitionType: null,
         });
       } else {
         set({
           phase: 'transition',
+          transitionType: 'work_done',
           phaseStartedAt: null,
           phaseDurationMs: nextBreakMs,
           totalWorkedMs: newTotalWorkedMs,
@@ -360,16 +423,21 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       const elapsed = phaseStartedAt ? Date.now() - phaseStartedAt : phaseDurationMs;
       const newTotalBreakMs = totalBreakMs + elapsed;
 
+      // Trigger alarm + foreground for break completion
+      onPhaseComplete('on_break', focus).catch(() => {});
+
       if (autoStartWork) {
         set({
           phase: 'working',
           phaseStartedAt: Date.now(),
           phaseDurationMs: workDuration * 60000,
           totalBreakMs: newTotalBreakMs,
+          transitionType: null,
         });
       } else {
         set({
           phase: 'transition',
+          transitionType: 'break_done',
           phaseStartedAt: null,
           phaseDurationMs: workDuration * 60000,
           totalBreakMs: newTotalBreakMs,
@@ -389,6 +457,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       phase: 'on_break',
       phaseStartedAt: Date.now(),
       phaseDurationMs: durationMs,
+      transitionType: null,
     });
 
     saveTimerState(buildSaveState(get())).catch(() => {});
@@ -401,6 +470,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       phase: 'working',
       phaseStartedAt: Date.now(),
       phaseDurationMs: workDuration * 60000,
+      transitionType: null,
     });
 
     saveTimerState(buildSaveState(get())).catch(() => {});
@@ -426,6 +496,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       autoStartWork: saved.autoStartWork,
       focus: saved.focus,
       goalId: saved.goalId,
+      transitionType: (saved.transitionType as TransitionType) ?? null,
     });
 
     // If timer was running, check if it should have already completed
@@ -456,6 +527,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         pauseRemainingMs: 0,
         focus: '',
         goalId: null,
+        transitionType: null,
+        lastStopResult: null,
       });
     }
   },
@@ -463,5 +536,25 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   updateFocus: (newFocus) => {
     set({ focus: newFocus });
     saveTimerState(buildSaveState(get())).catch(() => {});
+  },
+
+  clearLastStopResult: () => {
+    set({
+      phase: 'idle',
+      sessionId: null,
+      phaseStartedAt: null,
+      phaseDurationMs: 0,
+      totalWorkedMs: 0,
+      totalBreakMs: 0,
+      pomodoroCount: 0,
+      prePausePhase: null,
+      pauseRemainingMs: 0,
+      focus: '',
+      goalId: null,
+      transitionType: null,
+      lastStopResult: null,
+    });
+    clearTimerState().catch(() => {});
+    updateTrayTitle(null).catch(() => {});
   },
 }));

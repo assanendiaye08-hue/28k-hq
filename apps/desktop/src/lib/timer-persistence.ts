@@ -27,6 +27,7 @@ export interface SavedTimerState {
   autoStartWork: boolean;
   focus: string;
   goalId: string | null;
+  transitionType?: string | null;
 }
 
 export async function saveTimerState(state: SavedTimerState): Promise<void> {

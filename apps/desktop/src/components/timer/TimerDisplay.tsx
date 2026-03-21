@@ -3,6 +3,7 @@
  *
  * Running timer display with circular progress ring,
  * countdown, phase label, session dots, and controls.
+ * Shows TimerTransition screen between phases.
  */
 
 import { useTimerStore } from '../../stores/timer-store';
@@ -10,6 +11,7 @@ import { useTimerTick } from '../../hooks/use-timer-tick';
 import { ProgressRing } from './ProgressRing';
 import { SessionDots } from './SessionDots';
 import { TimerControls } from './TimerControls';
+import { TimerTransition } from './TimerTransition';
 
 export function TimerDisplay() {
   const phase = useTimerStore((s) => s.phase);
@@ -23,6 +25,9 @@ export function TimerDisplay() {
   const transitionToBreak = useTimerStore((s) => s.transitionToBreak);
   const transitionToWork = useTimerStore((s) => s.transitionToWork);
   const isLongBreak = useTimerStore((s) => s.isLongBreak);
+  const transitionType = useTimerStore((s) => s.transitionType);
+  const lastStopResult = useTimerStore((s) => s.lastStopResult);
+  const clearLastStopResult = useTimerStore((s) => s.clearLastStopResult);
 
   const { remainingMs, formattedTime } = useTimerTick();
 
@@ -49,40 +54,62 @@ export function TimerDisplay() {
 
   // Transition screen
   if (phase === 'transition') {
-    // Determine if we just finished working (going to break) or break (going to work)
-    // If phaseDurationMs matches work duration, we're about to work (just finished break)
-    // We check by seeing if pomodoroCount increased recently -- simpler: the store sets
-    // phaseDurationMs to the NEXT phase duration. If it's break-sized, we finished working.
-    const justFinishedWork = phaseDurationMs <= 60 * 60000 && phaseDurationMs !== useTimerStore.getState().workDuration * 60000;
-    // Simpler heuristic: if pomodoroCount > 0 and phaseDurationMs < workDuration, it's a break transition
+    if (transitionType === 'session_complete') {
+      return (
+        <TimerTransition
+          type="session_complete"
+          focus={focus}
+          pomodoroCount={pomodoroCount}
+          targetSessions={targetSessions}
+          xpAwarded={lastStopResult?.xpAwarded}
+          leveledUp={lastStopResult?.leveledUp}
+          newRank={lastStopResult?.newRank}
+          onDismiss={clearLastStopResult}
+        />
+      );
+    }
+
+    if (transitionType === 'work_done') {
+      return (
+        <TimerTransition
+          type="work_done"
+          focus={focus}
+          pomodoroCount={pomodoroCount}
+          targetSessions={targetSessions}
+          isLongBreak={isLongBreak()}
+          onStartBreak={transitionToBreak}
+          onStop={() => stop()}
+        />
+      );
+    }
+
+    if (transitionType === 'break_done') {
+      return (
+        <TimerTransition
+          type="break_done"
+          pomodoroCount={pomodoroCount}
+          targetSessions={targetSessions}
+          onStartWork={transitionToWork}
+          onStop={() => stop()}
+        />
+      );
+    }
+
+    // Fallback for restored state without transitionType (legacy)
     const workDurationMs = useTimerStore.getState().workDuration * 60000;
     const goingToBreak = phaseDurationMs !== workDurationMs;
 
     return (
-      <div className="flex flex-col items-center gap-6">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-text-primary mb-2">
-            {goingToBreak ? 'Work complete!' : 'Break complete!'}
-          </p>
-          <p className="text-text-secondary">{focus}</p>
-        </div>
-
-        <SessionDots completed={pomodoroCount} total={targetSessions} />
-
-        <button
-          onClick={goingToBreak ? transitionToBreak : transitionToWork}
-          className="bg-brand hover:bg-brand/90 text-surface-base font-semibold py-3 px-8 rounded-lg transition-colors"
-        >
-          {goingToBreak ? 'Start Break' : 'Resume Work'}
-        </button>
-
-        <button
-          onClick={() => stop()}
-          className="text-text-tertiary hover:text-error text-sm transition-colors"
-        >
-          Stop Timer
-        </button>
-      </div>
+      <TimerTransition
+        type={goingToBreak ? 'work_done' : 'break_done'}
+        focus={focus}
+        pomodoroCount={pomodoroCount}
+        targetSessions={targetSessions}
+        isLongBreak={goingToBreak ? isLongBreak() : false}
+        onStartBreak={goingToBreak ? transitionToBreak : undefined}
+        onStartWork={goingToBreak ? undefined : transitionToWork}
+        onStop={() => stop()}
+      />
     );
   }
 
