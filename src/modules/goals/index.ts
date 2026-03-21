@@ -29,6 +29,13 @@ const goalsModule: Module = {
       ) {
         await handleGoalAutocomplete(interaction, ctx);
       }
+      // Autocomplete for /setgoal parent option -- reuses the same handler
+      if (
+        interaction.commandName === 'setgoal' &&
+        interaction.options.getFocused(true).name === 'parent'
+      ) {
+        await handleGoalAutocomplete(interaction, ctx);
+      }
     });
 
     ctx.logger.info('[goals] Module registered');

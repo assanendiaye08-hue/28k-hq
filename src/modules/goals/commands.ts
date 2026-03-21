@@ -20,12 +20,18 @@ import {
   type AutocompleteInteraction,
 } from 'discord.js';
 import { TZDate } from '@date-fns/tz';
-import { addDays, addWeeks, addMonths, formatDistanceToNow, isPast, endOfWeek, parse } from 'date-fns';
+import { addDays, addWeeks, addMonths, formatDistanceToNow, isPast, endOfWeek, endOfQuarter, endOfYear, parse } from 'date-fns';
 import type { ModuleContext } from '../../shared/types.js';
 import type { ExtendedPrismaClient } from '../../db/client.js';
 import { successEmbed, errorEmbed, infoEmbed } from '../../shared/embeds.js';
 import { awardXP } from '../xp/engine.js';
 import { XP_AWARDS } from '../xp/constants.js';
+import {
+  validateGoalDepth,
+  getTimeframeDeadline,
+  goalTreeInclude,
+  recalculateParentProgress,
+} from './hierarchy.js';
 
 // ─── Command Builders ──────────────────────────────────────────────────────────
 
@@ -56,14 +62,46 @@ export function buildSetgoalCommand(): SlashCommandBuilder {
       .setDescription("Unit of measurement (e.g., 'emails', 'pages')")
       .setRequired(false),
   );
+  cmd.addStringOption((opt) =>
+    opt
+      .setName('parent')
+      .setDescription('Nest under an existing goal')
+      .setRequired(false)
+      .setAutocomplete(true),
+  );
+  cmd.addStringOption((opt) =>
+    opt
+      .setName('timeframe')
+      .setDescription('Goal timeframe')
+      .setRequired(false)
+      .addChoices(
+        { name: 'Yearly', value: 'YEARLY' },
+        { name: 'Quarterly', value: 'QUARTERLY' },
+        { name: 'Monthly', value: 'MONTHLY' },
+        { name: 'Weekly', value: 'WEEKLY' },
+      ),
+  );
 
   return cmd;
 }
 
 export function buildGoalsCommand(): SlashCommandBuilder {
-  return new SlashCommandBuilder()
+  const cmd = new SlashCommandBuilder()
     .setName('goals')
     .setDescription('View your active goals');
+
+  cmd.addStringOption((opt) =>
+    opt
+      .setName('view')
+      .setDescription('How to display goals')
+      .setRequired(false)
+      .addChoices(
+        { name: 'List (default)', value: 'list' },
+        { name: 'Tree', value: 'tree' },
+      ),
+  );
+
+  return cmd;
 }
 
 export function buildProgressCommand(): SlashCommandBuilder {
@@ -213,9 +251,44 @@ async function handleSetgoal(
   const deadlineInput = interaction.options.getString('deadline', true);
   const target = interaction.options.getInteger('target');
   const unit = interaction.options.getString('unit');
+  const parentId = interaction.options.getString('parent');
+  const timeframeInput = interaction.options.getString('timeframe');
 
   // Parse deadline
-  const deadline = parseDeadline(deadlineInput);
+  let deadline = parseDeadline(deadlineInput);
+
+  // If timeframe is provided and deadline fell through to fallback, use timeframe deadline
+  if (timeframeInput && isFallbackDeadline(deadline)) {
+    deadline = getTimeframeDeadline(timeframeInput);
+  }
+
+  // Validate parent if provided
+  let depth = 0;
+  if (parentId) {
+    const parent = await db.goal.findFirst({
+      where: {
+        id: parentId,
+        memberId,
+        status: { in: ['ACTIVE', 'EXTENDED'] },
+      },
+    });
+
+    if (!parent) {
+      await interaction.editReply({
+        embeds: [errorEmbed('Parent goal not found', 'Parent goal not found or not active.')],
+      });
+      return;
+    }
+
+    if (!validateGoalDepth(parent.depth)) {
+      await interaction.editReply({
+        embeds: [errorEmbed('Too deep', 'Goals can only be nested 4 levels deep.')],
+      });
+      return;
+    }
+
+    depth = parent.depth + 1;
+  }
 
   // Determine goal type
   const goalType = target && unit ? 'MEASURABLE' : 'FREETEXT';
@@ -230,10 +303,13 @@ async function handleSetgoal(
       targetValue: target,
       unit,
       deadline,
+      parentId: parentId ?? undefined,
+      timeframe: (timeframeInput as 'YEARLY' | 'QUARTERLY' | 'MONTHLY' | 'WEEKLY') ?? undefined,
+      depth,
     },
   });
 
-  logger.info(`Goal created: ${goal.id} (${goalType}) for ${memberId}`);
+  logger.info(`Goal created: ${goal.id} (${goalType}) for ${memberId}${parentId ? ` under parent ${parentId}` : ''}`);
 
   // Build response embed
   const embed = successEmbed('Goal set!');
@@ -242,6 +318,17 @@ async function handleSetgoal(
     { name: 'Type', value: goalType === 'MEASURABLE' ? 'Measurable' : 'Free-text', inline: true },
     { name: 'Deadline', value: formatDeadline(deadline), inline: true },
   );
+
+  if (timeframeInput) {
+    embed.addFields({ name: 'Timeframe', value: timeframeInput, inline: true });
+  }
+
+  if (parentId) {
+    const parentGoal = await db.goal.findUnique({ where: { id: parentId } });
+    if (parentGoal) {
+      embed.addFields({ name: 'Parent', value: parentGoal.title, inline: true });
+    }
+  }
 
   if (goalType === 'MEASURABLE' && target && unit) {
     embed.addFields({
@@ -284,12 +371,44 @@ async function handleGoals(
     return;
   }
 
+  const view = interaction.options.getString('view') ?? 'list';
+
+  if (view === 'tree') {
+    // Tree view: show full hierarchy from top-level goals
+    const topGoals = await db.goal.findMany({
+      where: {
+        memberId: account.memberId,
+        status: { in: ['ACTIVE', 'EXTENDED'] },
+        parentId: null,
+      },
+      orderBy: { deadline: 'asc' },
+      include: goalTreeInclude,
+    });
+
+    if (topGoals.length === 0) {
+      await interaction.editReply({
+        embeds: [infoEmbed('No active goals', 'Use /setgoal to create one.')],
+      });
+      return;
+    }
+
+    const treeText = renderGoalTree(topGoals as GoalWithChildren[]);
+    const embed = infoEmbed('Your Goal Tree');
+    embed.setDescription('```\n' + treeText + '\n```');
+
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // List view (default): show top-level and standalone goals with child counts
   const goals = await db.goal.findMany({
     where: {
       memberId: account.memberId,
       status: { in: ['ACTIVE', 'EXTENDED'] },
+      parentId: null, // Only top-level goals
     },
     orderBy: { deadline: 'asc' },
+    include: { _count: { select: { children: true } } },
   });
 
   if (goals.length === 0) {
@@ -303,19 +422,28 @@ async function handleGoals(
 
   for (const goal of goals) {
     const statusBadge = goal.status === 'EXTENDED' ? ' [EXTENDED]' : '';
+    const timeframeTag = goal.timeframe ? `[${goal.timeframe}] ` : '';
     const deadlineStr = isPast(goal.deadline)
       ? 'Overdue'
       : formatDistanceToNow(goal.deadline, { addSuffix: true });
 
     let fieldValue: string;
-    if (goal.type === 'MEASURABLE' && goal.targetValue) {
+    const childCount = goal._count.children;
+
+    if (childCount > 0) {
+      // Parent goal -- show sub-goal progress
+      const completedChildren = await db.goal.count({
+        where: { parentId: goal.id, status: 'COMPLETED' },
+      });
+      fieldValue = `${completedChildren}/${childCount} sub-goals | Due ${deadlineStr}${statusBadge}`;
+    } else if (goal.type === 'MEASURABLE' && goal.targetValue) {
       fieldValue = `${buildProgressBar(goal.currentValue, goal.targetValue, goal.unit ?? '')} | Due ${deadlineStr}${statusBadge}`;
     } else {
       fieldValue = `Due ${deadlineStr}${statusBadge}`;
     }
 
     embed.addFields({
-      name: goal.title,
+      name: `${timeframeTag}${goal.title}`,
       value: fieldValue,
       inline: false,
     });
@@ -363,6 +491,15 @@ async function handleProgress(
   if (!goal) {
     await interaction.editReply({
       embeds: [errorEmbed('Goal not found', 'Could not find that measurable goal. Use /goals to see your active goals.')],
+    });
+    return;
+  }
+
+  // Guard: parent goals with children cannot have direct progress updates
+  const childCount = await db.goal.count({ where: { parentId: goal.id } });
+  if (childCount > 0) {
+    await interaction.editReply({
+      embeds: [errorEmbed('Parent goal', "This goal's progress is calculated from its sub-goals. Update your sub-goals instead.")],
     });
     return;
   }
@@ -422,6 +559,11 @@ async function handleProgress(
 
     await interaction.editReply({ embeds: [embed] });
     logger.info(`Goal auto-completed: ${goal.id} for ${account.memberId}`);
+
+    // Cascade progress to parent if this goal has one
+    if (goal.parentId) {
+      await recalculateParentProgress(db, goal.parentId, events);
+    }
   } else {
     // Update progress
     await db.goal.update({
@@ -557,6 +699,11 @@ async function handleCompletegoal(
 
   await interaction.editReply({ embeds: [embed] });
   logger.info(`Goal completed: ${goal.id} (${goal.type}) for ${account.memberId} (+${xpAmount} XP)`);
+
+  // Cascade progress to parent if this goal has one
+  if (goal.parentId) {
+    await recalculateParentProgress(db, goal.parentId, events);
+  }
 }
 
 // ─── Utility Functions ──────────────────────────────────────────────────────────
@@ -579,6 +726,16 @@ function parseDeadline(input: string): Date {
   if (normalized.includes('end of month') || normalized === 'this month') {
     const eom = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     return eom;
+  }
+
+  // "end of quarter" / "this quarter"
+  if (normalized.includes('end of quarter') || normalized === 'this quarter') {
+    return endOfQuarter(now);
+  }
+
+  // "end of year" / "this year"
+  if (normalized.includes('end of year') || normalized === 'this year') {
+    return endOfYear(now);
   }
 
   // "X days" / "X day"
@@ -651,4 +808,70 @@ function buildProgressBar(current: number, target: number, unit: string): string
   const empty = 10 - filled;
   const bar = '=' .repeat(filled) + '-'.repeat(empty);
   return `[${bar}] ${current}/${target} ${unit}`;
+}
+
+/**
+ * Check if a parsed deadline is the 7-day fallback (i.e., parseDeadline couldn't
+ * understand the input). Used to decide whether to override with timeframe deadline.
+ *
+ * Heuristic: if the deadline is exactly 7 days from now (within a 1-minute window),
+ * it's the fallback.
+ */
+function isFallbackDeadline(deadline: Date): boolean {
+  const expected = addDays(new Date(), 7);
+  const diffMs = Math.abs(deadline.getTime() - expected.getTime());
+  return diffMs < 60_000; // Within 1 minute = fallback
+}
+
+// ─── Tree Rendering ──────────────────────────────────────────────────────────────
+
+/**
+ * Recursive type for goal tree nodes loaded via goalTreeInclude.
+ */
+interface GoalWithChildren {
+  id: string;
+  title: string;
+  status: string;
+  type: string;
+  timeframe: string | null;
+  targetValue: number | null;
+  currentValue: number;
+  unit: string | null;
+  children?: GoalWithChildren[];
+}
+
+/**
+ * Render a goal tree as indented text with progress at each level.
+ *
+ * @param goals - Array of goals at the current level
+ * @param indent - Current indentation depth
+ * @returns Formatted tree string
+ */
+function renderGoalTree(goals: GoalWithChildren[], indent: number = 0): string {
+  const lines: string[] = [];
+  const prefix = '  '.repeat(indent);
+  const connector = indent > 0 ? '|- ' : '';
+
+  for (const goal of goals) {
+    const timeframeTag = goal.timeframe ? `[${goal.timeframe}] ` : '';
+    const statusBadge = goal.status === 'EXTENDED' ? ' [EXT]' : '';
+
+    let progressStr: string;
+    if (goal.children && goal.children.length > 0) {
+      const completed = goal.children.filter((c) => c.status === 'COMPLETED').length;
+      progressStr = `${completed}/${goal.children.length} sub-goals`;
+    } else if (goal.type === 'MEASURABLE' && goal.targetValue) {
+      progressStr = buildProgressBar(goal.currentValue, goal.targetValue, goal.unit ?? '');
+    } else {
+      progressStr = goal.status;
+    }
+
+    lines.push(`${prefix}${connector}${timeframeTag}${goal.title}: ${progressStr}${statusBadge}`);
+
+    if (goal.children && goal.children.length > 0) {
+      lines.push(renderGoalTree(goal.children, indent + 1));
+    }
+  }
+
+  return lines.join('\n');
 }
