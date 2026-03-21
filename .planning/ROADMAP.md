@@ -42,7 +42,7 @@ Full details: .planning/milestones/v1.1-ROADMAP.md
 **Milestone Goal:** Extend the platform from Discord-only to a three-app system (bot + API + desktop) with a Tauri desktop companion app providing menu bar timer, goal hierarchy views, and daily dashboard.
 
 - [x] **Phase 14: Monorepo Restructure** - Extract shared packages, move bot to apps/bot, pnpm + Turborepo (completed 2026-03-21)
-- [ ] **Phase 15: REST API + Authentication** - Fastify server with Discord OAuth, JWT auth, all data endpoints (1/2 plans complete)
+- [x] **Phase 15: REST API + Authentication** - Fastify server with Discord OAuth, JWT auth, all data endpoints (1/2 plans complete) (completed 2026-03-21)
 - [ ] **Phase 16: Desktop Shell + Dashboard + Goals View** - Tauri app with auth, system tray, dashboard, read-only goals
 - [ ] **Phase 17: Pomodoro Timer** - Full pomodoro mode with menu bar countdown, popover controls, transitions, sync
 - [ ] **Phase 18: Flowmodoro + Goals Editing** - Count-up timer mode and goal CRUD from desktop app
@@ -67,7 +67,7 @@ Plans:
 **Goal**: Fastify REST API running with Discord OAuth, JWT auth, and all timer/goals/dashboard/quote endpoints
 **Depends on**: Phase 14
 **Requirements**: API-01, API-02, API-03, API-04, API-05, API-06, AUTH-01, AUTH-02, AUTH-03
-**Plans:** 1/2 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 15-01-PLAN.md — API server foundation with Fastify plugins, Discord OAuth + JWT auth, health check
@@ -102,7 +102,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 1-6 | v1.0 | 18/18 | Complete | 2026-03-20 |
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
 | 14. Monorepo Restructure | 2/2 | Complete    | 2026-03-21 | - |
-| 15. REST API + Auth | v2.0 | 1/2 | In progress | - |
+| 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
 | 16. Desktop Shell + Dashboard | v2.0 | 0/3 | Not started | - |
 | 17. Pomodoro Timer | v2.0 | 0/3 | Not started | - |
 | 18. Flowmodoro + Goals | v2.0 | 0/2 | Not started | - |
