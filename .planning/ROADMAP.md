@@ -76,7 +76,12 @@ Plans:
   3. Member can specify what they are working on when starting a timer -- either linked to an active goal or as free-text -- and this shows in their timer status
   4. Completed timer sessions award XP and are persisted for stats (duration, description, timestamps)
   5. Active timers survive bot restarts -- members do not lose their running sessions when PM2 auto-restarts
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md -- Prisma schema, timer engine state machine, constants, embeds, buttons, and type updates
+- [ ] 09-02-PLAN.md -- /timer command with subcommands, button handler, session persistence with XP, restart recovery
+- [ ] 09-03-PLAN.md -- Natural language timer starts via DM to Jarvis
 
 ### Phase 10: Smart Reminders
 **Goal**: Members can set time-based reminders in natural language with urgency levels and recurring schedules
@@ -98,7 +103,7 @@ Plans:
   1. Member can set goals at any level (yearly, quarterly, monthly, weekly, daily) and optionally nest them under parent goals -- standalone goals continue working exactly as in v1.0
   2. Completing a child goal automatically updates progress on its parent goal, cascading up the hierarchy
   3. Member can ask Jarvis to help break down a big goal into smaller sub-goals through a conversational DM flow, and the resulting sub-goals are created and linked automatically
-  4. Member can view their goal tree showing the full hierarchy with progress percentages at each level
+  4. Member can view their goal tree showing the full hierarchy and progress at each level
 **Plans**: TBD
 
 ### Phase 12: Self-Evaluation and Reflection
@@ -137,7 +142,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 6. Polish and Launch Readiness | v1.0 | 3/3 | Complete | 2026-03-20 |
 | 7. AI Infrastructure | v1.1 | Complete    | 2026-03-20 | - |
 | 8. Inspiration System | v1.1 | Complete    | 2026-03-20 | - |
-| 9. Productivity Timer | v1.1 | 0/0 | Not started | - |
+| 9. Productivity Timer | v1.1 | 0/3 | In progress | - |
 | 10. Smart Reminders | v1.1 | 0/0 | Not started | - |
 | 11. Goal Hierarchy | v1.1 | 0/0 | Not started | - |
 | 12. Self-Evaluation and Reflection | v1.1 | 0/0 | Not started | - |
