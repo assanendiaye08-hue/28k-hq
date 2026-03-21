@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { setAccessToken } from '../api/client';
 
 interface AuthUser {
   id: string;
@@ -19,11 +20,13 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
-  login: (user, _accessToken) => {
+  isLoading: true, // true initially while checking stored tokens
+  login: (user, accessToken) => {
+    setAccessToken(accessToken);
     set({ user, isAuthenticated: true, isLoading: false });
   },
   logout: () => {
+    setAccessToken(null);
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
   setLoading: (isLoading) => set({ isLoading }),
