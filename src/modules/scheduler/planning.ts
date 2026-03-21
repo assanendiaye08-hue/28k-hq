@@ -345,8 +345,8 @@ async function extractGoalsFromText(
                   properties: {
                     title: { type: 'string' },
                     type: { type: 'string', enum: ['measurable', 'freetext'] },
-                    target: { type: ['number', 'null'] },
-                    unit: { type: ['string', 'null'] },
+                    target: { anyOf: [{ type: 'number' }, { type: 'null' }] },
+                    unit: { anyOf: [{ type: 'string' }, { type: 'null' }] },
                   },
                   required: ['title', 'type', 'target', 'unit'],
                   additionalProperties: false,
