@@ -40,6 +40,8 @@ export interface ActiveTimer {
    * Used by the caller to re-schedule the transition on resume.
    */
   remainingMs: number | null;
+  /** Target number of pomodoro sessions. Null = unlimited. */
+  targetSessions: number | null;
 }
 
 /** Options for creating a new timer. */
@@ -50,6 +52,7 @@ export interface CreateTimerOptions {
   breakRatio?: number;
   focus?: string | null;
   goalId?: string | null;
+  targetSessions?: number | null;
 }
 
 /** In-memory timer map keyed by memberId. */
@@ -82,6 +85,7 @@ export function createTimer(memberId: string, options: CreateTimerOptions): Acti
     dmChannelId: null,
     startedAt: now,
     remainingMs: null,
+    targetSessions: options.targetSessions ?? null,
   };
 
   activeTimers.set(memberId, timer);

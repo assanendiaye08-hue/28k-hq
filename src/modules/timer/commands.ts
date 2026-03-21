@@ -81,8 +81,16 @@ export function buildTimerCommand(): SlashCommandBuilder {
           opt
             .setName('focus')
             .setDescription('What are you working on?')
-            .setRequired(false)
+            .setRequired(true)
             .setMaxLength(100),
+        )
+        .addIntegerOption((opt) =>
+          opt
+            .setName('sessions')
+            .setDescription('Number of pomodoro rounds (default: unlimited)')
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(12),
         )
         .addStringOption((opt) =>
           opt
@@ -175,7 +183,8 @@ async function handleStart(
     interaction.options.getInteger('work') ?? TIMER_DEFAULTS.defaultWorkMinutes;
   let breakDuration =
     interaction.options.getInteger('break') ?? TIMER_DEFAULTS.defaultBreakMinutes;
-  let focus = interaction.options.getString('focus') ?? null;
+  let focus = interaction.options.getString('focus') ?? 'Focused work';
+  const targetSessions = interaction.options.getInteger('sessions') ?? null;
   let goalId: string | null = null;
 
   // Handle goal option
@@ -207,6 +216,7 @@ async function handleStart(
     breakRatio: TIMER_DEFAULTS.defaultBreakRatio,
     focus,
     goalId,
+    targetSessions,
   });
 
   // Send DM to user with timer embed and buttons

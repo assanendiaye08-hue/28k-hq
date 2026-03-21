@@ -496,6 +496,37 @@ async function handleWorkToBreak(
   db: ExtendedPrismaClient,
   ctx: ModuleContext,
 ): Promise<void> {
+  // Check if target sessions reached — auto-complete instead of taking a break
+  const currentTimer = getActiveTimer(memberId);
+  if (currentTimer?.targetSessions && currentTimer.pomodoroCount + 1 >= currentTimer.targetSessions) {
+    // Complete the session
+    const timer = stopTimer(memberId);
+    if (!timer) return;
+
+    try { await deleteActiveTimerRecord(db, memberId); } catch {}
+    const result = await persistTimerSession(db, timer, 'COMPLETED');
+
+    try {
+      if (timer.dmChannelId && timer.dmMessageId) {
+        const dmChannel = await fetchDMChannel(ctx.client, timer.dmChannelId);
+        if (dmChannel) {
+          const message = await dmChannel.messages.fetch(timer.dmMessageId);
+          await message.edit({
+            embeds: [buildTimerCompletedEmbed(result.durationMinutes, result.xpAwarded, timer.pomodoroCount, timer.mode, timer.focus)],
+            components: [],
+          });
+          await dmChannel.send(`All ${timer.targetSessions} sessions done! ${result.durationMinutes} min worked. +${result.xpAwarded} XP.`);
+        }
+      }
+    } catch {}
+
+    ctx.events.emit('timerCompleted', memberId, result.durationMinutes);
+    if (result.leveledUp) {
+      ctx.events.emit('levelUp', memberId, result.newRank!, result.oldRank!, 0);
+    }
+    return;
+  }
+
   const timer = transitionToBreak(memberId);
   if (!timer) return;
 
@@ -753,6 +784,7 @@ async function reconstructTimers(
         dmChannelId: null,
         startedAt: session.startedAt,
         remainingMs: session.remainingMs ?? null,
+        targetSessions: null,
       };
 
       restoreTimer(session.memberId, timer);

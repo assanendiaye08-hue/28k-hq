@@ -46,18 +46,45 @@ export function buildTimerEmbed(timer: ActiveTimer): EmbedBuilder {
   const workedMin = Math.floor(currentWorkedMs / 60_000);
   const xpSoFar = Math.floor(workedMin / 5);
 
+  // Live countdown using Discord's relative timestamp (auto-updates in client)
+  let countdownField: string;
+  if (timer.state === 'paused') {
+    countdownField = 'Paused';
+  } else if (timer.state === 'working') {
+    const endsAt = Math.floor((timer.currentIntervalStart.getTime() + timer.workDuration * 60_000) / 1000);
+    countdownField = `<t:${endsAt}:R>`;
+  } else {
+    // on_break
+    const endsAt = Math.floor((timer.currentIntervalStart.getTime() + timer.breakDuration * 60_000) / 1000);
+    countdownField = `<t:${endsAt}:R>`;
+  }
+
   const modeLabel = timer.mode === 'pomodoro' ? 'Pomodoro' : 'Free Flow';
 
+  // Session progress for pomodoro
+  let sessionField: string | null = null;
+  if (timer.mode === 'pomodoro') {
+    const current = timer.pomodoroCount + (timer.state === 'working' ? 1 : 0);
+    sessionField = timer.targetSessions
+      ? `${current}/${timer.targetSessions}`
+      : `${current}`;
+  }
+
   embed.addFields(
-    { name: 'Mode', value: modeLabel, inline: true },
+    { name: 'Ends', value: countdownField, inline: true },
     { name: 'Worked', value: `${workedMin} min`, inline: true },
-    { name: 'XP Earned', value: `${xpSoFar} XP`, inline: true },
+    { name: 'XP', value: `+${xpSoFar}`, inline: true },
   );
 
-  if (timer.mode === 'pomodoro') {
+  if (timer.mode === 'pomodoro' && sessionField) {
     embed.addFields(
-      { name: 'Intervals', value: `${timer.pomodoroCount} completed`, inline: true },
+      { name: 'Session', value: sessionField, inline: true },
       { name: 'Work/Break', value: `${timer.workDuration}/${timer.breakDuration} min`, inline: true },
+    );
+  } else if (timer.mode === 'proportional') {
+    const breakEarned = Math.round(workedMin / timer.breakRatio);
+    embed.addFields(
+      { name: 'Break earned', value: `${breakEarned} min`, inline: true },
     );
   }
 
