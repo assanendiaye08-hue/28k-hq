@@ -20,7 +20,8 @@ export type AIFeature =
   | 'summary'
   | 'tagger'
   | 'timer'
-  | 'reflection';
+  | 'reflection'
+  | 'recap';
 
 /**
  * Options for a single AI call through the centralized client.
