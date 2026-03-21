@@ -36,6 +36,14 @@ export function Sidebar() {
           </svg>
           Dashboard
         </NavLink>
+        <NavLink to="/timer" className={linkClass}>
+          {/* Timer/Clock icon */}
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+          </svg>
+          Timer
+        </NavLink>
         <NavLink to="/goals" className={linkClass}>
           {/* Target/Goals icon */}
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
