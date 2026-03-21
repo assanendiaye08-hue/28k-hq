@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The desktop app extends this to their entire workstation.
-**Current focus:** v2.0 Phase 15 - REST API Authentication
+**Current focus:** v2.0 Phase 16 - Desktop Shell + Dashboard + Goals
 
 ## Current Position
 
-Phase: 15 of 19 (REST API Authentication)
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase Complete
-Last activity: 2026-03-21 -- Completed 15-02 (Timer CRUD, goals, dashboard, quote endpoints)
+Phase: 16 of 19 (Desktop Shell + Dashboard + Goals)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-21 -- Completed 16-01 (Tauri v2 desktop app scaffold with auth, tray, theme)
 
-Progress: [####░░░░░░░░░░░░░░░░] 17% (v2.0) -- Phase 15 complete (2 of 6 v2.0 phases)
+Progress: [#####░░░░░░░░░░░░░░░] 25% (v2.0) -- Phase 16 plan 1 of 3 complete (3 of 6 v2.0 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39 (18 v1.0 + 17 v1.1 + 4 v2.0)
+- Total plans completed: 40 (18 v1.0 + 17 v1.1 + 5 v2.0)
 - Average duration: 5 min
-- Total execution time: 2.99 hours
+- Total execution time: 3.09 hours
 
 **By Phase (v1.1):**
 
@@ -41,10 +41,11 @@ Progress: [####░░░░░░░░░░░░░░░░] 17% (v2.0) -- P
 |-------|-------|-------|----------|
 | 14-monorepo-restructure | 2/2 | 14 min | 7 min |
 | 15-rest-api-authentication | 2/2 | 7 min | 4 min |
+| 16-desktop-shell-dashboard-goals | 1/3 | 6 min | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 13-01 (4 min), 14-01 (6 min), 14-02 (8 min), 15-01 (3 min), 15-02 (4 min)
-- Trend: stable (data endpoints followed established patterns)
+- Last 5 plans: 14-01 (6 min), 14-02 (8 min), 15-01 (3 min), 15-02 (4 min), 16-01 (6 min)
+- Trend: stable (desktop scaffold slightly longer due to multi-language Tauri setup)
 
 ## Accumulated Context
 
@@ -74,6 +75,10 @@ Recent decisions affecting current work:
 - [15-02]: Goal hierarchy loaded 4 levels deep using nested Prisma includes (matches bot pattern)
 - [15-02]: Dashboard returns goals split into today (weekly + 7-day deadline) and weekly categories
 - [15-02]: Quote rotation uses day-of-year modulo for consistent daily quote (UTC-based)
+- [16-01]: Used openUrl (not open) from @tauri-apps/plugin-opener v2 -- API renamed in v2
+- [16-01]: tauri-plugin-oauth start() returns port, callback URL comes via onUrl() listener
+- [16-01]: @tauri-apps/plugin-store load() requires defaults:{} in v2 StoreOptions
+- [16-01]: Placeholder gold circle PNGs for tray/app icons until real ouroboros assets provided
 
 ### Pending Todos
 
@@ -96,5 +101,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 15-02-PLAN.md (Timer CRUD, goals, dashboard, quote endpoints) -- Phase 15 fully complete
+Stopped at: Completed 16-01-PLAN.md (Tauri v2 desktop app scaffold with auth, tray, theme)
 Resume file: None
