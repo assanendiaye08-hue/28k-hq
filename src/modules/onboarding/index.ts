@@ -10,18 +10,36 @@
  * setup-flow.ts (DM conversation), and channel-setup.ts (private channel creation).
  */
 
-import { ChannelType, type TextChannel, Events } from 'discord.js';
+import { ChannelType, type TextChannel, type ButtonInteraction, Events } from 'discord.js';
 import type { Module, ModuleContext } from '../../shared/types.js';
-import { setupCommand, handleSetup } from './commands.js';
+import { setupCommand, handleSetup, handleSetupButton } from './commands.js';
+import { SETUP_BUTTON_ID } from './welcome.js';
 
 const onboardingModule: Module = {
   name: 'onboarding',
 
   register(ctx: ModuleContext): void {
-    const { client, commands, logger } = ctx;
+    const { client, commands, events, logger } = ctx;
 
     // Register /setup command
     commands.register('setup', setupCommand, handleSetup);
+
+    // Handle "Get Started" button from #welcome
+    events.on('buttonInteraction', async (...args: unknown[]) => {
+      const interaction = args[0] as ButtonInteraction;
+      if (interaction.customId !== SETUP_BUTTON_ID) return;
+      try {
+        await handleSetupButton(interaction, ctx);
+      } catch (error) {
+        logger.error(`Setup button error for ${interaction.user.tag}:`, error);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: 'Something went wrong. Please try again.',
+            ephemeral: true,
+          }).catch(() => {});
+        }
+      }
+    });
 
     // On new member join: prompt them to run /setup
     client.on(Events.GuildMemberAdd, async (member) => {
