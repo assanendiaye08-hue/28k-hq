@@ -113,6 +113,11 @@ Recent decisions affecting current work:
 - [12-03]: Reflection insights filtered (only non-null insights shown) to keep prompts clean
 - [12-03]: generateBrief accepts reflections as optional param with default empty array for backward compat
 - [12-03]: Reflections embed field only shown when member has reflection data (no clutter)
+- [Phase 12-02]: responseFormat uses jsonSchema (camelCase) matching codebase convention
+- [Phase 12-02]: Weekly reflection chains in makePlanningFn so scheduler controls sequencing
+- [Phase 12-02]: Medium intensity uses Mon/Wed/Fri (dayOfWeek 1,3,5) for 3 days/week daily reflections
+- [Phase 12-02]: Fallback template questions per type when AI degrades (never fails silently)
+- [Phase 12-02]: Monthly cron at 18:00 UTC on 28th queries medium+heavy members directly
 
 ### Pending Todos
 
@@ -125,5 +130,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 12-03-PLAN.md
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
