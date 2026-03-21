@@ -28,7 +28,7 @@ Full details: .planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 7: AI Infrastructure** - Centralize AI client, cost tracking, tiered memory, configurable models (completed 2026-03-20)
 - [x] **Phase 8: Inspiration System** - Members set people they admire, Jarvis references them naturally (completed 2026-03-20)
 - [x] **Phase 9: Productivity Timer** - Pomodoro and proportional break timers with XP integration (completed 2026-03-21)
-- [ ] **Phase 10: Smart Reminders** - Natural language time-based reminders with urgency tiers
+- [x] **Phase 10: Smart Reminders** - Natural language time-based reminders with urgency tiers (completed 2026-03-21)
 - [ ] **Phase 11: Goal Hierarchy** - Optional yearly-to-daily goal decomposition with Jarvis-assisted breakdown
 - [ ] **Phase 12: Self-Evaluation and Reflection** - Configurable intensity reflection flows with AI-personalized questions
 - [ ] **Phase 13: Monthly Progress Recap** - AI-generated monthly summary DM, shareable to #wins
@@ -93,7 +93,7 @@ Plans:
   3. Member can set recurring reminders ("every Monday at 9am remind me to...") that fire on schedule indefinitely until cancelled
   4. Reminder delivery uses a pluggable backend interface -- Discord DM implementation now, designed so Apple push notifications can be added later without rewriting the scheduler
   5. Pending reminders survive bot restarts and fire at their scheduled times after recovery
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 10-01-PLAN.md -- Prisma schema, chrono-node parser, delivery interface, constants, buttons, embeds
@@ -147,7 +147,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 7. AI Infrastructure | v1.1 | Complete    | 2026-03-20 | - |
 | 8. Inspiration System | v1.1 | Complete    | 2026-03-20 | - |
 | 9. Productivity Timer | v1.1 | Complete    | 2026-03-21 | - |
-| 10. Smart Reminders | 1/2 | In Progress|  | - |
+| 10. Smart Reminders | 2/2 | Complete   | 2026-03-21 | - |
 | 11. Goal Hierarchy | v1.1 | 0/0 | Not started | - |
 | 12. Self-Evaluation and Reflection | v1.1 | 0/0 | Not started | - |
 | 13. Monthly Progress Recap | v1.1 | 0/0 | Not started | - |

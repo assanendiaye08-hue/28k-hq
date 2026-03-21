@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 10 of 13 (Smart Reminders)
-Plan: 1 of 2
-Status: In Progress
-Last activity: 2026-03-21 -- Completed 10-01 (Reminder foundation)
+Plan: 2 of 2
+Status: Phase Complete
+Last activity: 2026-03-21 -- Completed 10-02 (Reminder interaction layer)
 
-Progress: [██████████████░░░░░░] 68% (v1.1)
+Progress: [███████████████░░░░░] 73% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27 (18 v1.0 + 9 v1.1)
+- Total plans completed: 28 (18 v1.0 + 10 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.13 hours
+- Total execution time: 2.22 hours
 
 **By Phase (v1.0):**
 
@@ -41,10 +41,10 @@ Progress: [██████████████░░░░░░] 68% (v1
 | 07-ai-infrastructure | 3/3 | 20 min | 7 min |
 | 08-inspiration-system | 2/2 | 5 min | 3 min |
 | 09-productivity-timer | 3/3 | 16 min | 5 min |
-| 10-smart-reminders | 1/2 | 3 min | 3 min |
+| 10-smart-reminders | 2/2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 08-02 (2 min), 09-01 (5 min), 09-02 (9 min), 09-03 (2 min), 10-01 (3 min)
+- Last 5 plans: 09-01 (5 min), 09-02 (9 min), 09-03 (2 min), 10-01 (3 min), 10-02 (5 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -90,6 +90,11 @@ Recent decisions affecting current work:
 - [10-01]: Direct DM for high urgency to get message ID; deliverNotification fallback for routing
 - [10-01]: Cron expression format: minute hour * * cronDay from chrono + recurrence pattern
 - [10-01]: reminderAccountId added to NotificationPreference for per-type routing
+- [10-02]: setTimeout overflow guard defers reminders > 24.8 days to hourly sweep
+- [10-02]: skipUntil DB pattern for Skip Next: cron stays alive, one occurrence suppressed
+- [10-02]: High-urgency repeat chain checks DB acknowledgment before each repeat
+- [10-02]: Timer intent first, reminder intent second in AI assistant DM handler (Pitfall 7)
+- [10-02]: /remind uses message option directly as content (more reliable than parser extraction)
 
 ### Pending Todos
 
@@ -102,5 +107,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 10-01-PLAN.md
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
