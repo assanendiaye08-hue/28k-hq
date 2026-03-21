@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The server must make hustling feel like the game.
-**Current focus:** Phase 10 in progress (Smart Reminders)
+**Current focus:** Phase 11 in progress (Goal Hierarchy)
 
 ## Current Position
 
-Phase: 10 of 13 (Smart Reminders)
-Plan: 2 of 2
-Status: Phase Complete
-Last activity: 2026-03-21 -- Completed 10-02 (Reminder interaction layer)
+Phase: 11 of 13 (Goal Hierarchy)
+Plan: 1 of 3
+Status: In Progress
+Last activity: 2026-03-21 -- Completed 11-01 (Goal hierarchy schema and cascading engine)
 
-Progress: [███████████████░░░░░] 73% (v1.1)
+Progress: [████████████████░░░░] 77% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28 (18 v1.0 + 10 v1.1)
+- Total plans completed: 29 (18 v1.0 + 11 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.22 hours
+- Total execution time: 2.29 hours
 
 **By Phase (v1.0):**
 
@@ -42,9 +42,10 @@ Progress: [███████████████░░░░░] 73% (v1
 | 08-inspiration-system | 2/2 | 5 min | 3 min |
 | 09-productivity-timer | 3/3 | 16 min | 5 min |
 | 10-smart-reminders | 2/2 | 8 min | 4 min |
+| 11-goal-hierarchy | 1/3 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 09-01 (5 min), 09-02 (9 min), 09-03 (2 min), 10-01 (3 min), 10-02 (5 min)
+- Last 5 plans: 09-03 (2 min), 10-01 (3 min), 10-02 (5 min), 11-01 (4 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [10-02]: High-urgency repeat chain checks DB acknowledgment before each repeat
 - [10-02]: Timer intent first, reminder intent second in AI assistant DM handler (Pitfall 7)
 - [10-02]: /remind uses message option directly as content (more reliable than parser extraction)
+- [11-01]: CANCELLED status not added to GoalStatus enum; MISSED children excluded from countable ratio instead
+- [11-01]: events parameter optional on checkExpiredGoals for backward compat with existing scheduler caller
+- [11-01]: Decomposition suggestion in CONVERSATION_RULES (prompt engineering, no command handler)
 
 ### Pending Todos
 
@@ -107,5 +111,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 10-02-PLAN.md
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
