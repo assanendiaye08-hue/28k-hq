@@ -14,7 +14,7 @@
  * - All active goals at any level
  * - Inspirations (names and context of people the member admires)
  * - Personal details from profile (interests, learning areas)
- * - Reflection breakthroughs (when added in Phase 12)
+ * - Reflection insights (recent self-evaluation breakthroughs)
  *
  * Token budget management ensures we stay within Grok 4.1 Fast's
  * 2M context window (~70% budget = 1.4M tokens).
@@ -173,6 +173,11 @@ export async function assembleContext(
       inspirations: {
         orderBy: { createdAt: 'asc' },
         select: { name: true, context: true },
+      },
+      reflections: {
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { type: true, insights: true, createdAt: true },
       },
     },
   });
@@ -507,6 +512,7 @@ function buildMemberContext(member: {
     startedAt: Date;
   }>;
   inspirations: Array<{ name: string; context: string | null }>;
+  reflections: Array<{ type: string; insights: string | null; createdAt: Date }>;
 }): string {
   const lines: string[] = [];
 
@@ -582,6 +588,15 @@ function buildMemberContext(member: {
       } else {
         lines.push(`  - ${insp.name}`);
       }
+    }
+  }
+
+  const reflectionsWithInsights = member.reflections.filter((r) => r.insights);
+  if (reflectionsWithInsights.length > 0) {
+    lines.push('\nRecent Reflection Insights:');
+    for (const ref of reflectionsWithInsights) {
+      const date = ref.createdAt.toISOString().split('T')[0];
+      lines.push(`  - [${ref.type}, ${date}]: ${ref.insights}`);
     }
   }
 
