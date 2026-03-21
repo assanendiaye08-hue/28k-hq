@@ -44,6 +44,7 @@ model Member {
   inspirations          Inspiration[]
   timerSessions         TimerSession[]
   reminders             Reminder[]
+  reflections           Reflection[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -224,6 +225,7 @@ enum XPSource {
   RESOURCE_SHARE
   SESSION_HOST
   TIMER_SESSION
+  REFLECTION
 }
 
 /// Per-member schedule preferences for briefs, reminders, and planning.
@@ -239,6 +241,8 @@ model MemberSchedule {
   accountabilityLevel String @default("medium") // light, medium, heavy
   nudgeTime           String?                   // HH:mm format for nudge time
   lastNudgeAt         DateTime?
+
+  reflectionIntensity String @default("off") // off, light, medium, heavy
 
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
@@ -573,4 +577,30 @@ enum TimerStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+// ─── Phase 12: Self-Evaluation and Reflection ──────────────────────────────
+
+/// Self-evaluation reflection record. AI-generated questions with member responses.
+/// Content is encrypted at rest; insights are AI-extracted summaries.
+model Reflection {
+  id        String         @id @default(cuid())
+  memberId  String
+  type      ReflectionType // DAILY, WEEKLY, MONTHLY
+  question  String         // The AI-generated question asked
+  response  String         // Member's natural language response (encrypted)
+  insights  String?        // AI-extracted key insight (1-2 sentences)
+  createdAt DateTime       @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+  @@index([memberId, type])
+}
+
+/// Reflection type -- frequency of self-evaluation prompts.
+enum ReflectionType {
+  DAILY
+  WEEKLY
+  MONTHLY
 }
