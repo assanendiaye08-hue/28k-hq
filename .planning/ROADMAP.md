@@ -109,7 +109,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
 | 14. Monorepo Restructure | 2/2 | Complete    | 2026-03-21 | - |
 | 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
-| 16. Desktop Shell + Dashboard | 3/3 | Complete   | 2026-03-21 | - |
+| 16. Desktop Shell + Dashboard | 3/3 | Complete    | 2026-03-21 | - |
 | 17. Pomodoro Timer | v2.0 | 0/3 | Not started | - |
 | 18. Flowmodoro + Goals | v2.0 | 0/2 | Not started | - |
 | 19. Sync + Polish | v2.0 | 0/2 | Not started | - |
