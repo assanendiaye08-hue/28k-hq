@@ -79,7 +79,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md -- Prisma schema, timer engine state machine, constants, embeds, buttons, and type updates
+- [x] 09-01-PLAN.md -- Prisma schema, timer engine state machine, constants, embeds, buttons, and type updates
 - [ ] 09-02-PLAN.md -- /timer command with subcommands, button handler, session persistence with XP, restart recovery
 - [ ] 09-03-PLAN.md -- Natural language timer starts via DM to Jarvis
 
