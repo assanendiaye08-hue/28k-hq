@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAuthStore } from './stores/auth-store';
+import { tryRestoreSession } from './api/auth';
+import { getAccessToken } from './api/client';
 import { LoginPage } from './pages/LoginPage';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 
@@ -33,6 +35,27 @@ function LoginGate({ children }: { children: React.ReactNode }) {
 
 export function App() {
   const isLoading = useAuthStore((s) => s.isLoading);
+  const login = useAuthStore((s) => s.login);
+  const setLoading = useAuthStore((s) => s.setLoading);
+
+  // Restore session from stored refresh token on mount
+  useEffect(() => {
+    const restore = async () => {
+      try {
+        const member = await tryRestoreSession();
+        if (member) {
+          // accessToken was already set in memory by tryRestoreSession
+          login(member, getAccessToken() ?? '');
+        }
+      } catch {
+        // Session restore failed -- show login page
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restore();
+  }, [login, setLoading]);
 
   // Hide window instead of closing (tray app behavior)
   useEffect(() => {
