@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 12 of 13 (Self-Evaluation and Reflection)
-Plan: 1 of 3
+Plan: 3 of 3
 Status: In Progress
-Last activity: 2026-03-21 -- Completed 12-01 (Reflection data foundation)
+Last activity: 2026-03-21 -- Completed 12-03 (Jarvis reflection intelligence integration)
 
-Progress: [█████████████████░░░] 86% (v1.1)
+Progress: [██████████████████░░] 91% (v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 32 (18 v1.0 + 14 v1.1)
+- Total plans completed: 34 (18 v1.0 + 16 v1.1)
 - Average duration: 5 min
-- Total execution time: 2.46 hours
+- Total execution time: 2.57 hours
 
 **By Phase (v1.0):**
 
@@ -43,10 +43,10 @@ Progress: [█████████████████░░░] 86% (v1
 | 09-productivity-timer | 3/3 | 16 min | 5 min |
 | 10-smart-reminders | 2/2 | 8 min | 4 min |
 | 11-goal-hierarchy | 3/3 | 10 min | 3 min |
-| 12-self-evaluation-and-reflection | 1/3 | 4 min | 4 min |
+| 12-self-evaluation-and-reflection | 3/3 | 10 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 10-02 (5 min), 11-01 (4 min), 11-02 (3 min), 11-03 (3 min), 12-01 (4 min)
+- Last 5 plans: 11-02 (3 min), 11-03 (3 min), 12-01 (4 min), 12-02 (3 min), 12-03 (3 min)
 - Trend: stable
 
 ## Accumulated Context
@@ -110,6 +110,9 @@ Recent decisions affecting current work:
 - [12-01]: reflectionIntensity uses String type (not enum) matching accountabilityLevel pattern
 - [12-01]: Stub makeReflectionFn logs placeholder until Plan 12-02 wires real reflection DM flow
 - [12-01]: Daily reflection cron at 8 PM member local time via REFLECTION_CONFIG constants
+- [12-03]: Reflection insights filtered (only non-null insights shown) to keep prompts clean
+- [12-03]: generateBrief accepts reflections as optional param with default empty array for backward compat
+- [12-03]: Reflections embed field only shown when member has reflection data (no clutter)
 
 ### Pending Todos
 
@@ -122,5 +125,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Completed 12-01-PLAN.md
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
