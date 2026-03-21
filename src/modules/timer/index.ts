@@ -330,6 +330,7 @@ async function handleButtonPause(
     await updateTimerRecord(db, memberId, {
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
+      timerState: timer.state,
     });
   } catch {
     // Non-critical
@@ -366,6 +367,7 @@ async function handleButtonResume(
     await updateTimerRecord(db, memberId, {
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
+      timerState: timer.state,
     });
   } catch {
     // Non-critical
@@ -446,6 +448,7 @@ async function handleButtonSkipBreak(
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
       pomodoroCount: timer.pomodoroCount,
+      timerState: timer.state,
     });
   } catch {
     // Non-critical
@@ -522,6 +525,7 @@ async function handleWorkToBreak(
       totalBreakMs: timer.totalBreakMs,
       pomodoroCount: timer.pomodoroCount,
       breakDuration: timer.breakDuration,
+      timerState: timer.state,
     });
   } catch {
     // Non-critical
@@ -583,6 +587,7 @@ async function handleBreakToWork(
       totalWorkedMs: timer.totalWorkedMs,
       totalBreakMs: timer.totalBreakMs,
       pomodoroCount: timer.pomodoroCount,
+      timerState: timer.state,
     });
   } catch {
     // Non-critical
@@ -724,12 +729,13 @@ async function reconstructTimers(
         continue;
       }
 
-      // Restore in-memory timer
+      // Restore in-memory timer with persisted state
+      const restoredState = (session.timerState as ActiveTimer['state']) ?? 'working';
       const timer: ActiveTimer = {
         memberId: session.memberId,
         mode: session.mode === 'POMODORO' ? 'pomodoro' : 'proportional',
-        state: 'working', // Default to working on restart
-        prePauseState: null,
+        state: restoredState,
+        prePauseState: restoredState === 'paused' ? 'working' : null,
         workDuration: session.workDuration,
         breakDuration: session.breakDuration,
         breakRatio: session.breakRatio,
@@ -751,10 +757,15 @@ async function reconstructTimers(
       try {
         const user = await client.users.fetch(discordId);
         const dmChannel = await user.createDM();
+        // Choose buttons based on restored state
+        const recoveryButtons =
+          restoredState === 'paused' ? buildPausedButtons()
+          : restoredState === 'on_break' ? buildBreakButtons()
+          : buildWorkButtons();
         const dmMessage = await dmChannel.send({
           content: 'Bot restarted -- your timer has been restored.',
           embeds: [buildTimerEmbed(timer)],
-          components: [buildWorkButtons()],
+          components: [recoveryButtons],
         });
 
         timer.dmMessageId = dmMessage.id;
@@ -770,14 +781,19 @@ async function reconstructTimers(
         ctx.logger.warn(`[timer] Could not DM member ${session.memberId} for timer recovery`);
       }
 
-      // Schedule transition for remaining work time
-      const remainingWorkMs = Math.max(
-        0,
-        timer.workDuration * 60_000 - elapsedMs,
-      );
-      scheduleTransition(session.memberId, remainingWorkMs, async () => {
-        ctx.events.emit('timerTransition', session.memberId, 'work_to_break');
-      });
+      // Schedule transition based on restored state
+      if (restoredState === 'working') {
+        const remainingWorkMs = Math.max(0, timer.workDuration * 60_000 - elapsedMs);
+        scheduleTransition(session.memberId, remainingWorkMs, async () => {
+          ctx.events.emit('timerTransition', session.memberId, 'work_to_break');
+        });
+      } else if (restoredState === 'on_break') {
+        const remainingBreakMs = Math.max(0, timer.breakDuration * 60_000 - elapsedMs);
+        scheduleTransition(session.memberId, remainingBreakMs, async () => {
+          ctx.events.emit('timerTransition', session.memberId, 'break_to_work');
+        });
+      }
+      // If paused, no transition to schedule -- user must resume
 
       count++;
     } catch (error) {

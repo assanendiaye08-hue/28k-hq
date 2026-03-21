@@ -91,6 +91,7 @@ const TYPE_TO_FIELD: Record<string, string> = {
   nudge: 'nudgeAccountId',
   session_alert: 'sessionAlertAccountId',
   level_up: 'levelUpAccountId',
+  reminder: 'reminderAccountId',
 };
 
 /**
