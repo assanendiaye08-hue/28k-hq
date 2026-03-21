@@ -5,18 +5,15 @@ import { useAuthStore } from './stores/auth-store';
 import { tryRestoreSession } from './api/auth';
 import { getAccessToken } from './api/client';
 import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { AppShell } from './components/layout/AppShell';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 
-function AuthenticatedPlaceholder() {
-  const user = useAuthStore((s) => s.user);
-
+function GoalsPlaceholder() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-      <h1 className="text-3xl font-bold text-brand">28K HQ</h1>
-      <p className="text-text-secondary">
-        Welcome, {user?.displayName ?? 'Operator'}
-      </p>
-      <p className="text-text-tertiary">Dashboard coming soon</p>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <h1 className="text-2xl font-bold text-text-primary">Goals</h1>
+      <p className="text-text-tertiary">Goals view coming soon</p>
     </div>
   );
 }
@@ -97,7 +94,19 @@ export function App() {
           path="/"
           element={
             <AuthGate>
-              <AuthenticatedPlaceholder />
+              <AppShell>
+                <DashboardPage />
+              </AppShell>
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/goals"
+          element={
+            <AuthGate>
+              <AppShell>
+                <GoalsPlaceholder />
+              </AppShell>
             </AuthGate>
           }
         />
