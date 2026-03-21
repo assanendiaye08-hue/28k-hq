@@ -148,6 +148,7 @@ export async function createActiveTimerRecord(
       status: 'ACTIVE',
       focus: timer.focus,
       timerState: timer.state,
+      prePauseState: timer.prePauseState,
       goalId: timer.goalId,
       workDuration: timer.workDuration,
       breakDuration: timer.breakDuration,
@@ -180,6 +181,7 @@ export async function updateTimerRecord(
     dmChannelId?: string;
     breakDuration?: number;
     timerState?: string;
+    prePauseState?: string | null;
   },
 ): Promise<void> {
   await db.timerSession.updateMany({
