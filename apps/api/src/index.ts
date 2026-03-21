@@ -11,6 +11,9 @@ import authPlugin from './plugins/auth.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import timerRoutes from './routes/timer.js';
+import goalsRoutes from './routes/goals.js';
+import dashboardRoutes from './routes/dashboard.js';
+import quoteRoutes from './routes/quote.js';
 
 const app = Fastify({
   logger: config.NODE_ENV === 'development'
@@ -28,6 +31,9 @@ await app.register(authPlugin);
 await app.register(healthRoutes, { prefix: '/health' });
 await app.register(authRoutes, { prefix: '/auth' });
 await app.register(timerRoutes, { prefix: '/timer' });
+await app.register(goalsRoutes, { prefix: '/goals' });
+await app.register(dashboardRoutes, { prefix: '/dashboard' });
+await app.register(quoteRoutes, { prefix: '/quote' });
 
 // Start server
 const start = async () => {
