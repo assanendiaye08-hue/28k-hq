@@ -41,10 +41,10 @@
 
 ### Cleanup
 
-- [ ] **CLEAN-01**: Remove bot timer module *(includes merged FOCUS-02)*
+- [x] **CLEAN-01**: Remove bot timer module *(includes merged FOCUS-02)*
 - [ ] **CLEAN-02**: DMs only -- remove private channel per-member system
-- [ ] **CLEAN-03**: Strip most slash commands -- keep /goals, /reminders, /leaderboard, /announce-update
-- [ ] **CLEAN-04**: Remove auto-feed module
+- [x] **CLEAN-03**: Strip most slash commands -- keep /goals, /reminders, /leaderboard, /announce-update
+- [x] **CLEAN-04**: Remove auto-feed module
 
 ### Coaching Settings
 
@@ -93,10 +93,10 @@
 | APP-01 | Phase 24 | Pending |
 | APP-02 | Phase 24 | Pending |
 | APP-03 | Phase 24 | Pending |
-| CLEAN-01 | Phase 20 | Pending |
+| CLEAN-01 | Phase 20 | Complete |
 | CLEAN-02 | Phase 20 | Pending |
-| CLEAN-03 | Phase 20 | Pending |
-| CLEAN-04 | Phase 20 | Pending |
+| CLEAN-03 | Phase 20 | Complete |
+| CLEAN-04 | Phase 20 | Complete |
 | SET-01 | Phase 22 | Pending |
 | SET-02 | Phase 22 | Pending |
 | SET-03 | Phase 22 | Pending |

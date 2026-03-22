@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 20 of 24 (Clean Slate)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-03-22 -- v3.0 roadmap revised (5 phases, 25 requirements mapped across 24 unique deliverables)
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-03-22 -- Completed 20-02: DM-only delivery, focus session signaling, onboarding simplification
 
-Progress: [░░░░░░░░░░] 0% (v3.0)
+Progress: [██░░░░░░░░] 17% (v3.0 -- 2/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 49 (18 v1.0 + 17 v1.1 + 14 v2.0)
+- Total plans completed: 50 (18 v1.0 + 17 v1.1 + 14 v2.0 + 1 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.2 hours
+- Total execution time: 3.3 hours
 
 **By Phase (v3.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 20-clean-slate | 0/2 | - | - |
+| 20-clean-slate | 1/2 | 4 min | 4 min |
 | 21-conversational-jarvis | 0/3 | - | - |
 | 22-daily-rhythm | 0/3 | - | - |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 18-01 (6 min), 18-02 (3 min), 19-01 (3 min), 19-02 (2 min), (new milestone)
-- Trend: Starting v3.0
+- Last 5 plans: 18-02 (3 min), 19-01 (3 min), 19-02 (2 min), 20-01 (4 min)
+- Trend: v3.0 underway
 
 *Updated after each plan completion*
 
@@ -51,6 +51,8 @@ Recent decisions affecting current work:
 - [v3.0 Roadmap]: Coaching settings (SET-01..03) placed in Phase 22 alongside daily rhythm -- settings must exist when proactive features ship
 - [v3.0 Roadmap]: Phase 23 (social) and Phase 24 (desktop) are relatively independent -- could run in either order
 - [v3.0 Roadmap]: No new npm dependencies -- everything builds on existing stack
+- [20-01]: Removed timer event types from core event bus -- no emitters/listeners remain after module deletion
+- [20-01]: Kept auto-feed channel name in server-setup template -- cosmetic, Phase 23 will consolidate channels
 
 ### Pending Todos
 
@@ -74,5 +76,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: v3.0 roadmap revised with 5 phases (20-24), ready to plan Phase 20
+Stopped at: Completed 20-01-PLAN.md -- timer + auto-feed removed, slash commands stripped
 Resume file: None

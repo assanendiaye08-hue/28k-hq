@@ -77,7 +77,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 **Plans**: 2 plans
 
 Plans:
-- [ ] 20-01-PLAN.md -- Remove timer + auto-feed modules, strip slash commands to 4 remaining
+- [x] 20-01-PLAN.md -- Remove timer + auto-feed modules, strip slash commands to 4 remaining
 - [ ] 20-02-PLAN.md -- DMs-only delivery refactor + focus session signaling between desktop and bot
 
 ### Phase 21: Conversational Jarvis
@@ -153,7 +153,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 1-6 | v1.0 | 18/18 | Complete | 2026-03-20 |
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
 | 14-19 | v2.0 | 14/14 | Complete | 2026-03-22 |
-| 20. Clean Slate | v3.0 | 0/2 | Not started | - |
+| 20. Clean Slate | v3.0 | 1/2 | In Progress | - |
 | 21. Conversational Jarvis | v3.0 | 0/3 | Not started | - |
 | 22. Daily Rhythm | v3.0 | 0/3 | Not started | - |
 | 23. Social Layer Refinement | v3.0 | 0/2 | Not started | - |
