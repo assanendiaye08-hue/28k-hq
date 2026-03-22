@@ -77,9 +77,10 @@ export async function storeMessage(
   memberId: string,
   role: string,
   content: string,
+  topic?: string | null,
 ): Promise<void> {
   await db.conversationMessage.create({
-    data: { memberId, role, content },
+    data: { memberId, role, content, topic: topic ?? undefined },
   });
 }
 
@@ -143,6 +144,7 @@ export interface AssembledContext {
 export async function assembleContext(
   db: ExtendedPrismaClient,
   memberId: string,
+  currentTopic?: string | null,
 ): Promise<AssembledContext> {
   // 1. Load member with profile, active goals, schedule, recent check-ins, voice sessions
   const member = await db.member.findUniqueOrThrow({
@@ -199,8 +201,17 @@ export async function assembleContext(
       createdAt: { gte: hotCutoff },
     },
     orderBy: { createdAt: 'asc' },
-    select: { role: true, content: true, createdAt: true },
+    select: { role: true, content: true, createdAt: true, topic: true },
   });
+
+  // Apply topic-aware filtering: bias toward same-topic messages while
+  // always keeping the last 5 messages for continuity
+  if (currentTopic && hotMessages.length > 5) {
+    const tail = hotMessages.slice(-5);
+    const head = hotMessages.slice(0, -5);
+    const topicFiltered = head.filter(m => !m.topic || m.topic === currentTopic);
+    hotMessages = [...topicFiltered, ...tail];
+  }
 
   // 5. Load warm tier: messages from days HOT_WINDOW_DAYS+1 to WARM_WINDOW_DAYS
   const warmMessages = await db.conversationMessage.findMany({
