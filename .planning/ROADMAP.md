@@ -44,7 +44,7 @@ Full details: .planning/milestones/v1.1-ROADMAP.md
 - [x] **Phase 14: Monorepo Restructure** - Extract shared packages, move bot to apps/bot, pnpm + Turborepo (completed 2026-03-21)
 - [x] **Phase 15: REST API + Authentication** - Fastify server with Discord OAuth, JWT auth, all data endpoints (1/2 plans complete) (completed 2026-03-21)
 - [x] **Phase 16: Desktop Shell + Dashboard + Goals View** - Tauri app with auth, system tray, dashboard, read-only goals (completed 2026-03-21)
-- [ ] **Phase 17: Pomodoro Timer** - Full pomodoro mode with menu bar countdown, popover controls, transitions, sync
+- [x] **Phase 17: Pomodoro Timer** - Full pomodoro mode with menu bar countdown, popover controls, transitions, sync (completed 2026-03-22)
 - [ ] **Phase 18: Flowmodoro + Goals Editing** - Count-up timer mode and goal CRUD from desktop app
 - [ ] **Phase 19: Cross-Platform Sync + Polish** - Bot-desktop timer/goal sync, auto-updater, autostart
 
@@ -88,7 +88,7 @@ Plans:
 **Goal**: Full pomodoro timer with menu bar countdown, popover controls, alarm transitions, API sync, persistence
 **Depends on**: Phase 16
 **Requirements**: TMR-01, TMR-02, TMR-03, TMR-04, TMR-05, TMR-06, TMR-07, TMR-08, TMR-09, TMR-10, TMR-11, TMR-12
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 17-01-PLAN.md — Timer engine: Zustand store, schema migration, tray helper, persistence, audio
@@ -116,6 +116,6 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 14. Monorepo Restructure | 2/2 | Complete    | 2026-03-21 | - |
 | 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
 | 16. Desktop Shell + Dashboard | 3/3 | Complete    | 2026-03-21 | - |
-| 17. Pomodoro Timer | 2/3 | In Progress|  | - |
+| 17. Pomodoro Timer | 3/3 | Complete    | 2026-03-22 | - |
 | 18. Flowmodoro + Goals | v2.0 | 0/2 | Not started | - |
 | 19. Sync + Polish | v2.0 | 0/2 | Not started | - |
