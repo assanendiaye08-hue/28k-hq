@@ -29,7 +29,7 @@ export async function updateTrayTitle(remainingMs: number | null): Promise<void>
     if (!tray) return;
 
     if (remainingMs === null || !Number.isFinite(remainingMs) || remainingMs <= 0) {
-      await tray.setTitle(null);
+      await tray.setTitle('');
       await tray.setTooltip('28K HQ');
       return;
     }
