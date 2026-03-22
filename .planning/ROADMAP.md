@@ -45,7 +45,7 @@ Full details: .planning/milestones/v1.1-ROADMAP.md
 - [x] **Phase 15: REST API + Authentication** - Fastify server with Discord OAuth, JWT auth, all data endpoints (1/2 plans complete) (completed 2026-03-21)
 - [x] **Phase 16: Desktop Shell + Dashboard + Goals View** - Tauri app with auth, system tray, dashboard, read-only goals (completed 2026-03-21)
 - [x] **Phase 17: Pomodoro Timer** - Full pomodoro mode with menu bar countdown, popover controls, transitions, sync (completed 2026-03-22)
-- [ ] **Phase 18: Flowmodoro + Goals Editing** - Count-up timer mode and goal CRUD from desktop app
+- [x] **Phase 18: Flowmodoro + Goals Editing** - Count-up timer mode and goal CRUD from desktop app (completed 2026-03-22)
 - [ ] **Phase 19: Cross-Platform Sync + Polish** - Bot-desktop timer/goal sync, auto-updater, autostart
 
 ### Phase 14: Monorepo Restructure
@@ -99,7 +99,7 @@ Plans:
 **Goal**: Count-up timer mode with auto-calculated breaks, plus goal CRUD from desktop app
 **Depends on**: Phase 17
 **Requirements**: FLW-01, FLW-02, FLW-03, FLW-04, FLW-05, FLW-06, GOAL-03, GOAL-04, GOAL-05
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 18-01-PLAN.md — Flowmodoro timer mode: store extension, count-up tick, tray elapsed, setup toggle, display
@@ -122,5 +122,5 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 15. REST API + Auth | 2/2 | Complete    | 2026-03-21 | - |
 | 16. Desktop Shell + Dashboard | 3/3 | Complete    | 2026-03-21 | - |
 | 17. Pomodoro Timer | 3/3 | Complete    | 2026-03-22 | - |
-| 18. Flowmodoro + Goals | 1/2 | In Progress|  | - |
+| 18. Flowmodoro + Goals | 2/2 | Complete   | 2026-03-22 | - |
 | 19. Sync + Polish | v2.0 | 0/2 | Not started | - |

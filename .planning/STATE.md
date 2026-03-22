@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 18 of 19 (Flowmodoro Goals Editing)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-03-22 -- Completed 18-02 (Goal CRUD operations)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-03-22 -- Completed 18-01 (Flowmodoro timer mode)
 
-Progress: [##############░░░░░░] 70% (v2.0) -- Phase 18 complete (5 of 6 v2.0 phases)
+Progress: [#############░░░░░░░] 65% (v2.0) -- Phase 18 in progress, Plan 01 complete (5 of 6 v2.0 phases)
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [##############░░░░░░] 70% (v2.0) -- Phase 18 complete (5 
 - Last 5 plans: 16-02 (2 min), 16-03 (2 min), 17-01 (3 min), 17-02 (5 min), 18-02 (3 min)
 - Trend: stable (goal CRUD follows established store/component patterns)
 | Phase 18 P02 | 3 | 2 tasks | 5 files |
+| Phase 18 P01 | 6 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Recent decisions affecting current work:
 - [17-02]: Rust emits tray-icon-clicked event to JS for state-based routing (popover vs main window)
 - [17-02]: Popover uses persistence for state recovery since Tauri WebviewWindows have separate JS contexts
 - [17-02]: Cross-window sync via Tauri event bus: popover emits timer-state-changed, main syncs from persistence
+- [18-01]: Flowmodoro pause repurposes pauseRemainingMs to store elapsed (not remaining); resume reconstructs phaseStartedAt
+- [18-01]: Flowmodoro break completion goes directly to session_complete (no multi-session concept)
+- [18-01]: All timer logic branches on timerMode discriminant ('pomodoro' | 'flowmodoro')
 - [Phase 18]: [18-02]: Slide-down panel for goal creation instead of modal, matching timer setup UX
 - [Phase 18]: [18-02]: Group-hover opacity for action buttons to keep goal tree clean until interaction
 - [Phase 18]: [18-02]: 2-second inline XP feedback fade rather than toast notification for goal completion
@@ -119,5 +123,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 18-02-PLAN.md (Goal CRUD operations)
+Stopped at: Completed 18-01-PLAN.md (Flowmodoro timer mode with count-up work and ratio breaks)
 Resume file: None
