@@ -15,7 +15,7 @@
 - [ ] **JARV-01**: Natural language in DMs replaces slash commands for core actions (goals, check-ins, tasks, reminders)
 - [ ] **JARV-02**: Commitment extraction -- detects "I'll do X by Y" and confirms before tracking
 - [ ] **JARV-03**: Topic-aware context -- no irrelevant bleeding between conversation topics
-- [ ] **JARV-04**: Situationally smart -- direct when it has info, questions when user needs to think. Never fakes emotions or gives unsolicited advice.
+- [x] **JARV-04**: Situationally smart -- direct when it has info, questions when user needs to think. Never fakes emotions or gives unsolicited advice.
 - [ ] **JARV-05**: Brainstorming mode -- structured creative thinking on request
 
 ### Daily Rhythm
@@ -79,7 +79,7 @@
 | JARV-01 | Phase 21 | Pending |
 | JARV-02 | Phase 21 | Pending |
 | JARV-03 | Phase 21 | Pending |
-| JARV-04 | Phase 21 | Pending |
+| JARV-04 | Phase 21 | Complete |
 | JARV-05 | Phase 21 | Pending |
 | RHYTHM-01 | Phase 22 | Pending |
 | RHYTHM-02 | Phase 22 | Pending |

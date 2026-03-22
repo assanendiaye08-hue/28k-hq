@@ -5,37 +5,37 @@
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming.
-**Current focus:** v3.0 Phase 20 - Clean Slate
+**Current focus:** v3.0 Phase 21 - Conversational Jarvis
 
 ## Current Position
 
-Phase: 20 of 24 (Clean Slate)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-03-22 -- Completed 20-02: DM-only delivery, focus session signaling, onboarding simplification
+Phase: 21 of 24 (Conversational Jarvis)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-03-22 -- Completed 21-01: AI client tool calling, Commitment model, coaching personality
 
-Progress: [██░░░░░░░░] 17% (v3.0 -- 2/12 plans)
+Progress: [██░░░░░░░░] 25% (v3.0 -- 3/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 51 (18 v1.0 + 17 v1.1 + 14 v2.0 + 2 v3.0)
+- Total plans completed: 52 (18 v1.0 + 17 v1.1 + 14 v2.0 + 3 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.4 hours
+- Total execution time: 3.45 hours
 
 **By Phase (v3.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 20-clean-slate | 2/2 | 9 min | 4.5 min |
-| 21-conversational-jarvis | 0/3 | - | - |
+| 21-conversational-jarvis | 1/3 | 3 min | 3 min |
 | 22-daily-rhythm | 0/3 | - | - |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 18-02 (3 min), 19-01 (3 min), 19-02 (2 min), 20-01 (4 min), 20-02 (5 min)
-- Trend: Phase 20 complete
+- Last 5 plans: 19-01 (3 min), 19-02 (2 min), 20-01 (4 min), 20-02 (5 min), 21-01 (3 min)
+- Trend: Phase 21 in progress
 
 *Updated after each plan completion*
 
@@ -57,6 +57,9 @@ Recent decisions affecting current work:
 - [20-02]: deliverToPrivateSpace kept as backward-compatible alias for deliverDM
 - [20-02]: PrivateSpace record still created during onboarding (type DM) for existing code references
 - [20-02]: All focus API calls are fire-and-forget -- timer works offline
+- [21-01]: OpenRouter params cast to Record<string,unknown> for tools field (SDK type lacks it)
+- [21-01]: Tool calls extracted via type assertion on completion message (SDK types may not include tool_calls)
+- [21-01]: TOOL_AWARENESS_PROMPT exported for potential reuse in other prompt builders
 
 ### Pending Todos
 
@@ -80,5 +83,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 20-02-PLAN.md -- Phase 20 complete (DM-only delivery, focus signaling, onboarding simplified)
+Stopped at: Completed 21-01-PLAN.md -- AI client tool calling, Commitment model, coaching personality
 Resume file: None
