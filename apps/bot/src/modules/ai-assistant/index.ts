@@ -26,7 +26,7 @@ import {
   splitMessage,
 } from './commands.js';
 import { handleChatWithTools } from './chat.js';
-import { activeSetupUsers } from '../onboarding/setup-flow.js';
+import { activeSetupUsers, activeCoachingUsers, runCoachingOnboarding } from '../onboarding/setup-flow.js';
 import {
   pendingActions,
   isConfirmation,
@@ -60,8 +60,9 @@ const aiAssistantModule: Module = {
         // DM-only after Phase 20 -- ignore server channel messages
         if (!message.channel.isDMBased()) return;
 
-        // Skip if user is currently in the setup flow
+        // Skip if user is currently in the setup flow or coaching onboarding
         if (activeSetupUsers.has(message.author.id)) return;
+        if (activeCoachingUsers.has(message.author.id)) return;
 
         // Resolve Discord ID to memberId
         const account = await db.discordAccount.findUnique({
@@ -73,6 +74,15 @@ const aiAssistantModule: Module = {
           await message.reply(
             "Hey! I don't recognize you yet. Run `/setup` in the server first to create your profile, then we can talk.",
           );
+          return;
+        }
+
+        // First-time DM: trigger coaching onboarding if no MemberSchedule exists
+        const schedule = await db.memberSchedule.findUnique({
+          where: { memberId: account.memberId },
+        });
+        if (!schedule) {
+          await runCoachingOnboarding(client, db, account.memberId, message.author.id, ctx.events);
           return;
         }
 

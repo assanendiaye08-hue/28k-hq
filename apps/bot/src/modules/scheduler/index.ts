@@ -25,7 +25,7 @@ import { sendBrief, sendCheckinReminder } from './briefs.js';
 import { runPlanningSession } from './planning.js';
 import { checkExpiredGoals } from '../goals/expiry.js';
 import { cleanupUnusedTags } from '../server-setup/interest-tags.js';
-import { sendNudge } from '../ai-assistant/nudge.js';
+import { sendNudge, getDaysSinceLastCheckIn, getGraduatedPullback } from '../ai-assistant/nudge.js';
 import { runReflectionFlow } from '../reflection/flow.js';
 import { sendRecap } from '../recap/generator.js';
 import { checkAndIncrementOutreach, isQuietHours } from '../../shared/delivery.js';
@@ -259,10 +259,20 @@ const schedulerModule: Module = {
         });
 
         let nudgesSent = 0;
+        let skippedPullback = 0;
         for (const schedule of schedules) {
           try {
             // Check per-member gates before sending nudge
             if (!schedule.enableNudge) continue;
+
+            // Graduated pullback: skip members in the 15+ day quiet zone
+            const daysSilent = await getDaysSinceLastCheckIn(db, schedule.memberId);
+            const pullback = getGraduatedPullback(daysSilent);
+            if (pullback === null) {
+              skippedPullback++;
+              continue;
+            }
+
             if (await isQuietHours(db, schedule.memberId)) continue;
             if (!(await checkAndIncrementOutreach(db, schedule.memberId))) continue;
 
@@ -273,7 +283,7 @@ const schedulerModule: Module = {
           }
         }
 
-        logger.info(`Evening nudge sweep completed: ${nudgesSent}/${schedules.length} processed`);
+        logger.info(`Evening nudge sweep completed: ${nudgesSent}/${schedules.length} processed (${skippedPullback} skipped by pullback)`);
       } catch (error) {
         logger.error(`Evening nudge sweep failed: ${String(error)}`);
       }
