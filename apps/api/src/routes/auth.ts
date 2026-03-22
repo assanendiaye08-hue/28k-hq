@@ -150,9 +150,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
         return reply.status(401).send({ error: 'Invalid or expired refresh token' });
       }
 
-      // Delete old token (rotation)
-      await fastify.db.refreshToken.delete({ where: { id: found.id } });
-
       // Look up Discord account for JWT payload
       const discordAccount = await fastify.db.discordAccount.findFirst({
         where: { memberId: found.memberId },
@@ -162,27 +159,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
         return reply.status(401).send({ error: 'Member has no linked Discord account' });
       }
 
-      // Create new refresh token
-      const newRefreshTokenValue = randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-
-      await fastify.db.refreshToken.create({
-        data: {
-          memberId: found.memberId,
-          token: newRefreshTokenValue,
-          expiresAt,
-        },
-      });
-
       // Sign new JWT access token
       const accessToken = fastify.jwt.sign(
         { sub: found.memberId, did: discordAccount.discordId },
         { expiresIn: '15m' },
       );
 
+      // Reuse existing refresh token (don't rotate on every refresh)
+      // This prevents lockout if client fails to save a rotated token
       return reply.send({
         accessToken,
-        refreshToken: newRefreshTokenValue,
+        refreshToken: refreshToken,
       });
     },
   });
