@@ -39,3 +39,6 @@ packages/db/prisma/migrations/
 
 # Turbo cache
 .turbo/
+target/
+# Tauri build artifacts
+apps/desktop/src-tauri/target/
