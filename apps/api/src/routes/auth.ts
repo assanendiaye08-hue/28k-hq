@@ -75,7 +75,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
             displayName: discordUser.global_name || discordUser.username,
             encryptionSalt: randomBytes(16).toString('hex'),
             recoveryKeyHash: createHash('sha256').update(recoveryKey).digest('hex'),
-            discordAccounts: {
+            accounts: {
               create: {
                 discordId: discordUser.id,
                 username: discordUser.username,
