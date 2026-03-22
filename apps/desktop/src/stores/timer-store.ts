@@ -192,36 +192,23 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       longBreakInterval: longBreakInterval ?? undefined,
     };
 
-    let response: { id: string };
+    // Cancel any stale active session before creating a new one
     try {
-      response = await apiFetch<{ id: string }>('/timer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(timerBody),
-      });
-    } catch (err) {
-      // If 409 (active session exists), cancel it and retry
-      if (err instanceof Error && err.message.includes('409')) {
-        try {
-          const active = await apiFetch<{ active: { id: string } | null }>('/timer/active');
-          if (active?.active?.id) {
-            await apiFetch(`/timer/${active.active.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'stop', totalWorkedMs: 0, totalBreakMs: 0, pomodoroCount: 0 }),
-            });
-          }
-        } catch { /* ignore cleanup errors */ }
-        // Retry creating the timer
-        response = await apiFetch<{ id: string }>('/timer', {
-          method: 'POST',
+      const check = await apiFetch<{ active: { id: string } | null }>('/timer/active');
+      if (check?.active?.id) {
+        await apiFetch(`/timer/${check.active.id}`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(timerBody),
+          body: JSON.stringify({ action: 'stop', totalWorkedMs: 0, totalBreakMs: 0, pomodoroCount: 0 }),
         });
-      } else {
-        throw err;
       }
-    }
+    } catch { /* ignore — will get 409 below if it didn't work */ }
+
+    const response = await apiFetch<{ id: string }>('/timer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(timerBody),
+    });
 
     set({
       phase: 'working',
