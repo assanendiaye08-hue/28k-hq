@@ -10,6 +10,8 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { TimerPage } from './pages/TimerPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { useSettingsStore } from './stores/settings-store';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 
@@ -78,6 +80,17 @@ export function App() {
     };
     restore();
   }, [login, setLoading]);
+
+  // Load settings and check for updates on startup
+  useEffect(() => {
+    const init = async () => {
+      await useSettingsStore.getState().loadFromDisk();
+      if (useSettingsStore.getState().autoUpdateEnabled) {
+        useSettingsStore.getState().checkUpdate();
+      }
+    };
+    init();
+  }, []);
 
   // Hide window instead of closing (tray app behavior)
   useEffect(() => {
@@ -159,6 +172,16 @@ export function App() {
             <AuthGate>
               <AppShell>
                 <GoalsPage />
+              </AppShell>
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AuthGate>
+              <AppShell>
+                <SettingsPage />
               </AppShell>
             </AuthGate>
           }
