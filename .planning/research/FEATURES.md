@@ -1,315 +1,184 @@
-# Feature Research
+# Feature Research: AI Coaching Bot Behaviors (v3.0)
 
-**Domain:** Desktop productivity companion app (timer, goals, dashboard) for existing Discord bot platform
-**Researched:** 2026-03-21
-**Confidence:** MEDIUM-HIGH (synthesis of competitor analysis across Flow, Be Focused Pro, Pomotroid, TomatoBar, Flowmo, Pomofocus; established UX patterns for menu bar apps; goal hierarchy visualization research; gamification dashboard patterns)
+**Domain:** Proactive AI productivity coaching for small groups
+**Researched:** 2026-03-22
+**Confidence:** MEDIUM-HIGH (based on codebase analysis + domain expertise; no web verification available)
 
-## Context: What the Discord Bot Already Has
+## Existing Foundation
 
-The desktop app is a visual companion to an existing Discord bot (v1.1, 23,564 LOC TypeScript). These features already exist and the desktop app syncs to them via a Fastify REST API:
+Before mapping new features, here is what already exists and directly supports coaching:
 
-- Pomodoro + proportional timer with NLP starts, buttons, DM delivery
-- Goal hierarchy (yearly -> quarterly -> monthly -> weekly, cascading progress, Jarvis decomposition)
-- XP engine with 9 source types, streak multipliers, diminishing returns
-- Rank progression (7 tiers, auto-role assignment)
-- Leaderboards, seasons, voice tracking
-- AI assistant "Jarvis", morning briefs, accountability nudges
-- Check-ins, reminders, reflections, monthly recaps
-- Inspiration system with natural Jarvis references
-
-The desktop app does NOT replicate bot logic. It provides visual UX for features that are awkward in Discord embeds: countdown timers, goal trees, and at-a-glance dashboards.
-
----
+| Module | What It Does | Relevance to v3.0 |
+|--------|-------------|-------------------|
+| `scheduler/briefs.ts` | AI morning briefs with full member context, community pulse, reflection insights | **Upgrade target** -- already works, needs conversational delivery |
+| `scheduler/planning.ts` | Sunday planning: week review, NLP goal extraction, reminder config | **Upgrade target** -- conversational flow exists, needs richer recalibration |
+| `ai-assistant/nudge.ts` | Accountability nudges with light/medium/heavy intensity, extended silence detection | **Upgrade target** -- add stale goal + broken streak triggers |
+| `ai-assistant/personality.ts` | Layered system prompt: character + profile + stats + activity + reflections | **Direct dependency** -- all coaching behaviors inherit this context |
+| `ai-assistant/memory.ts` | Hot/warm/cold tiered memory, conversation summary | **Direct dependency** -- coaching continuity requires memory |
+| `ai-assistant/chat.ts` | DM chat handler with per-member lock, daily cap, context assembly | **Direct dependency** -- conversational goal setting routes through here |
+| `reflection/` | Daily/weekly/monthly reflection flows with AI follow-ups and insight extraction | **Upgrade target** -- end-of-day reflection becomes next-day planning |
+| `goals/hierarchy.ts` | Yearly > quarterly > monthly > weekly goal decomposition | **Direct dependency** -- goal review and recalibration operates on this |
+| `recap/` | Monthly AI narrative recap with shareable output | **Exists** -- may need weekly variant |
+| `MemberSchedule` model | Per-member timezone, brief/nudge/reflection times, accountability level | **Extend** -- add coaching config fields |
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any desktop productivity timer app. Missing these means the app feels unfinished.
+Features that any AI coaching bot must have to feel like a coach, not a notification system. The existing system already handles some of these; the table below focuses on what is NEW or needs significant enhancement.
 
-#### Timer: Setup and Configuration
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Pomodoro mode with custom intervals** | Every competitor (Flow, Be Focused, Pomotroid, Pomofocus) offers configurable work/break/long break durations. Standard 25/5/15 is the default but users demand flexibility. | LOW | Store presets locally + sync active session to API. Common alternatives: 50/10/20 for deep work, 52/17 from DeskTime research. |
-| **Number of sessions before long break** | Standard pomodoro is 4 work sessions then a long break. Be Focused Pro, Pomotroid, and Flow all let you configure this. | LOW | Default to 4. Store in local preferences. |
-| **Flowmodoro mode (count-up timer)** | Flowmodoro/Flowtime technique is the established alternative for deep work. Flowmo (10K+ users) proves demand. Counts up during work, auto-calculates break as work_time/5. | MEDIUM | Requires different UI state: no countdown ring, just elapsed time. Break timer is derived (divide by 5). Must clearly indicate "you're in flow" vs "take a break now." |
-| **Session naming/labeling** | Be Focused Pro, Pomofocus, and Flow all let you label what you're working on. Without this, timer sessions are meaningless data. Anti-pattern identified: apps that don't let users name sessions lose tracking value. | LOW | Text input on setup screen. Syncs to API so the bot can reference "you worked on X for 2 hours today." |
-| **Preset configurations** | Quick-start without fiddling with settings. Pomofocus offers presets (25/5/15, 50/10/20). Flow has "Quick Start." Users want one-click start for their usual routine. | LOW | 2-3 built-in presets + ability to save custom presets. |
-
-#### Timer: Running State and Menu Bar
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Menu bar countdown display** | TomatoBar, Flow, Horo, Pommie, Cherry Tomato all show remaining time in the menu bar text. This is the defining UX of a menu bar timer -- you glance up and see "14:32" without switching windows. | MEDIUM | Tauri v2 system tray supports dynamic text/icon updates. Update every second. Show "MM:SS" format. When idle, show the app icon (gold ouroboros) only. |
-| **Click menu bar to expand controls** | Flow and TomatoBar: clicking the menu bar icon opens a popover with play/pause/skip/stop. Not a full window -- a compact dropdown. | MEDIUM | Tauri tray click event -> open a small positioned window anchored to tray icon. This is the primary interaction surface during a running session. |
-| **Play/pause/skip/stop controls** | Every timer app has these. Pause preserves remaining time. Skip moves to next phase (work->break or break->work). Stop resets entirely. | LOW | Standard state machine: idle -> working -> break -> working -> ... -> long_break -> idle. |
-| **Visual phase indicator** | Users need to know instantly: am I in work or break? Flow uses color changes. Pomotroid changes the accent color per phase. Be Focused changes the icon. | LOW | Work = gold accent, Break = muted/green accent. Visible in both menu bar icon tint and popover UI. |
-| **Progress ring/arc in popover** | Flow and Pomotroid show a circular progress indicator draining as time passes. More glanceable than raw numbers. | LOW | SVG/CSS circle with stroke-dashoffset animation. Standard implementation. |
-| **Session counter** | "Session 2 of 4" -- users need to know where they are in the pomodoro cycle. Pomotroid shows round indicators (dots). Be Focused shows completed/target. | LOW | Dots or "2/4" text in popover. |
-
-#### Timer: Transitions and Notifications
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **OS notification on phase transition** | Every competitor sends a native notification when work ends or break ends. TomatoBar calls them "discreet actionable notifications." Stretchly warns 30 seconds before break. | LOW | Tauri notification API. "Work session complete -- time for a break!" with action buttons (Start Break / Skip Break). |
-| **Alarm sound on transition** | Be Focused Pro, Pomotroid, and Flow all play a sound. Multiple alarm sound options is common. Volume control is expected. | LOW | Bundle 3-4 alarm sounds. Default to a clean chime, not jarring. Let user pick in settings. |
-| **Auto-start next phase (optional)** | Be Focused Pro and Pomofocus offer auto-start for breaks and/or work sessions. Some users want seamless flow, others want manual control. Must be configurable. | LOW | Two toggles: "Auto-start breaks" and "Auto-start work sessions." Default both OFF (manual control is safer default). |
-
-#### Timer: Data and Sync
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Session sync to bot** | The whole point of the desktop app -- timer data feeds back to the Discord bot for XP, streak tracking, and Jarvis context. When a session completes, POST to API. | MEDIUM | Depends on API layer. Must handle offline gracefully (queue and retry). Session data: start_time, end_time, duration, mode (pomodoro/flowmodoro), label, completed (bool). |
-| **Today's session count and total focus time** | Pomofocus, Be Focused, and Flow all show daily stats. Users want "I did 6 sessions / 3h 10m today" at minimum. | LOW | Aggregate from local session log + API response. Display in popover footer. |
-
-#### Goals: Hierarchy Visualization
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Nested list view with expand/collapse** | The standard tree view pattern (Synergita, Viva Goals, Mooncamp). Yearly goals expand to show quarterly, which expand to monthly, which expand to weekly. Indentation communicates hierarchy. | MEDIUM | React tree component. Read-only in MVP -- goals are created via Discord bot / Jarvis. The desktop app visualizes, it doesn't create. This avoids duplicating complex bot logic. |
-| **Progress bars at each level** | Every OKR/goal tree tool shows progress per node. Cascading: if 3 of 4 weekly goals are done, monthly shows 75%. xViz and Mooncamp both do this. | MEDIUM | Progress data comes from API. Render as horizontal bar or percentage. Color-code: gold for on-track, amber for at-risk, red for behind. |
-| **Current period highlighting** | Users need to instantly see "this week's goals" vs the full hierarchy. The current week/month/quarter should be visually prominent. | LOW | Bold/highlight the active time period. Collapse completed/future periods by default. |
-
-#### Dashboard: At-a-Glance View
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Today's priorities** | The "daily priorities" pattern from dashboard planners. Show the member's active weekly goals + any daily tasks. This is what you see when you open the app. | LOW | Fetch from API: active goals for current week. Display as checklist. |
-| **Weekly goal progress** | Extension of priorities -- shows completion percentage for the week. Momentum Dash and physical dashboard planners both put weekly overview front-and-center. | LOW | Progress bar or fraction (3/5 goals complete). |
-| **Current streak and rank** | Gamification visibility. Habitica, Todoist (Karma), Duolingo all surface streak/rank prominently. These already exist in the bot -- just display them. | LOW | Fetch from API: current_streak, rank_name, rank_icon. Display as badge/card. |
-| **Daily operator quote** | Momentum Dash shows daily quotes. The bot already has an inspiration system. Surface one rotating quote daily, ideally from the member's configured inspirations. | LOW | Fetch from API or bundle a curated list. One quote per day, changes at midnight. |
-
-#### General App UX
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Dark theme** | Pomotroid offers 37 themes (all dark-first). Flow uses dark UI. Developers and power users expect dark mode. The brand is dark + gold. | LOW | Single dark theme at launch. Dark background (#1a1a1a-ish), gold accents (#FFD700 or similar). No light mode needed for this audience. |
-| **Discord OAuth login** | The app is useless without knowing who the user is. OAuth is the standard pattern for "log in with Discord." | MEDIUM | Tauri deep link handler for OAuth callback. Exchange code for token via API. Store token securely in OS keychain via Tauri's secure storage. |
-| **Minimize to tray / run in background** | Pomotroid, TomatoBar, and Flow all run as tray-only apps. Closing the window should NOT quit the app -- it should keep the timer running in the menu bar. | LOW | Tauri supports this natively. Set `visible: false` on window close, keep tray icon active. |
-| **Global keyboard shortcut** | TomatoBar, Be Focused Pro, and Pomotroid all offer global hotkeys (start/pause/skip without switching windows). Flow offers customizable shortcuts. | LOW | Tauri global shortcut plugin. Default: Cmd+Shift+F to toggle timer. Configurable. |
-| **Launch at login (optional)** | Common for menu bar apps. User opts in via settings. | LOW | Tauri auto-start plugin. Default OFF. |
-
----
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| **Proactive morning briefs with full context** | A coach starts the day with you; briefs.ts already does this but delivers as embed, not conversation | LOW | `scheduler/briefs.ts`, `personality.ts` | Shift from embed delivery to plain-text DM that invites a reply. Keep embed as fallback for /brief command. Already has community pulse, reflection weaving, goal summary. |
+| **End-of-day reflection with next-day planning** | A coach checks in at EOD to close the loop; reflection/flow.ts exists but doesn't bridge to tomorrow | MEDIUM | `reflection/flow.ts`, `scheduler/manager.ts` | Extend existing reflection flow: after "how did today go?" add "what's your #1 priority tomorrow?" Store tomorrow's priority, reference it in next morning brief. |
+| **Smart nudges for stale goals** | Goals that haven't been updated in days signal drift; a coach notices | LOW | `nudge.ts`, `goals/` module, `scheduler/` | Query goals where `updatedAt` is stale (configurable threshold, default 3 days). Fire nudge: "Your goal [X] hasn't moved in 3 days. Still on track, or want to adjust?" |
+| **Smart nudges for broken streaks** | Losing a streak is a pivotal moment; a coach addresses it immediately | LOW | `nudge.ts`, `checkin/streak.ts` | Detect when `currentStreak` resets to 0 (was > 0 yesterday). Send a one-time "streak broke" message that reframes, not shames. |
+| **Per-user coaching configuration** | Members have different tolerance for bot contact; one-size-fits-all fails | MEDIUM | `MemberSchedule` model, `scheduler/manager.ts` | Extend MemberSchedule with: `coachingFeatures` (array of enabled features), `coachingFrequency` (daily/weekdays/custom), `quietHoursStart`/`quietHoursEnd`. Expose via conversational settings ("tell Jarvis to ease up"). |
+| **Conversational goal setting** | Typing `/setgoal title:... type:... target:... unit:...` is friction; a coach asks questions | MEDIUM | `ai-assistant/chat.ts`, `goals/` module | When user says "I want to read more" in DM, Jarvis asks clarifying questions: "How many books? By when?" then creates the Goal record. Already partially exists in planning.ts `extractGoalsFromText`. Generalize to work in any conversation. |
+| **Weekly goal review and recalibration** | Weekly planning exists (Sunday 10am) but doesn't review progress on existing goals or suggest adjustments | MEDIUM | `scheduler/planning.ts`, `goals/hierarchy.ts` | Enhance planning session: show each active goal with progress %, ask "keep, adjust, or drop?" before setting new goals. Add AI analysis of completion patterns. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that set this app apart from standalone timer apps. The key differentiator is the Discord bot integration -- no other timer app feeds into a gamified community system.
+Features that go beyond generic coaching bots. These leverage the unique combination of Discord community + desktop timer + goal hierarchy that no other tool has.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| **Live XP/streak feedback on session complete** | When you finish a pomodoro, you see "+50 XP" and your streak counter tick up. No standalone timer does this. Forest gives you coins; this gives you real community XP that affects your rank and leaderboard position. The dopamine hit of seeing XP animate on completion reinforces the habit loop. | MEDIUM | POST session to API, receive XP delta and new streak in response. Animate the XP gain in the popover or as a toast notification. Depends on API returning calculated XP. |
-| **Flowmodoro with proportional break ratio** | Flow and Pomofocus are pomodoro-only. Flowmo exists but is web/mobile-only. Very few desktop apps offer flowmodoro. The bot already supports proportional timers -- the desktop app surfaces this as a first-class mode with a proper count-up UI and auto-calculated break display. | MEDIUM | The bot already calculates breaks. Desktop app needs: count-up display, "suggested break: X min" display when user stops, and break countdown timer. Differentiator because most desktop timer apps are pomodoro-only. |
-| **Jarvis context enrichment** | Timer sessions feed context to Jarvis. When a member asks "how was my day?", Jarvis knows they did 4 pomodoro sessions on "client project" totaling 2.5 hours. No standalone timer enriches an AI coach. | LOW | This happens on the bot side via session sync. The desktop app just needs to send clean session data. The value is in the ecosystem, not the app code itself. |
-| **Goal tree with bot-driven decomposition** | The goal hierarchy in the desktop app is READ from the bot's AI-decomposed goals (Jarvis breaks yearly goals into quarterly/monthly/weekly). Users create goals conversationally in Discord; the desktop app shows the beautiful tree. This is fundamentally different from manually typing goals into a tree widget. | LOW | Read-only tree is simpler to build than a full goal editor. The AI decomposition is the differentiator, and it already exists in the bot. |
-| **Community-aware dashboard** | The dashboard shows your rank relative to others, your position on the leaderboard, your streak compared to your longest. Solo timer apps show your data; this shows your data in context of a competitive community. | MEDIUM | API needs endpoints for: rank, leaderboard_position, longest_streak. Dashboard renders these as cards. The social proof aspect is the differentiator. |
-| **Screen focus on work->break transition** | When a work session ends, bring the app window to front with a prominent "Take a break" screen. Flow does "fullscreen breaks" as a premium feature. This is more assertive than a notification and harder to ignore. | LOW | Tauri window.setFocus() + show a break screen overlay. Make it optional (some users hate being interrupted). Default ON. |
-| **Ticking/ambient sound during focus** | Pomotroid's ticking sound is praised by ADHD users. Flow offers a metronome. Optional ambient audio during work sessions creates a "focus ritual" cue. | LOW | Bundle 2-3 ambient sounds (soft tick, white noise, lo-fi static). Toggle in settings. Play via HTML5 Audio. Not a music player -- just a focus cue. |
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| **Session summaries from desktop timer data** | After a focus session (pomodoro/flowmodoro), Jarvis sends a brief: "45 min deep work. You mentioned working on [goal]. Want to log progress?" | MEDIUM | Desktop timer API (`POST /timer`), `TimerSession` model, `chat.ts` | Timer sessions already sync to DB with duration. Add webhook/event: when session completes, trigger Jarvis DM. Match session to likely goal using recent conversation context. Low-friction progress logging. |
+| **Quiet period detection** | Members who go silent for 3+ days get a genuinely caring check-in, not a productivity nag | LOW | `nudge.ts` (already has `silenceThresholdDays`) | Already partially implemented via extended silence detection. Differentiate by: tracking last DM interaction (not just check-in), using warmer tone, offering to pause all coaching temporarily. |
+| **Pattern-based coaching insights** | "You complete 80% of goals set on Sunday but only 30% of goals set mid-week" -- actionable patterns only a system tracking everything can surface | HIGH | All data models, AI analysis | Weekly or monthly: run pattern analysis across check-ins, goals, timer sessions, reflections. Surface 1-2 insights. High AI cost per analysis but low frequency (weekly/monthly). Defer to v3.1 if scope is tight. |
+| **Community momentum nudges** | "3 people are locked in right now in voice. Want to join?" -- leverages FOMO/social proof | LOW | `voice-tracker/`, `sessions/`, `nudge.ts` | When 2+ members are in voice and a member hasn't checked in today, send a social proof nudge. Respects quiet hours. Powerful for gamers who respond to "the squad is on." |
+| **Goal decomposition coaching** | When a member sets a big goal, Jarvis proactively offers to break it down using the hierarchy | LOW | `goals/decompose.ts` (already exists), `chat.ts` | Already implemented in goals module. Differentiate by making it conversational: "That's a big one. Want me to suggest sub-goals?" then create them via conversation, not slash commands. |
+| **Adaptive coaching cadence** | If a member consistently ignores morning briefs but responds to evening nudges, auto-shift coaching to evenings | HIGH | `MemberSchedule`, delivery tracking, `scheduler/` | Track delivery + response rates per notification type. After 2 weeks of data, suggest cadence changes: "I notice you never respond to morning briefs. Want me to shift to evenings?" Defer to v3.1. |
 
----
-
-### Anti-Features (Explicitly Do NOT Build)
-
-Features that seem good but create problems for this specific app and audience.
+### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Goal creation/editing in desktop app** | "I should be able to create goals anywhere" | Duplicates complex bot logic (Jarvis decomposition, cascading progress, goal types). Two editors = two sources of truth = sync conflicts. The bot has NLP goal creation, AI decomposition, and validation -- rebuilding this in React is months of work for marginal value. | Goals are read-only in desktop app. Create/edit via Discord bot. Add a "Open in Discord" button that deep-links to the bot DM. |
-| **App/website blocking** | Be Focused Pro and Flow offer distraction blocking. Seems like a natural fit for a focus timer. | Requires elevated OS permissions (accessibility, kernel extensions on macOS). Fragile across OS versions. Not the core value prop -- the community/gamification is the motivator, not forced blocking. Adds massive complexity (browser extension, app firewall). | The social accountability (leaderboard, streaks, Jarvis nudges) is the "blocker." If users want app blocking, recommend Focus (Apple's built-in) or Cold Turkey alongside. |
-| **Built-in task manager / to-do list** | "I need to track what to work on during pomodoros" | Scope creep. The bot already has goals. Adding a task manager creates a third system (alongside goals and session labels). Be Focused Pro combines tasks + timer and the result is a cluttered UI. | Session labels ("working on: client project") + goal tree view provide enough context. Tasks live in whatever tool the user already uses (Notion, Todoist, etc.). |
-| **Detailed analytics / statistics dashboard** | Pomofocus and Be Focused Pro show charts, heatmaps, history. Users love data. | For 10-25 users with a Discord bot, analytics belong in Jarvis (ask "how was my week?" and get a narrative) and monthly recaps (already built). Building chart views in the desktop app duplicates the recap system and adds significant UI complexity. | Show today's stats in the popover (sessions, total focus time). Weekly/monthly analytics via bot's monthly recap and Jarvis queries. |
-| **Multiple themes / theme customization** | Pomotroid has 37 themes. Users love customization. | This is a community tool for 10-25 friends, not a public product. Theme customization is engineering time that doesn't move the needle. The brand IS dark + gold. | Single dark theme with gold accents. Polished and consistent. |
-| **Calendar integration / scheduling** | "I want to schedule pomodoro blocks in my calendar" | Out of scope per PROJECT.md. Adds complexity (OAuth for Google/Apple Calendar, sync logic, timezone handling). The app is a timer companion, not a calendar. | If users want calendar blocking, they do it manually. The timer is for execution, not planning. |
-| **Sync/cloud storage for app settings** | "My settings should sync between my Mac and Windows machine" | Almost nobody in a 10-25 person group has both. Adds cloud storage dependency and sync conflict resolution. Timer preferences are trivial to re-set. | Local-only preferences. Settings take 30 seconds to configure. |
-| **Activity/window tracking** | "Track which apps I use during focus sessions" | Explicitly out of scope per PROJECT.md. Requires invasive OS permissions. Privacy concern for a friend group. | Session labels provide enough context without surveillance. Future milestone if proven valuable. |
-| **Music/Spotify integration** | "Play focus music during sessions" | Scope creep. Users already have Spotify/Apple Music open. Building an integration adds API complexity for minimal value. | Optional ticking/ambient sound for focus cue only. Users manage their own music. |
-
----
+| **Automated goal creation from check-ins** | "If I mention something in check-in, make it a goal automatically" | Creates unwanted goals, removes intentionality from goal-setting, clutters goal list | Jarvis suggests: "You mentioned [X] twice this week. Want to make it a goal?" -- offer, don't auto-create |
+| **Comparison nudges between members** | "Show me how I compare to others" -- gamers love competition | Named comparisons create resentment and pressure in a friend group; anonymous leaderboards already exist | Keep leaderboards anonymous. Jarvis can say "someone in the server crushed 5 goals this week" without naming names. Already enforced in personality.ts. |
+| **Aggressive streak recovery mechanics** | "Let me do double check-ins to recover my streak" | Undermines the meaning of streaks, creates gaming-the-system behavior, cheapens the mechanic | Streaks reset cleanly. Jarvis reframes: "Clean slate. Day 1 of a new streak." Focus forward, not recovery. |
+| **AI-generated goals** | "Jarvis should set my goals for me based on my profile" | Removes ownership and commitment; goals set by AI feel like homework | Jarvis helps decompose and refine goals the member proposes. Never originates goals. Can suggest areas based on reflections but member must confirm. |
+| **Calendar/schedule integration** | "Sync with Google Calendar to know when I'm free" | Massive integration complexity, privacy concerns, scope creep, not needed for 10-25 friends | Members tell Jarvis their routine in conversation. Memory system retains it. "I work 9-5" is enough context without API integration. |
+| **Real-time activity tracking** | "Track what app I'm using to know if I'm productive" | Privacy nightmare, requires agent software, technically complex, not needed at this scale | Desktop timer is the opt-in productivity signal. If the timer is running, you're working. No surveillance. Already listed as out-of-scope in PROJECT.md. |
+| **Overly frequent check-ins** | "Ask me how I'm doing every hour" | Notification fatigue, becomes annoying fast, members will mute the bot | Cap at morning brief + 1 nudge + 1 reflection per day max. Let members set frequency lower. Quality over quantity. |
 
 ## Feature Dependencies
 
 ```
-[Discord OAuth Login]
+Per-user coaching config
     |
-    +--requires--> [API Server Running]
-    |                  |
-    |                  +--requires--> [Monorepo Structure with shared DB package]
-    |
-    +--enables--> [Session Sync to Bot]
-    |                 |
-    |                 +--enables--> [XP/Streak Feedback on Completion]
-    |                 +--enables--> [Jarvis Context Enrichment]
-    |
-    +--enables--> [Goal Hierarchy View]
-    |                 |
-    |                 +--requires--> [API Endpoint: GET /goals/:memberId]
-    |
-    +--enables--> [Dashboard View]
-                      |
-                      +--requires--> [API Endpoints: goals, streak, rank, quote]
+    |-- enables --> Morning brief customization (time, tone, content)
+    |-- enables --> Nudge frequency control (which nudges fire)
+    |-- enables --> Reflection intensity (already exists, fold into config)
+    |-- enables --> Quiet hours (suppress all coaching during sleep/work)
 
-[Menu Bar Timer (Pomodoro)]
-    |
-    +--independent--> [Can run without API / login for local-only use]
-    |
-    +--enhanced-by--> [Session Sync] (when logged in)
-    |
-    +--enhanced-by--> [XP Feedback] (when logged in)
+Conversational goal setting
+    |-- requires --> Intent detection in chat.ts (detect "I want to..." patterns)
+    |-- requires --> Goal creation from chat context (generalize extractGoalsFromText)
+    |-- enhances --> Weekly goal review (review uses same conversational patterns)
 
-[Flowmodoro Mode]
-    |
-    +--requires--> [Timer State Machine] (shared with Pomodoro)
-    |
-    +--requires--> [Different UI State] (count-up vs countdown)
+End-of-day reflection + next-day planning
+    |-- requires --> reflection/flow.ts extension (add tomorrow's priority step)
+    |-- enhances --> Morning brief (references yesterday's EOD priority)
+    |-- requires --> New DB field: Member.tomorrowPriority or similar
 
-[Screen Focus on Transition]
-    |
-    +--requires--> [Timer State Machine]
-    |
-    +--enhances--> [Phase Transition Notifications]
+Smart nudges (stale goals, broken streaks, quiet periods)
+    |-- requires --> Per-user coaching config (to know which nudges are enabled)
+    |-- requires --> Nudge deduplication (don't send stale goal + broken streak + quiet period on same day)
+    |-- enhances --> Existing nudge.ts (add new trigger types alongside missed-checkin)
 
-[Goal Tree View]
-    |
-    +--requires--> [Discord OAuth Login]
-    |
-    +--requires--> [API: Goal hierarchy data with cascading progress]
-    |
-    +--read-only--> [Bot manages goal creation/decomposition]
+Session summaries
+    |-- requires --> Timer session completion event/webhook
+    |-- requires --> Goal-to-session matching logic
+    |-- enhances --> Check-in flow (offer to count timer session as check-in)
 
-[Dashboard]
-    |
-    +--requires--> [Discord OAuth Login]
-    |
-    +--aggregates--> [Goals, Streak, Rank, Quote data from API]
+Weekly goal review
+    |-- requires --> planning.ts enhancement (add review step before new goals)
+    |-- requires --> Goal progress aggregation (% complete, days active, velocity)
+    |-- enhances --> Goal hierarchy (review at each timeframe level)
 ```
 
 ### Dependency Notes
 
-- **Timer can work offline:** The timer core (countdown, sounds, notifications) must work without API connectivity. Session data queues locally and syncs when connection is restored. This means timer UX is fully independent of login/API state.
-- **Goals and Dashboard require auth:** These views are meaningless without member-specific data. They require Discord OAuth and a working API.
-- **Flowmodoro requires shared timer infrastructure:** Both pomodoro and flowmodoro use the same state machine (idle/working/break), notification system, and menu bar display. They differ only in: countdown vs count-up, fixed vs auto-calculated breaks.
-- **XP feedback requires API round-trip:** POST session -> receive XP delta. If API is down, show session completion without XP feedback, sync later.
-
----
+- **Per-user coaching config must come first:** Every other feature needs to know whether it's enabled for this member. Without config, you cannot ship nudges or reflections safely.
+- **Conversational goal setting requires intent detection:** The chat handler currently does not parse for goal-setting intent. Adding this is the unlock for natural interaction.
+- **End-of-day reflection enhances morning brief:** The EOD "tomorrow's priority" feeds directly into the next morning brief. Ship them together or EOD first.
+- **Session summaries are independent:** They depend on timer completion events, not on other coaching features. Can ship in any order.
+- **Smart nudges depend on coaching config:** Need to know which nudge types a member has enabled before sending any.
 
 ## MVP Definition
 
-### Launch With (v2.0)
+### Launch With (v3.0 Core)
 
-Minimum viable desktop companion. Must feel complete for the timer use case and useful for goals/dashboard.
+- [ ] **Per-user coaching configuration** -- extend MemberSchedule with feature toggles, expose via conversational settings in DM. This is the foundation everything else depends on.
+- [ ] **Conversational goal setting** -- detect goal-setting intent in chat, ask clarifying questions, create Goal records from conversation. Replaces /setgoal for most interactions.
+- [ ] **Enhanced morning briefs** -- shift from embed to conversational DM. Reference yesterday's EOD priority if set. Keep existing context assembly (community pulse, reflections, goals).
+- [ ] **End-of-day reflection with next-day planning** -- extend reflection flow to ask "what's your #1 tomorrow?" Store and feed into morning brief.
+- [ ] **Smart nudges: stale goals + broken streaks** -- add two new nudge triggers to existing nudge system. Respect per-user coaching config.
+- [ ] **Weekly goal review enhancement** -- add goal review step to existing Sunday planning: show progress, ask keep/adjust/drop per goal.
+- [ ] **Remove bot timer module** -- desktop app handles timers now (already planned in PROJECT.md v3.0 requirements).
+- [ ] **DMs only** -- remove private channel system, all coaching via DMs (already planned in PROJECT.md v3.0 requirements).
 
-- [ ] **Discord OAuth login** -- gate for all personalized features
-- [ ] **Pomodoro timer with custom intervals** -- the core use case; work/break/long break/sessions configurable
-- [ ] **Menu bar countdown display** -- the defining UX; glance-up time remaining
-- [ ] **Popover controls** -- click tray icon for play/pause/skip/stop + progress ring + session counter
-- [ ] **Phase transition notifications + alarm sound** -- without these the timer is useless
-- [ ] **Session sync to bot API** -- the whole point; feeds XP, streaks, Jarvis
-- [ ] **Goal hierarchy view (read-only)** -- nested list with progress bars, expand/collapse
-- [ ] **Dashboard: priorities, weekly goals, streak, rank, quote** -- the landing screen
-- [ ] **Dark theme with gold accents** -- brand identity
-- [ ] **Minimize to tray / background running** -- menu bar app behavior
-- [ ] **Global keyboard shortcut (start/pause)** -- power user expectation
+### Add After Validation (v3.1)
 
-### Add After Validation (v2.x)
+- [ ] **Session summaries from desktop timer** -- trigger when timer session completes via API event. Match to goals, offer progress logging.
+- [ ] **Community momentum nudges** -- "the squad is locked in" social proof nudges when voice channels are active.
+- [ ] **Quiet period detection enhancement** -- track last DM interaction, offer to pause coaching temporarily.
+- [ ] **Pattern-based coaching insights** -- weekly/monthly pattern analysis across all data. High AI cost, validate demand first.
 
-Features to add once the core timer + sync loop is proven with real users.
+### Future Consideration (v3.2+)
 
-- [ ] **Flowmodoro mode** -- add when users request it or pomodoro proves too rigid; trigger: users complaining about forced breaks during deep work
-- [ ] **Live XP animation on session complete** -- add once API XP calculation is stable; trigger: API is reliable enough for real-time feedback
-- [ ] **Screen focus on break transition** -- add when users report ignoring notifications; trigger: skip-break rate is high
-- [ ] **Ticking/ambient sounds during focus** -- add as polish; trigger: user requests
-- [ ] **Preset management (save custom presets)** -- add when users have settled on their preferred intervals; trigger: users manually re-entering settings
-- [ ] **Auto-start next phase toggle** -- add as preference; trigger: users requesting seamless flow
-- [ ] **Launch at login** -- add as preference; trigger: users wanting the app always available
-
-### Future Consideration (v3+)
-
-Features to defer until the desktop app model is proven.
-
-- [ ] **Community-aware dashboard (leaderboard position, rank comparison)** -- deferred because it requires API endpoints that don't exist yet and the social proof is already in Discord
-- [ ] **Session history / basic stats view** -- deferred because monthly recaps and Jarvis handle retrospectives; only build if users explicitly want desktop-side history
-- [ ] **Goal progress updates from desktop** -- deferred because creating a goal editor is scope creep; start with read-only and see if users request write access
-- [ ] **Multiple timer presets per task type** -- deferred because Be Focused Pro shows this adds clutter; start simple
-
----
+- [ ] **Adaptive coaching cadence** -- auto-adjust timing based on response rates. Needs 2+ weeks of delivery tracking data.
+- [ ] **Goal velocity tracking** -- predict goal completion likelihood based on progress rate. Surface "at this pace, you'll miss your deadline by 3 days."
+- [ ] **Coaching effectiveness scoring** -- measure which coaching interventions lead to goal completions. Meta-analysis layer.
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Pomodoro timer (custom intervals) | HIGH | LOW | P1 |
-| Menu bar countdown | HIGH | MEDIUM | P1 |
-| Popover controls (play/pause/skip/stop) | HIGH | MEDIUM | P1 |
-| Phase transition notifications + sound | HIGH | LOW | P1 |
-| Session sync to API | HIGH | MEDIUM | P1 |
-| Discord OAuth login | HIGH | MEDIUM | P1 |
-| Dark theme + gold accents | MEDIUM | LOW | P1 |
-| Minimize to tray | MEDIUM | LOW | P1 |
-| Goal hierarchy view (read-only) | MEDIUM | MEDIUM | P1 |
-| Dashboard (priorities, streak, rank, quote) | MEDIUM | LOW | P1 |
-| Global keyboard shortcut | MEDIUM | LOW | P1 |
-| Flowmodoro mode | MEDIUM | MEDIUM | P2 |
-| Live XP feedback animation | HIGH | MEDIUM | P2 |
-| Screen focus on transition | MEDIUM | LOW | P2 |
-| Ticking/ambient sounds | LOW | LOW | P2 |
-| Auto-start next phase | LOW | LOW | P2 |
-| Preset management | LOW | LOW | P2 |
-| Launch at login | LOW | LOW | P2 |
-| Community dashboard (leaderboard) | MEDIUM | HIGH | P3 |
-| Session history view | LOW | MEDIUM | P3 |
-| Goal editing from desktop | MEDIUM | HIGH | P3 |
-
-**Priority key:**
-- P1: Must have for launch (v2.0)
-- P2: Should have, add after core is validated (v2.x)
-- P3: Nice to have, future consideration (v3+)
-
----
+| Feature | User Value | Implementation Cost | Priority | Rationale |
+|---------|------------|---------------------|----------|-----------|
+| Per-user coaching config | HIGH | MEDIUM | P1 | Foundation for all coaching; prevents over-notifying and member annoyance |
+| Conversational goal setting | HIGH | MEDIUM | P1 | Core v3.0 requirement -- natural language replaces slash commands |
+| Enhanced morning briefs | HIGH | LOW | P1 | Existing code does 90% of the work; shift delivery format |
+| End-of-day reflection + planning | HIGH | MEDIUM | P1 | Closes the daily coaching loop; builds on existing reflection flow |
+| Smart nudges (stale/streak) | MEDIUM | LOW | P1 | Two new triggers added to existing nudge infrastructure |
+| Weekly goal review | MEDIUM | MEDIUM | P1 | Enhances existing planning session; critical for goal recalibration |
+| Remove bot timer + DMs only | MEDIUM | LOW | P1 | Cleanup tasks already planned; reduces maintenance surface |
+| Session summaries | MEDIUM | MEDIUM | P2 | Valuable but requires timer-to-bot event pipeline; can ship after core |
+| Community momentum nudges | MEDIUM | LOW | P2 | Low effort, fun, but not core coaching |
+| Pattern-based insights | HIGH | HIGH | P3 | Most differentiated feature but highest complexity and AI cost |
+| Adaptive coaching cadence | MEDIUM | HIGH | P3 | Needs delivery tracking data first; cannot ship until v3.0 runs for weeks |
 
 ## Competitor Feature Analysis
 
-| Feature | Flow (Mac) | Be Focused Pro | Pomotroid | TomatoBar | Flowmo | Our Approach |
-|---------|-----------|----------------|-----------|-----------|--------|--------------|
-| **Menu bar countdown** | Yes, primary UX | Yes | No (tray icon only) | Yes | No (web/mobile) | Yes -- primary UX like Flow |
-| **Pomodoro custom intervals** | Yes | Yes, per-task | Yes | Yes | No (flowmodoro only) | Yes, global defaults + presets |
-| **Flowmodoro mode** | No | No | No | No | Yes (only mode) | Yes -- dual mode is differentiator |
-| **Phase transition sound** | Yes (metronome + alarm) | Yes (multiple sounds) | Yes (tick + alarm) | Yes (optional) | Yes | Yes, 3-4 bundled sounds |
-| **Global shortcut** | Yes (customizable) | Yes | Yes | Yes | No | Yes, Cmd+Shift+F default |
-| **Session labeling** | Yes ("custom title") | Yes (full task manager) | No | No | Yes (with task integrations) | Yes, simple text label |
-| **Statistics** | Yes (tags, charts, CSV) | Yes (reports, CSV) | Yes (heatmap, charts) | No | Yes (day/week/year) | Minimal in-app; detailed stats via bot recaps |
-| **App/web blocking** | Yes (premium) | Yes | No | No | No | No -- use Apple Focus or Cold Turkey |
-| **Theme customization** | Limited | No | 37 themes | No | No | No -- single dark+gold theme |
-| **Cross-device sync** | iCloud | iCloud | No (local only) | No | Account-based | Discord account via API |
-| **Gamification (XP/streak)** | No | No | No | No | No | Yes -- core differentiator |
-| **AI coach integration** | No | No | No | No | No | Yes -- Jarvis enrichment |
-| **Community/social** | No | No | No | No | No | Yes -- leaderboard, rank |
-| **OS support** | Mac only | Mac + iOS + Watch | Mac + Win + Linux | Mac only | Web + iOS + Android | Mac + Windows (Tauri) |
+| Feature | Generic AI Coach (ChatGPT/Claude) | Habit Apps (Streaks, Habitica) | Accountability Bots (Discord) | Our Approach |
+|---------|-----------------------------------|-------------------------------|------------------------------|--------------|
+| Proactive outreach | None -- user must initiate | Push notifications (generic) | Scheduled reminders (rigid) | AI-personalized, context-aware DMs at member's preferred time |
+| Goal tracking | Conversational but no persistence | Rigid habit tracking | Slash command based | Hierarchical goals with conversational CRUD + persistent tracking |
+| Community awareness | None | Server-wide leaderboards | Basic leaderboards | Community pulse in briefs, social proof nudges, anonymous comparisons |
+| Personalization | Per-conversation only | Settings toggles | Minimal | Per-member coaching config + tiered memory + reflection insights |
+| Reflection/self-eval | Only if user asks | Post-completion surveys | None | Scheduled reflections with AI follow-ups, insight extraction, cross-session continuity |
+| Timer integration | None | None | Basic bot timers | Desktop app timer syncs to DB, future session summaries from Jarvis |
+| Streak mechanics | None | Core mechanic but isolated | Basic streak counting | Streak multiplier affects XP, broken streak handling, gamer psychology |
 
-### Key Competitive Insight
+## Key Design Principles for Coaching Features
 
-Every competitor is a standalone timer. None integrate with a community, AI coach, or gamification system. The desktop app's value is not in being a better timer (Flow is excellent) -- it's in being the visual layer for a productivity ecosystem. The timer is the Trojan horse; the XP, streaks, and Jarvis context are the actual value.
+1. **Coach, not nanny.** Every outreach must feel like it is helping, not surveilling. If a member does not respond, back off. Never send more than the configured maximum contacts per day.
 
----
+2. **Conversations, not commands.** v3.0's core shift is from `/setgoal title:...` to "hey Jarvis, I want to start reading more." The AI handles extraction and confirmation. Slash commands remain for quick lookups only (/goals, /reminders, /leaderboard).
+
+3. **Context continuity.** Morning brief references yesterday's reflection. Weekly review references this week's check-ins. Nudges reference specific stale goals by name. The tiered memory system makes this possible without re-asking.
+
+4. **Opt-in depth.** Light users get morning briefs and weekly planning. Heavy users get daily reflections, proactive nudges, session summaries. The coaching config lets members choose their depth.
+
+5. **Gamer psychology.** Streaks, XP, ranks, leaderboards already exist. Coaching features should reinforce these mechanics, not compete with them. A nudge about a broken streak leverages loss aversion. A session summary offers XP for logging.
 
 ## Sources
 
-- [Flow App Features](https://www.flow.app/features) -- Mac menu bar timer, metronome, statistics, app blocking (premium)
-- [Flow App Changelog](https://www.flow.app/changelog) -- Tag management, CSV export, Control Center widget (2026)
-- [Pomotroid](https://pomotroid.org/) -- Tauri 2 + Svelte, 37 themes, tray icon progress arc, global shortcuts
-- [Pomotroid GitHub](https://github.com/Splode/pomotroid) -- Open source, built with Tauri v2
-- [Be Focused Pro (App Store)](https://apps.apple.com/us/app/be-focused-pro-focus-timer/id961632517) -- Task management, per-task intervals, app blocking, Shortcuts integration
-- [TomatoBar GitHub](https://github.com/ivoronin/TomatoBar) -- Minimal menu bar timer, global hotkey, sandboxed, URL scheme
-- [Flowmo](https://flowmo.io/) -- Flowmodoro timer, x/5 break ratio, 10K+ users, task integrations
-- [Flowtime Technique Guide (Taskade)](https://www.taskade.com/blog/flowtime-technique-guide) -- Flowmodoro technique deep dive
-- [Pomofocus](https://pomofocus.io/) -- Web-based pomodoro, clean UX reference
-- [Common Pomodoro Mistakes (FocusTimers)](https://focustimers.io/blog/pomodoro/common-pomodoro-mistakes) -- Anti-patterns: skipping breaks, rigid intervals, phone as timer
-- [Gamification in Productivity Apps (Trophy)](https://trophy.so/blog/productivity-gamification-examples) -- XP, streaks, ranks, badges patterns across 20+ apps
-- [Tauri v2 System Tray](https://v2.tauri.app/learn/system-tray/) -- TrayIconBuilder, menu events, icon updates
-- [Tauri v2 Multi-Window and System Tray Guide (Oflight)](https://www.oflight.co.jp/en/columns/tauri-v2-multi-window-system-tray) -- Multi-window management, tray menus, global shortcuts
-- [Mooncamp Goal Tree](https://mooncamp.com/docs/goal-tree) -- Visual goal hierarchy with OKR tree view
-- [Tree Data UI Design (Retool)](https://retool.com/blog/designing-a-ui-for-tree-data) -- Best practices for tree view components
-- [Momentum Dash](https://momentumdash.com/) -- Daily quotes on dashboard, focus-oriented landing page
+- Codebase analysis: `apps/bot/src/modules/scheduler/`, `apps/bot/src/modules/ai-assistant/`, `apps/bot/src/modules/reflection/`, `apps/bot/src/modules/goals/`
+- Data model: `packages/db/prisma/schema.prisma` (MemberSchedule, Goal, Reflection, TimerSession models)
+- Project requirements: `.planning/PROJECT.md` v3.0 active requirements
+- Confidence note: WebSearch was unavailable for this research session. Feature landscape is based on domain expertise and deep codebase analysis. Competitor analysis is directional, not exhaustive. Overall confidence: MEDIUM-HIGH.
 
 ---
-*Feature research for: Desktop productivity companion app (28K HQ v2.0)*
-*Researched: 2026-03-21*
+*Feature research for: AI Coaching Bot Behaviors (v3.0)*
+*Researched: 2026-03-22*

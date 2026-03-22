@@ -1,849 +1,659 @@
-# Architecture Patterns: v2.0 Desktop Companion App Integration
+# Architecture Patterns: v3.0 Conversational AI Coaching
 
-**Domain:** Monorepo restructure + desktop app + REST API integration with existing Discord bot
-**Researched:** 2026-03-21
-**Confidence:** HIGH (full codebase review + official Prisma/Turborepo/Tauri docs)
+**Domain:** Evolving Discord bot from slash-command tool to conversational AI coach
+**Researched:** 2026-03-22
+**Confidence:** HIGH (based on direct codebase analysis of all relevant modules)
 
 ## Executive Summary
 
-The v2.0 milestone transforms a single-app Discord bot into a three-application platform: the existing bot, a new Fastify REST API, and a Tauri v2 desktop app. All three share the same PostgreSQL database and Prisma schema. The key architectural challenge is extracting shared logic (DB client, types, XP engine, timer constants, rank progression) into reusable packages without breaking the existing bot, then designing a cross-platform timer flow where the desktop app starts sessions via the API and the bot picks them up for Discord notifications and XP awards.
-
-The monorepo restructure is the foundation. Everything else depends on it being right.
+v3.0 transforms Jarvis from a reactive assistant (responds to commands and DMs) into a proactive coach (initiates conversations, tracks patterns, adapts to each member). The existing module architecture is sound and does not need restructuring. The work is: **modify 5 existing modules, remove 1 module, add 1 new module, and update the delivery layer**. The biggest architectural change is making all bot-initiated outreach (briefs, reflections, nudges, recaps) part of the conversation history so Jarvis has continuity.
 
 ---
 
-## Current Architecture (v1.1)
-
-Single Node.js process running on Hetzner VPS via systemd.
+## Current Architecture (v2.0)
 
 ```
-src/
-  index.ts              -- Entry point: client, db, events, commands, module loader
-  core/
-    config.ts           -- Zod-validated env vars (BOT_TOKEN, DATABASE_URL, etc.)
-    client.ts           -- Discord.js Client with intents
-    commands.ts         -- Slash command registry
-    events.ts           -- EventBus (typed, sync, try/catch per handler)
-    module-loader.ts    -- Dynamic import of src/modules/*/index.ts
-  db/
-    client.ts           -- PrismaClient singleton + encryption extension
-    encryption.ts       -- $extends query hook for transparent AES-256-GCM
-  shared/
-    types.ts            -- Module, ModuleContext, IEventBus, ICommandRegistry
-    constants.ts        -- RANK_PROGRESSION, BRAND_COLORS, SERVER_CATEGORIES
-    crypto.ts           -- HKDF key derivation, encrypt/decrypt, recovery keys
-    delivery.ts         -- DM/channel message delivery
-    embeds.ts           -- Shared embed builders
-    ai-types.ts         -- AI client types
-    ai-templates.ts     -- Prompt templates
-  modules/
-    timer/              -- In-memory Map + DB persistence + Discord DM UI
-    xp/                 -- Atomic XP awards, rank detection, constants
-    goals/              -- Hierarchy engine, cascading progress
-    checkin/            -- Daily check-ins, streak tracking
-    ...25 modules total
+User DM -> ai-assistant/index.ts
+  |
+  +-- Timer intent?     -> timer/ module (in-memory engine + Discord UI)
+  +-- Timer stop/pause? -> timer/ module
+  +-- Reminder intent?  -> reminders/parser
+  +-- Decompose intent? -> goals/decompose
+  +-- Default           -> chat.ts -> memory.ts -> personality.ts -> ai-client.ts
+                                                                        |
+                                                                   OpenRouter
+                                                              (Grok 4.1 Fast primary,
+                                                               DeepSeek V3.2 fallback)
+
+Proactive Outreach (scheduler module):
+  SchedulerManager (per-member cron tasks)
+    +-- morning brief      -> briefs.ts -> deliverNotification()
+    +-- check-in reminder  -> briefs.ts -> deliverNotification()
+    +-- Sunday planning    -> planning.ts (conversational DM flow)
+    +-- evening nudge      -> nudge.ts -> deliverNotification()
+    +-- daily reflection   -> reflection/flow.ts (conversational DM flow)
+    +-- monthly reflection -> reflection/flow.ts
+    +-- monthly recap      -> recap/generator.ts -> deliverNotification()
 ```
 
-### Key Patterns
+### Key Properties of Current Architecture
 
-| Pattern | Implementation | Relevant to v2.0? |
-|---------|---------------|-------------------|
-| Module registration | `register(ctx: ModuleContext)` with Client, DB, EventBus, Commands, Logger | Bot-only -- desktop app has no modules |
-| Event bus | In-process pub/sub, sync handlers | Bot-only -- API uses HTTP, not events |
-| Timer state | In-memory Map + DB ACTIVE records for recovery | Timer engine logic must be shared |
-| XP awards | `awardXP(db, memberId, amount, source, desc)` atomic transaction | API needs this for desktop timer completion |
-| Encryption | Prisma `$extends` hook, per-member HKDF keys | Shared -- API reads encrypted data too |
-| Rank progression | `RANK_PROGRESSION` array + `getRankForXP()` | Shared -- desktop shows rank/progress |
-| Timer constants | `TIMER_DEFAULTS`, `XP_AWARDS.timer` | Shared -- desktop validates timer config |
+| Property | Implementation | Implications for v3.0 |
+|----------|---------------|----------------------|
+| Intent detection | Sequential `if` cascade in index.ts (6 checks) | Replace with cleaner intent router |
+| Conversation memory | 3-tier (hot 7d/warm 30d/cold compressed) | Add topic metadata, add timer session context |
+| System prompt | Built per-call from DB (personality.ts) | Add coaching mode instructions |
+| Proactive outreach | Scheduler fires callbacks, each module delivers independently | Must store outreach as conversation messages |
+| Private spaces | DM or CHANNEL (per member choice) | Simplify to DM-only |
+| Timer | Bot in-memory engine + Discord UI buttons | Remove entirely (desktop handles timers) |
+| AI calls | Centralized ai-client.ts with budget/routing | No changes needed |
+| Cross-module events | EventBus (typed, sync, fire-and-forget) | Add coaching-related events |
 
 ---
 
-## Target Architecture (v2.0)
+## Target Architecture (v3.0)
 
 ```
-                                  +------------------+
-                                  |   PostgreSQL DB   |
-                                  |   (Hetzner VPS)   |
-                                  +--------+---------+
-                                           |
-                    +----------------------+----------------------+
-                    |                      |                      |
-             +------+------+       +------+------+       +-------+------+
-             |  Discord Bot |       |  Fastify API |       | Tauri Desktop|
-             |  (apps/bot)  |       |  (apps/api)  |       | (apps/desktop)
-             |              |       |              |       |              |
-             | - 25 modules |       | - REST routes|       | - React UI   |
-             | - Event bus  |       | - JWT auth   |       | - System tray|
-             | - Discord.js |       | - Timer CRUD |       | - Timer view |
-             | - Cron jobs  |       | - Goals CRUD |       | - Goals view |
-             +------+------+       +------+------+       +------+-------+
-                    |                      |                      |
-                    +----------------------+----------------------+
-                                           |
-                              +------------+------------+
-                              |     packages/db         |
-                              |  Prisma schema + client  |
-                              |  + encryption extension  |
-                              +------------+------------+
-                                           |
-                              +------------+------------+
-                              |    packages/shared       |
-                              |  Types, constants, XP    |
-                              |  engine, timer constants |
-                              +-------------------------+
-```
+User DM -> ai-assistant/index.ts
+  |
+  Intent Router (NEW file: intent-router.ts)
+    +-- Reminder intent?     -> reminders/parser (EXISTING, unchanged)
+    +-- Decompose intent?    -> goals/decompose (EXISTING, unchanged)
+    +-- Check-in intent? NEW -> checkin handler (natural language)
+    +-- Goal update? NEW     -> goals handler (natural language progress)
+    +-- Settings change? NEW -> coaching-settings handler
+    +-- Default              -> chat.ts (MODIFIED: topic hint, timer context)
+                                  |
+                            memory.ts (MODIFIED: timer sessions, outreach storage)
+                                  |
+                            personality.ts (MODIFIED: coaching tone, timer awareness)
+                                  |
+                            ai-client.ts (UNCHANGED)
 
-### Monorepo Structure
+Proactive Coaching (scheduler module, MODIFIED):
+  SchedulerManager
+    +-- morning brief      -> briefs.ts (MODIFIED: plain text, stored as conversation)
+    +-- check-in reminder  -> briefs.ts (EXISTING, unchanged)
+    +-- Sunday planning    -> planning.ts (EXISTING, unchanged)
+    +-- evening nudge      -> nudge.ts (EXISTING, already stores as conversation)
+    +-- daily reflection   -> reflection/flow.ts (MODIFIED: store as conversation)
+    +-- weekly recap       -> NEW: recap on configurable day
+    +-- monthly reflection -> reflection/flow.ts (MODIFIED: store as conversation)
+    +-- monthly recap      -> recap/generator.ts (MODIFIED: store as conversation)
 
-```
-28k-hq/
-  turbo.json
-  pnpm-workspace.yaml
-  package.json                  -- Root: devDeps only (turbo, typescript)
-
-  apps/
-    bot/
-      src/
-        index.ts                -- Current entry point (moved)
-        core/                   -- config, client, commands, events, module-loader
-        modules/                -- All 25 modules (unchanged internally)
-      package.json              -- discord.js, node-cron, etc.
-      tsconfig.json
-
-    api/
-      src/
-        index.ts                -- Fastify server entry
-        plugins/
-          auth.ts               -- Discord OAuth + JWT
-          prisma.ts             -- DB client plugin
-        routes/
-          auth.ts               -- POST /auth/discord, POST /auth/refresh
-          timer.ts              -- GET/POST/PATCH /timer
-          goals.ts              -- GET /goals (hierarchy)
-          profile.ts            -- GET /profile
-          dashboard.ts          -- GET /dashboard (aggregated)
-        middleware/
-          authenticate.ts       -- JWT verification preHandler
-      package.json              -- fastify, @fastify/jwt, @fastify/oauth2
-      tsconfig.json
-
-    desktop/
-      src/                      -- React frontend
-        App.tsx
-        components/
-          Timer/                -- Timer UI (Pomodoro + Flowmodoro)
-          Goals/                -- Goal hierarchy view
-          Dashboard/            -- Today's priorities, streaks, rank
-        hooks/
-          useTimer.ts           -- Timer state management + API sync
-          useGoals.ts           -- Goals data fetching
-          useAuth.ts            -- OAuth flow + token storage
-        api/
-          client.ts             -- Fetch wrapper with JWT
-      src-tauri/                -- Rust backend
-        src/
-          main.rs               -- Tauri setup, system tray, plugins
-          tray.rs               -- Menu bar icon, timer display
-        tauri.conf.json
-        Cargo.toml
-      package.json              -- react, @tauri-apps/api
-      tsconfig.json
-
-  packages/
-    db/
-      prisma/
-        schema.prisma           -- THE schema (moved from root)
-        migrations/
-      src/
-        client.ts               -- PrismaClient singleton + encryption
-        index.ts                -- Re-export client + generated types
-      generated/
-        prisma/                 -- Generated client output
-      package.json              -- @prisma/client, @prisma/adapter-pg
-      prisma.config.ts
-      tsconfig.json
-
-    shared/
-      src/
-        constants.ts            -- RANK_PROGRESSION, BRAND_COLORS, TIMER_DEFAULTS
-        types.ts                -- Shared types (IEventBus stays bot-only)
-        xp-engine.ts            -- getRankForXP, getNextRankInfo, calculateCheckinXP
-        xp-constants.ts         -- XP_AWARDS, STREAK_CONFIG
-        timer-constants.ts      -- TIMER_DEFAULTS
-        crypto.ts               -- encrypt, decrypt, deriveMemberKey (Node.js only)
-        index.ts                -- Barrel export
-      package.json
-      tsconfig.json
+Per-User Coaching Config (NEW module: coaching-settings):
+  +-- Feature toggles (brief, reflection, recap, nudges, reminders)
+  +-- Coaching intensity override
+  +-- Timer data inclusion toggle
+  +-- Schedule customization
+  +-- Natural language changes via Jarvis DM
 ```
 
 ---
 
 ## Component Boundaries
 
-### What Gets Extracted to `packages/db`
+### Modules to MODIFY (5)
 
-| Current Location | New Location | Why |
-|-----------------|-------------|-----|
-| `prisma/schema.prisma` | `packages/db/prisma/schema.prisma` | Single schema, three consumers |
-| `src/db/client.ts` | `packages/db/src/client.ts` | Shared Prisma singleton |
-| `src/db/encryption.ts` | `packages/db/src/encryption.ts` | API needs encryption too |
-| `src/shared/crypto.ts` | `packages/db/src/crypto.ts` | Encryption depends on crypto |
-| `src/core/config.ts` | Stays in apps/bot, new config in apps/api | App-specific env vars differ |
+| Module | File(s) | What Changes | Why |
+|--------|---------|-------------|-----|
+| `ai-assistant` | `index.ts` | Remove timer imports (lines 32-38), remove timer handling (lines 98-258), remove private channel logic (lines 66-79), extract intent router | Timer is desktop-only, private channels removed, cleaner intent dispatch |
+| `ai-assistant` | `chat.ts` | Add optional `topicHint` param to `handleChat()` | Prevents context bleeding when intent is clear |
+| `ai-assistant` | `memory.ts` | Query `TimerSession` in `assembleContext()`, store topic metadata, add `storeOutreach()` helper | Desktop timer data feeds coaching context, outreach continuity |
+| `ai-assistant` | `personality.ts` | Update CHARACTER_PROMPT for coaching-first posture, add coaching intensity instructions, add timer awareness, remove slash command references | Jarvis becomes coach, not command dispatcher |
+| `scheduler` | `index.ts`, `manager.ts` | Add weekly recap task type, wire coaching-settings | New proactive outreach type |
+| `scheduler` | `briefs.ts` | Store brief as conversation message after delivery | Jarvis needs continuity when member replies to brief |
+| `reflection` | `flow.ts` | Store question + response as conversation messages | Same continuity reason |
+| `shared` | `delivery.ts` | Remove CHANNEL delivery path (lines 50-59) | DMs only going forward |
 
-The `packages/db` package exports:
+### Modules to ADD (1)
+
+| Module | Purpose |
+|--------|---------|
+| `coaching-settings` | Per-user coaching configuration (feature toggles, intensity, schedule, timer data inclusion) |
+
+### Modules to REMOVE (1)
+
+| Module | Reason | Migration |
+|--------|--------|-----------|
+| `timer` | Desktop app handles all timer functionality | Remove directory, remove imports from ai-assistant, keep TimerSession Prisma model |
+
+### Files UNCHANGED
+
+| Component | Why No Change |
+|-----------|--------------|
+| `ai-client.ts` | Centralized AI routing already perfect for coaching |
+| `nudge.ts` | Already stores nudges as conversation messages with `[NUDGE]` marker |
+| `reminders/` | Parser/scheduler unchanged, just reached via intent router instead of direct if-check |
+| `goals/decompose.ts` | Decomposition flow unchanged |
+| `notification-router/` | Routing logic unchanged, just delivers to DM instead of channel |
+| `checkin/` module | Slash command stays as fallback; new NL check-in is in ai-assistant |
+| `xp/` module | XP engine unchanged |
+| `recap/generator.ts` | Content generation unchanged, just add conversation storage |
+
+---
+
+## New Component: Intent Router
+
+### Problem
+
+The current `ai-assistant/index.ts` has a 258-line cascade of `if` statements checking for timer stop, timer pause, timer resume, timer start, reminder, and decomposition intents before falling through to chat. Removing timer reduces this, but adding check-in and goal update intents grows it back.
+
+### Solution
+
+Extract intent classification into `ai-assistant/intent-router.ts`. Keep regex/keyword detection (fast, free, reliable). Do NOT use AI for intent classification (adds 500-1500ms latency on every message).
+
 ```typescript
-// packages/db/src/index.ts
-export { db, disconnectDb, type ExtendedPrismaClient } from './client.js';
-export * from '../generated/prisma/client';  // All Prisma types
-```
+// ai-assistant/intent-router.ts
 
-**Critical**: The encryption extension needs the MASTER_ENCRYPTION_KEY. This env var must be available to both bot and API. The `packages/db/src/client.ts` reads it from `process.env.MASTER_ENCRYPTION_KEY` directly (no app-specific config import).
+export type Intent =
+  | { type: 'reminder'; parsed: ParsedReminder }
+  | { type: 'decomposition'; goalHint: string | null }
+  | { type: 'checkin'; content: string }
+  | { type: 'goal-update'; content: string }
+  | { type: 'settings'; content: string }
+  | { type: 'chat' };
 
-### What Gets Extracted to `packages/shared`
-
-| Current Location | New Location | Why |
-|-----------------|-------------|-----|
-| `src/shared/constants.ts` (RANK_PROGRESSION, BRAND_COLORS) | `packages/shared/src/constants.ts` | Desktop shows ranks, uses brand colors |
-| `src/modules/xp/engine.ts` (getRankForXP, getNextRankInfo) | `packages/shared/src/xp-engine.ts` | Desktop shows "375 XP to Hustler" |
-| `src/modules/xp/constants.ts` (XP_AWARDS, STREAK_CONFIG) | `packages/shared/src/xp-constants.ts` | Desktop validates timer XP rules |
-| `src/modules/timer/constants.ts` (TIMER_DEFAULTS) | `packages/shared/src/timer-constants.ts` | Desktop enforces min/max durations |
-
-**What stays bot-only (not extracted):**
-- `IEventBus`, `ICommandRegistry`, `ModuleContext`, `Module` -- Discord-specific interfaces
-- `deliverToPrivateSpace()` -- Discord DM/channel delivery
-- `EventBus` class -- In-process pub/sub, not needed by API or desktop
-- Timer engine (`engine.ts`) -- In-memory state machine is bot-specific; API uses DB-only state
-- All embed builders -- discord.js `EmbedBuilder` is bot-only
-- Module loader -- Bot-specific dynamic import pattern
-
-### What Does NOT Move
-
-The XP `awardXP()` function is an interesting case. It depends on `ExtendedPrismaClient` (from packages/db) and `RANK_PROGRESSION` / `XP_AWARDS` (from packages/shared). It could live in packages/shared, but it also needs the Prisma client type, creating a circular-ish dependency.
-
-**Decision**: Put `awardXP()` in `packages/shared` with the DB client as a parameter. It already takes `db: ExtendedPrismaClient` as a parameter, so no circular dependency -- it just needs the type imported from `packages/db`. This works cleanly because `packages/shared` can depend on `packages/db` for types.
-
-```typescript
-// packages/shared/src/xp-engine.ts
-import type { ExtendedPrismaClient } from '@28k/db';
-import { RANK_PROGRESSION } from './constants.js';
-import { XP_AWARDS, STREAK_CONFIG } from './xp-constants.js';
-
-export async function awardXP(
-  db: ExtendedPrismaClient,
+export async function classifyIntent(
+  message: string,
   memberId: string,
-  amount: number,
-  source: XPSource,
-  description: string,
-): Promise<AwardXPResult> { ... }
+  db: ExtendedPrismaClient,
+): Promise<Intent> {
+  // Most specific first, cheapest checks first
+
+  if (isReminderRequest(message)) {
+    const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
+    const parsed = parseReminder(message, schedule?.timezone || 'UTC');
+    if (parsed) return { type: 'reminder', parsed };
+  }
+
+  if (isDecompositionRequest(message)) {
+    return { type: 'decomposition', goalHint: extractDecompositionGoalName(message) };
+  }
+
+  if (isCheckinRequest(message)) {
+    return { type: 'checkin', content: message };
+  }
+
+  if (isGoalUpdateRequest(message)) {
+    return { type: 'goal-update', content: message };
+  }
+
+  if (isSettingsRequest(message)) {
+    return { type: 'settings', content: message };
+  }
+
+  return { type: 'chat' };
+}
 ```
+
+**New intent detectors needed:**
+- `isCheckinRequest()` -- detects "I worked on X today", "did 3 hours of coding", "check in: finished the API"
+- `isGoalUpdateRequest()` -- detects "update my goal to 15/20", "I completed the API goal", "mark SaaS goal as done"
+- `isSettingsRequest()` -- detects "turn off morning briefs", "make coaching more intense", "change brief time to 9am"
+
+All use regex/keyword matching, same pattern as existing `isReminderRequest()` and `isDecompositionRequest()`.
 
 ---
 
-## New Components (Not Modified Existing)
+## New Component: Coaching Settings Module
 
-### 1. Fastify REST API (`apps/api`)
+### Schema Addition
 
-Brand new application. Does NOT touch bot code.
+```prisma
+model CoachingConfig {
+  id                 String   @id @default(cuid())
+  memberId           String   @unique
 
-**Purpose**: HTTP interface to the shared database for the desktop app. Handles authentication, timer CRUD, goals read, dashboard aggregation.
+  // Feature toggles
+  morningBrief       Boolean  @default(true)
+  eodReflection      Boolean  @default(true)
+  weeklyRecap        Boolean  @default(true)
+  goalNudges         Boolean  @default(true)
+  checkinReminders   Boolean  @default(true)
 
-**Key Design Decisions**:
+  // Coaching intensity (light/medium/heavy)
+  coachingIntensity  String   @default("medium")
 
-- **Stateless**: No in-memory state. All timer state lives in the database. The bot owns in-memory timer state; the API just reads/writes DB records.
-- **JWT authentication**: Desktop app authenticates via Discord OAuth, receives a JWT signed by the API. All subsequent requests include the JWT.
-- **Thin layer**: Routes are mostly Prisma queries + shared business logic from packages/shared. The API does not duplicate XP logic or timer state machine logic.
+  // Desktop timer context inclusion
+  includeTimerData   Boolean  @default(true)
 
-**Route inventory**:
+  // Schedule overrides (migrate from MemberSchedule)
+  briefTime          String?  // HH:mm
+  reflectionTime     String?  // HH:mm
+  recapDay           String   @default("sunday")
+  recapTime          String   @default("18:00")
 
-| Method | Path | Purpose | Auth |
-|--------|------|---------|------|
-| POST | /auth/discord | Exchange Discord OAuth code for JWT | No |
-| POST | /auth/refresh | Refresh expired JWT | Refresh token |
-| GET | /me | Current member profile + stats | JWT |
-| POST | /timer | Start a timer session | JWT |
-| PATCH | /timer/:id | Pause/resume/stop timer | JWT |
-| GET | /timer/active | Get active timer for member | JWT |
-| GET | /timer/history | Recent completed sessions | JWT |
-| GET | /goals | Goal hierarchy for member | JWT |
-| GET | /dashboard | Aggregated dashboard data | JWT |
-
-**What the API does NOT do**:
-- Send Discord DMs (bot handles Discord delivery)
-- Manage in-memory timer timeouts (timer transitions happen client-side in desktop app)
-- Run cron jobs (bot handles scheduled tasks)
-- Manage Discord roles, channels, or interactions
-
-### 2. Tauri Desktop App (`apps/desktop`)
-
-Brand new application. Communicates ONLY with the API, never directly with the database.
-
-**Architecture**:
-- React frontend in WebView (standard Vite + React setup)
-- Rust backend for system tray, menu bar, and OS integration
-- All data fetched from REST API via `fetch()` with JWT auth header
-
-**System Tray / Menu Bar**:
-- Gold ouroboros icon in macOS menu bar / Windows system tray
-- Title text shows countdown during active timer (e.g., "23:45")
-- Menu items: Quick Timer Start, Current Status, Settings, Quit
-- Tray icon updates via Rust `set_title()` called from frontend via Tauri commands
-
-**Local State vs Remote State**:
-- Timer countdown runs locally (JavaScript `setInterval` for display)
-- Timer state persisted to API on start, pause, resume, stop
-- On app launch: check API for active session, resume local countdown if found
-- No local database -- the desktop app is a thin client
-
-### 3. Discord OAuth Flow
-
-```
-Desktop App                    API Server                 Discord
-    |                             |                          |
-    |-- Open browser to -------->|                          |
-    |   /auth/discord?...        |                          |
-    |                            |-- Redirect to ---------->|
-    |                            |   discord.com/oauth2     |
-    |                            |                          |
-    |                            |<-- Callback with code ---|
-    |                            |                          |
-    |                            |-- Exchange code for ----->|
-    |                            |   access_token           |
-    |                            |                          |
-    |                            |<-- access_token ---------|
-    |                            |                          |
-    |                            |-- GET /users/@me ------->|
-    |                            |                          |
-    |                            |<-- Discord user info ----|
-    |                            |                          |
-    |<-- JWT + refresh token ----|                          |
-    |    (mapped to memberId)    |                          |
-```
-
-**Implementation details**:
-
-1. Desktop app uses `tauri-plugin-oauth` to spawn a temporary localhost server
-2. The localhost callback receives the authorization code from Discord redirect
-3. Desktop posts the code to `POST /api/auth/discord`
-4. API exchanges the code with Discord for an access token
-5. API calls Discord's `/users/@me` to get the user's Discord ID
-6. API looks up `DiscordAccount` by discordId to find the `memberId`
-7. API signs a JWT containing `{ memberId, discordId }` and returns it
-8. Desktop stores the JWT securely (Tauri's secure storage or keychain)
-
-**Required Discord OAuth scopes**: `identify` (that's it -- we only need the Discord user ID to map to a member)
-
-**JWT payload**:
-```typescript
-{
-  sub: string;       // memberId (internal CUID)
-  did: string;       // discordId (for display/avatar)
-  iat: number;       // issued at
-  exp: number;       // expires (15 min)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 ```
 
-Refresh tokens stored server-side in a new `RefreshToken` model or in `BotConfig` (key-value store already exists).
+### Integration with Existing Systems
+
+The `CoachingConfig` model works alongside the existing `MemberSchedule` model, not replacing it. `MemberSchedule` handles timezone, accountability level, nudge time, and reminder times. `CoachingConfig` handles coaching-specific feature toggles and intensity.
+
+When a member changes coaching settings (via natural language DM), the `coaching-settings` module:
+1. Updates `CoachingConfig` in DB
+2. Emits `scheduleUpdated` event (existing event type)
+3. Scheduler rebuilds that member's cron tasks, checking `CoachingConfig` feature toggles before scheduling each task type
 
 ---
 
-## Cross-Platform Timer Flow
+## Modified Data Flow: Conversation Continuity
 
-This is the most complex integration point. The timer needs to work from both Discord (bot slash commands) and the desktop app, with sessions tracked in the same database and XP awarded once.
+### The Problem
 
-### Design Principle: Database as Source of Truth
+Currently, proactive outreach messages are **not part of conversation history**:
 
-The bot's in-memory timer Map is an optimization for the bot process. The API writes directly to the database. Both use the same `TimerSession` model.
+| Outreach Type | Stored in Conversation? | Problem |
+|--------------|------------------------|---------|
+| Nudges | YES (with `[NUDGE]` marker) | None |
+| Morning briefs | NO | When member replies to brief, Jarvis has no context of what it said |
+| Reflections | NO (stored only as Reflection record) | Jarvis can't reference "last time we reflected on X" |
+| Recaps | NO | No continuity |
+| Planning sessions | NO (conversational but not stored) | Lost context |
 
-### Flow: Timer Started from Desktop App
+### The Solution
 
-```
-Desktop App              API Server              Database              Bot Process
-    |                        |                       |                      |
-    |-- POST /timer -------->|                       |                      |
-    |   {mode, work, break,  |                       |                      |
-    |    focus, goalId}      |                       |                      |
-    |                        |-- INSERT TimerSession->|                      |
-    |                        |   status=ACTIVE        |                      |
-    |                        |   source='DESKTOP'     |                      |
-    |<-- 201 {session} ------|                       |                      |
-    |                        |                       |                      |
-    |  [Local countdown      |                       |                      |
-    |   running in React]    |                       |                      |
-    |                        |                       |                      |
-    |-- PATCH /timer/:id --->|                       |                      |
-    |   {action: 'pause'}   |                       |                      |
-    |                        |-- UPDATE TimerSession->|                      |
-    |                        |   state='paused'       |                      |
-    |                        |   remainingMs=...      |                      |
-    |<-- 200 {session} ------|                       |                      |
-    |                        |                       |                      |
-    |-- PATCH /timer/:id --->|                       |                      |
-    |   {action: 'stop'}    |                       |                      |
-    |                        |-- UPDATE TimerSession->|                      |
-    |                        |   status='COMPLETED'   |                      |
-    |                        |   endedAt=now          |                      |
-    |                        |                       |                      |
-    |                        |-- awardXP() ---------->|                      |
-    |                        |   (from packages/      |                      |
-    |                        |    shared)             |                      |
-    |<-- 200 {xp, rank} ----|                       |                      |
-    |                        |                       |                      |
-    |                        |                       |   [Bot's cron or     |
-    |                        |                       |    event listener    |
-    |                        |                       |    detects new XP    |
-    |                        |                       |    transaction]      |
-    |                        |                       |                      |
-    |                        |                       |<---- Bot queries -----|
-    |                        |                       |      for levelUp     |
-    |                        |                       |                      |
-    |                        |                       |   [If levelUp: bot   |
-    |                        |                       |    sends Discord DM  |
-    |                        |                       |    + updates roles]  |
-```
+Store all outreach as conversation messages with type markers:
 
-### Flow: Timer Started from Discord Bot (unchanged)
-
-The bot's existing timer flow is completely unchanged. The in-memory Map + DB persistence pattern continues to work. The only addition: a `source` field on `TimerSession` to distinguish `'BOT'` vs `'DESKTOP'` sessions.
-
-### Schema Change for Cross-Platform Support
-
-```prisma
-model TimerSession {
-  // ... existing fields unchanged ...
-
-  // NEW: Source platform
-  source    String    @default("BOT")  // "BOT" or "DESKTOP"
-
-  // REPURPOSED: dmMessageId/dmChannelId are null for DESKTOP sessions
-  // Bot ignores DESKTOP sessions in its in-memory Map
-  // API ignores BOT sessions in its timer routes
-}
-```
-
-### Bot-Side: Detecting Desktop Timer Completions
-
-The bot needs to know when a desktop timer completes so it can:
-1. Send a Discord DM with the completion summary
-2. Update Discord roles if a level-up occurred
-
-**Options considered**:
-- **Webhook from API to bot**: Over-engineered for 10-25 users
-- **Bot polls DB**: Simple, reliable, low-frequency
-- **Shared event via Redis**: Overkill for single-VPS deployment
-
-**Decision**: Bot polls. Add a lightweight cron job (every 30 seconds) that checks for recently-completed DESKTOP timer sessions that haven't been notified yet.
-
-```prisma
-model TimerSession {
-  // ... existing fields ...
-  source          String    @default("BOT")
-  botNotified     Boolean   @default(false)  // Has bot sent completion DM?
-}
-```
-
-Bot cron logic:
 ```typescript
-// Every 30 seconds
-const unnotified = await db.timerSession.findMany({
+// After delivering any proactive message, store it:
+await storeMessage(db, memberId, 'assistant', `[BRIEF] ${briefText}`);
+await storeMessage(db, memberId, 'assistant', `[REFLECTION] ${question}`);
+await storeMessage(db, memberId, 'user', `${memberResponse}`); // reflection response
+await storeMessage(db, memberId, 'assistant', `[RECAP] ${recapText}`);
+```
+
+The markers serve two purposes:
+1. **Counting**: Nudge counting already uses `[NUDGE]` prefix -- extend pattern
+2. **Context trimming**: The warm-tier summarizer can recognize outreach types and summarize them appropriately ("Member received 5 morning briefs and 3 reflections last week")
+
+### Impact on Token Budget
+
+At current usage, a member might receive per day:
+- 1 morning brief (~200 tokens)
+- 1 nudge (~100 tokens)
+- 1 reflection Q+A (~300 tokens)
+
+That is ~600 tokens/day of outreach in the hot tier, well within the 1.4M context budget.
+
+---
+
+## Modified Data Flow: Desktop Timer Context
+
+### Current State
+
+`assembleContext()` in `memory.ts` builds `memberContext` from: profile, goals, schedule, check-ins, voice sessions, inspirations, reflections. It does NOT include timer sessions.
+
+### Change
+
+Add timer session query to `assembleContext()`:
+
+```typescript
+// In assembleContext(), after voiceSessions query:
+const recentTimerSessions = await db.timerSession.findMany({
   where: {
-    source: 'DESKTOP',
+    memberId,
     status: 'COMPLETED',
-    botNotified: false,
-    endedAt: { gte: thirtyMinutesAgo },  // Don't notify old sessions
+    startedAt: { gte: subDays(now, 7) },
+  },
+  orderBy: { startedAt: 'desc' },
+  take: 10,
+  select: {
+    mode: true,
+    focus: true,
+    totalWorkedMs: true,
+    pomodoroCount: true,
+    startedAt: true,
   },
 });
-
-for (const session of unnotified) {
-  // Send Discord DM with completion embed
-  await deliverTimerCompletionDM(session);
-  // Check for level-up and update roles
-  await checkAndNotifyLevelUp(session.memberId);
-  // Mark as notified
-  await db.timerSession.update({
-    where: { id: session.id },
-    data: { botNotified: true },
-  });
-}
 ```
 
-This is simple, robust, works with a single-VPS architecture, and the 30-second delay is acceptable for a completion notification.
-
-### Timer State Machine Comparison
-
-| Aspect | Bot (In-Memory) | API (DB-Only) |
-|--------|-----------------|---------------|
-| State storage | Map<memberId, ActiveTimer> | TimerSession rows |
-| Transition scheduling | setTimeout callbacks | Client-side (desktop counts down locally) |
-| Work-to-break transition | Bot's event bus emits `timerTransition` | Desktop app triggers locally, PATCH API |
-| XP award | On `stopTimer()` in-process | On `PATCH /timer/:id {action: stop}` |
-| Restart recovery | Bot reconstructs from ACTIVE sessions | Desktop checks API on launch |
-| DM delivery | Bot edits DM message with embed | Bot polls for DESKTOP completions |
-
----
-
-## Authentication Architecture
-
-### JWT Token Lifecycle
-
-```
-Access Token (15 min TTL)
-  - Stored in memory (React state)
-  - Sent as Bearer header on every API request
-  - Contains memberId + discordId
-
-Refresh Token (30 day TTL)
-  - Stored in Tauri secure storage (OS keychain)
-  - Used to get new access token when expired
-  - Rotated on each refresh (one-time use)
-  - Invalidated on logout
-```
-
-### New Database Model
-
-```prisma
-model RefreshToken {
-  id        String   @id @default(cuid())
-  memberId  String
-  token     String   @unique  // Random 64-byte hex
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([memberId])
-  @@index([token, expiresAt])
-}
-```
-
-### API Auth Middleware
+In `buildMemberContext()`:
 
 ```typescript
-// apps/api/src/middleware/authenticate.ts
-import { FastifyRequest, FastifyReply } from 'fastify';
+if (recentTimerSessions.length > 0) {
+  lines.push('\nRecent Focus Sessions (Desktop):');
+  const totalMinutes = recentTimerSessions.reduce(
+    (sum, s) => sum + Math.round(s.totalWorkedMs / 60000), 0
+  );
+  lines.push(`  Total: ${totalMinutes} min across ${recentTimerSessions.length} sessions this week`);
+  for (const session of recentTimerSessions.slice(0, 5)) {
+    const date = session.startedAt.toISOString().split('T')[0];
+    const mins = Math.round(session.totalWorkedMs / 60000);
+    const focus = session.focus ? ` on ${session.focus}` : '';
+    lines.push(`  - ${date}: ${mins} min${focus}`);
+  }
+}
+```
 
-export async function authenticate(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<void> {
+This data is **protected** (never trimmed by token budget), same as goals and check-ins. Controlled by `CoachingConfig.includeTimerData` toggle.
+
+---
+
+## Modified Component: Personality (Coaching Tone)
+
+### Current CHARACTER_PROMPT
+
+```
+You are Jarvis, a sharp personal operator for a productivity Discord server. Efficient, direct, you use casual language and slang naturally...
+```
+
+### Updated CHARACTER_PROMPT
+
+```
+You are Jarvis, a ruthlessly objective personal coach. You track goals, focus sessions, check-ins, and patterns. You communicate through DMs only. Your job is to help this member level up -- not through motivation speeches, but through specific, data-backed observations and suggestions. You're direct, concise, and you reference their actual data. When they're slacking, you call it out. When they're crushing it, you acknowledge it briefly and push for more. You adapt your push level to their coaching intensity setting.
+```
+
+### Updated CONVERSATION_RULES
+
+```
+Never reference slash commands except /reminders, /goals, and /leaderboard for quick lookups.
+Everything else happens through natural conversation.
+When the member wants to check in, log a goal update, set a reminder, or change settings, handle it conversationally.
+If you see desktop timer data, reference it naturally: "You logged 2 hours on the API yesterday -- how's that going?"
+When you send a morning brief, it's the start of a conversation, not a broadcast.
+When a member replies to a brief, nudge, or reflection, continue the conversation naturally.
+One suggestion per message. Don't overload.
+```
+
+---
+
+## Scheduler Integration: Weekly Recap
+
+### New Task Type in SchedulerManager
+
+```typescript
+// manager.ts -- add alongside existing scheduleBrief, scheduleNudge, etc.
+scheduleWeeklyRecap(
+  memberId: string,
+  cronExpr: string,
+  timezone: string,
+  fn: () => Promise<void>,
+): void {
+  this.setTask(memberId, 'weekly-recap', cronExpr, timezone, fn);
+}
+```
+
+### Recap Content Assembly
+
+The weekly recap draws from all data sources:
+
+| Data Source | What It Provides | Query |
+|------------|-----------------|-------|
+| Check-ins | Count, categories, streak status | `checkIn.findMany({ where: { createdAt: gte: weekStart } })` |
+| Goals | Progress deltas, completions | `goal.findMany()` + compare to snapshot |
+| Timer sessions (desktop) | Total focus time, session count, topics | `timerSession.findMany({ where: { startedAt: gte: weekStart } })` |
+| Voice sessions | Co-working time | `voiceSession.aggregate()` |
+| XP transactions | Sources of XP, total earned | `xPTransaction.findMany()` |
+| Reflections | Insights from the week | `reflection.findMany()` |
+
+The existing `recap/generator.ts` already does monthly recaps with similar data assembly. The weekly recap reuses this pattern with a shorter time window.
+
+---
+
+## Event Bus Changes
+
+### Events to REMOVE
+
+```typescript
+// Remove from BotEventMap (timer module removal):
+timerStarted: [memberId: string, mode: string];
+timerCompleted: [memberId: string, totalWorkedMinutes: number];
+timerCancelled: [memberId: string];
+timerTransition: [memberId: string, type: string];
+buttonInteraction: [interaction: unknown];
+```
+
+### Events to ADD
+
+```typescript
+// Add to BotEventMap:
+coachingConfigUpdated: [memberId: string];
+naturalCheckin: [memberId: string, checkinId: string]; // NL check-in processed
+goalUpdatedViaChat: [memberId: string, goalId: string]; // NL goal update processed
+```
+
+`coachingConfigUpdated` can simply emit `scheduleUpdated` instead (scheduler already listens). Only add a separate event if other modules need to react specifically to coaching config changes.
+
+---
+
+## Removal Plan: Timer Module
+
+### Files to Delete
+
+```
+apps/bot/src/modules/timer/
+  index.ts
+  engine.ts          -- In-memory Map, start/stop/pause/resume
+  session.ts         -- DB persistence helpers
+  natural-language.ts -- NLP timer parsing
+  embeds.ts          -- Discord embed builders
+  buttons.ts         -- Discord button builders
+  commands.ts        -- /timer slash command
+  constants.ts       -- Timer-specific constants (already in @28k/shared)
+```
+
+### Import Cleanup in ai-assistant/index.ts
+
+Remove these imports (lines 32-38):
+```typescript
+// DELETE ALL OF THESE:
+import { isTimerRequest, parseTimerRequest, isTimerStopRequest, isTimerPauseRequest, isTimerResumeRequest } from '../timer/natural-language.js';
+import { getActiveTimer, stopTimer, pauseTimer, resumeTimer, scheduleTransition } from '../timer/engine.js';
+import { startTimerForMember } from '../timer/index.js';
+import { persistTimerSession, deleteActiveTimerRecord, updateTimerRecord } from '../timer/session.js';
+import { buildTimerEmbed, buildTimerCompletedEmbed } from '../timer/embeds.js';
+import { buildWorkButtons, buildBreakButtons, buildPausedButtons } from '../timer/buttons.js';
+import { TIMER_DEFAULTS } from '@28k/shared';
+```
+
+### What to KEEP
+
+- `TimerSession` Prisma model -- desktop app writes to it
+- `TimerMode`, `TimerStatus` enums -- used by API routes
+- Timer API routes in `apps/api/src/routes/timer.ts` -- desktop reads/writes
+
+---
+
+## Removal Plan: Private Channels
+
+### Files to Modify
+
+**`shared/delivery.ts`:**
+Remove CHANNEL delivery path (lines 50-59). Simplify to:
+```typescript
+export async function deliverToPrivateSpace(
+  client: Client,
+  db: ExtendedPrismaClient,
+  memberId: string,
+  content: DeliveryContent,
+): Promise<boolean> {
   try {
-    const payload = await request.jwtVerify();
-    request.memberId = payload.sub;
-    request.discordId = payload.did;
+    const account = await db.discordAccount.findFirst({
+      where: { memberId },
+    });
+    if (!account) return false;
+    const user = await client.users.fetch(account.discordId);
+    await user.send(content);
+    return true;
   } catch {
-    reply.code(401).send({ error: 'Unauthorized' });
+    return false;
   }
 }
 ```
+
+**`ai-assistant/index.ts`:**
+Remove private channel check (lines 66-79). DMs are the only input path.
+
+**Migration script:**
+One-time: update all `PrivateSpace` records to `type: 'DM'`, clear `channelId`. Can keep `PrivateSpace` model in schema for now, remove in future cleanup.
 
 ---
 
-## Data Flow Diagrams
+## Patterns to Follow
 
-### Dashboard Data (Desktop App Launch)
+### Pattern 1: Store-Then-Deliver for Outreach
 
-```
-Desktop App                    API Server                    Database
-    |                              |                            |
-    |-- GET /dashboard ----------->|                            |
-    |                              |-- Member + stats --------->|
-    |                              |-- Active goals (tree) ---->|
-    |                              |-- Today's check-ins ------>|
-    |                              |-- Current streak --------->|
-    |                              |-- Active timer? ---------->|
-    |                              |                            |
-    |                              |  [Aggregate into single    |
-    |                              |   response object]         |
-    |                              |                            |
-    |<-- 200 {                     |                            |
-    |     member: { name, rank,    |                            |
-    |       totalXp, streak },     |                            |
-    |     goals: [ hierarchy ],    |                            |
-    |     timer: { active? },      |                            |
-    |     quote: "..."             |                            |
-    |   } -------------------------|                            |
-```
+**What:** Every bot-initiated message is stored as a conversation message BEFORE or immediately AFTER delivery.
 
-### Goals Hierarchy (Read-Only from Desktop)
+**Why:** Conversation continuity. When a member replies to a morning brief, Jarvis needs to know what it said.
 
-Desktop displays goals but does NOT create/edit them (that stays in Discord for v2.0 MVP). Goals are read-only in the desktop app to keep scope manageable.
-
-```
-GET /goals?timeframe=weekly
-  -> Returns nested goal tree for the authenticated member
-  -> Uses goalTreeInclude pattern from packages/shared
-  -> Titles are cleartext; descriptions are decrypted by the encryption extension
-```
-
----
-
-## Monorepo Configuration
-
-### `pnpm-workspace.yaml`
-
-```yaml
-packages:
-  - 'apps/*'
-  - 'packages/*'
-```
-
-### Root `package.json`
-
-```json
-{
-  "name": "28k-hq",
-  "private": true,
-  "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "turbo lint",
-    "db:generate": "turbo db:generate",
-    "db:migrate": "turbo db:migrate"
-  },
-  "devDependencies": {
-    "turbo": "^2.x",
-    "typescript": "^5.9.x"
+**Implementation:**
+```typescript
+async function deliverAndStore(
+  client: Client,
+  db: ExtendedPrismaClient,
+  memberId: string,
+  type: string, // 'BRIEF', 'RECAP', 'REFLECTION', etc.
+  text: string,
+): Promise<boolean> {
+  const delivered = await deliverNotification(client, db, memberId, 'general', {
+    content: text,
+  });
+  if (delivered) {
+    await storeMessage(db, memberId, 'assistant', `[${type}] ${text}`);
   }
+  return delivered;
 }
 ```
 
-### `turbo.json`
+### Pattern 2: Coaching-Aware System Prompt
 
-```json
-{
-  "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL", "MASTER_ENCRYPTION_KEY"],
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build", "^db:generate"],
-      "outputs": ["dist/**"]
-    },
-    "dev": {
-      "dependsOn": ["^db:generate"],
-      "cache": false,
-      "persistent": true
-    },
-    "db:generate": {
-      "cache": false
-    },
-    "db:migrate": {
-      "cache": false
-    },
-    "lint": {
-      "dependsOn": ["^db:generate"]
-    }
-  }
-}
+**What:** The system prompt adapts based on `CoachingConfig` intensity and active features.
+
+**Why:** A member who set coaching to "light" should get gentle suggestions, not hard pushes.
+
+**Implementation:**
+```typescript
+// In personality.ts buildSystemPrompt():
+const coachingConfig = await db.coachingConfig.findUnique({ where: { memberId } });
+const intensity = coachingConfig?.coachingIntensity ?? 'medium';
+
+const INTENSITY_INSTRUCTIONS: Record<string, string> = {
+  light: 'Be supportive and gentle. Suggest, don\'t push. Acknowledge effort. One suggestion max per conversation.',
+  medium: 'Be direct and real. Call out patterns. Push for accountability but respect their pace.',
+  heavy: 'Be ruthlessly honest. Challenge excuses. Push hard. Reference data to back up every point.',
+};
+
+sections.push(INTENSITY_INSTRUCTIONS[intensity] ?? INTENSITY_INSTRUCTIONS.medium);
 ```
 
-### Package Dependencies (Dependency Graph)
+### Pattern 3: Natural Language Action with Confirmation
 
+**What:** When Jarvis detects a check-in or goal update intent, it confirms before persisting.
+
+**Why:** Prevents accidental data mutations from misclassified intents.
+
+**Implementation:**
 ```
-packages/db          -- No internal deps (depends on @prisma/client, pg)
-packages/shared      -- Depends on packages/db (for types only)
-apps/bot             -- Depends on packages/db, packages/shared
-apps/api             -- Depends on packages/db, packages/shared
-apps/desktop         -- Depends on packages/shared (for constants/types only, NOT db)
-```
-
-The desktop app NEVER imports packages/db directly. It has no database access. It communicates only through the API.
-
-### Package Names
-
-```
-packages/db       -> @28k/db
-packages/shared   -> @28k/shared
-apps/bot          -> @28k/bot
-apps/api          -> @28k/api
-apps/desktop      -> @28k/desktop
+User: "I worked on the API for 3 hours today, got the auth endpoints done"
+Jarvis: "Nice, logging that as a check-in. Categories: coding, API. Sound right?"
+User: "yeah" / "no, also add backend"
+Jarvis: [persists check-in] "Logged. +35 XP. Streak: 12 days."
 ```
 
-### `packages/db/package.json`
-
-```json
-{
-  "name": "@28k/db",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
-  },
-  "dependencies": {
-    "@prisma/client": "^7.5.0",
-    "@prisma/adapter-pg": "^7.5.0",
-    "pg": "^8.20.0"
-  },
-  "devDependencies": {
-    "prisma": "^7.5.0"
-  }
-}
-```
-
-### `packages/shared/package.json`
-
-```json
-{
-  "name": "@28k/shared",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "@28k/db": "workspace:*"
-  }
-}
-```
-
----
-
-## Build Order and Dependencies
-
-### Phase Build Order (Suggested Roadmap Sequence)
-
-```
-Phase 1: Monorepo Restructure
-  1. Create monorepo skeleton (pnpm-workspace.yaml, turbo.json)
-  2. Extract packages/db (schema, client, encryption, crypto)
-  3. Extract packages/shared (constants, XP engine, timer constants)
-  4. Move bot to apps/bot, update all imports
-  5. Verify bot builds and runs identically
-
-Phase 2: REST API Foundation
-  1. Create apps/api skeleton (Fastify)
-  2. Add Discord OAuth + JWT auth
-  3. Add /me, /dashboard routes (read-only)
-  4. Deploy API alongside bot on same VPS
-
-Phase 3: Desktop App Shell
-  1. Create apps/desktop (Tauri + React)
-  2. Implement OAuth login flow
-  3. Dashboard view (read-only data display)
-  4. System tray with icon
-
-Phase 4: Cross-Platform Timer
-  1. Add timer API routes (POST, PATCH, GET)
-  2. Desktop timer UI (Pomodoro + Flowmodoro setup, countdown)
-  3. Menu bar countdown display
-  4. Bot polling for desktop completions + DM notifications
-  5. Add TimerSession.source and TimerSession.botNotified fields
-
-Phase 5: Goals + Polish
-  1. Goals hierarchy read view in desktop
-  2. Dark theme with gold accents
-  3. Auto-update, error handling, offline resilience
-```
-
-### Build Dependency Chain
-
-```
-prisma generate (packages/db)
-       |
-       v
-tsc packages/shared (depends on packages/db types)
-       |
-       v
-  +----+----+----+
-  |         |    |
-  v         v    v
-apps/bot  apps/api  apps/desktop (Vite build, no tsc)
-```
-
-### Dev Server Startup Order
-
-1. `pnpm turbo db:generate` (runs once)
-2. All three apps can start in parallel:
-   - `apps/bot`: `tsx watch src/index.ts`
-   - `apps/api`: `tsx watch src/index.ts`
-   - `apps/desktop`: `cargo tauri dev` (runs Vite + Tauri together)
-
----
-
-## VPS Deployment Architecture
-
-Both bot and API run on the same Hetzner VPS. The desktop app is distributed as a native binary.
-
-```
-Hetzner VPS (same machine)
-  +------------------------------------------+
-  |                                          |
-  |  systemd: 28k-bot.service                |
-  |    -> node /opt/28k-hq/apps/bot/dist/    |
-  |                                          |
-  |  systemd: 28k-api.service                |
-  |    -> node /opt/28k-hq/apps/api/dist/    |
-  |    -> Listens on :3001 (internal)        |
-  |                                          |
-  |  nginx (reverse proxy)                   |
-  |    -> api.28khq.com -> localhost:3001    |
-  |    -> TLS via Let's Encrypt              |
-  |                                          |
-  |  PostgreSQL                              |
-  |    -> Both services connect via           |
-  |       DATABASE_URL (unix socket)         |
-  |                                          |
-  +------------------------------------------+
-```
-
-**Why nginx**: The API needs HTTPS for the desktop app to communicate securely. nginx handles TLS termination and can also rate-limit or log requests.
-
-**Shared `.env`**: Both services read the same `.env` file (or systemd EnvironmentFile) with shared secrets (DATABASE_URL, MASTER_ENCRYPTION_KEY). Bot has additional Discord-specific vars; API has JWT_SECRET.
+This is a single AI call with a JSON response format requesting confirmation, not a multi-step flow.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Shared In-Memory State Between Bot and API
-**What:** Trying to share the bot's in-memory timer Map with the API process
-**Why bad:** They are separate processes. Cannot share memory. Would require Redis/IPC which is overkill for 10-25 users.
-**Instead:** Database is the shared state. Bot owns in-memory optimizations for its own timers. API writes to DB. Bot polls DB for cross-platform sync.
+### Anti-Pattern 1: AI-Based Intent Classification
 
-### Anti-Pattern 2: Desktop App Directly Accessing Database
-**What:** Having the Tauri app connect to PostgreSQL directly
-**Why bad:** Exposes database credentials in a client application. No auth layer. Can't rate-limit or validate requests. Encryption key would be in the desktop binary.
-**Instead:** Desktop talks to API only. API handles auth, validation, and database access.
+**What:** Using an LLM call to classify every incoming message's intent.
+**Why bad:** Adds 500-1500ms latency to every message. Costs tokens. The 5 intent types needed (reminder, decomposition, check-in, goal update, settings) are easily detectable via regex.
+**Instead:** Keep regex/keyword detection. Fall through to chat for anything ambiguous.
 
-### Anti-Pattern 3: Duplicating Business Logic
-**What:** Re-implementing XP calculations, rank thresholds, or timer validation in the API or desktop
-**Why bad:** Logic diverges over time. XP awarded differently from bot vs desktop.
-**Instead:** Extract to packages/shared. Both bot and API import the same `awardXP()`, `getRankForXP()`, `TIMER_DEFAULTS`.
+### Anti-Pattern 2: Topic Segmentation via Separate Conversations
 
-### Anti-Pattern 4: Bot Watching Database Changes via Triggers/LISTEN
-**What:** Using PostgreSQL LISTEN/NOTIFY or triggers to alert the bot of desktop timer completions
-**Why bad:** Adds complexity to the database layer. Hard to debug. Prisma doesn't natively support LISTEN/NOTIFY.
-**Instead:** Simple polling cron (every 30 seconds). For 10-25 users, this is zero-load and dead simple.
+**What:** Creating separate conversation threads for different topics.
+**Why bad:** Over-engineering for 10-25 members. Adds DB complexity. Members don't have 50 concurrent topics.
+**Instead:** Add a lightweight topic hint to the system prompt when intent is clear. Let the AI handle topic transitions naturally.
 
-### Anti-Pattern 5: Premature WebSocket Integration
-**What:** Adding WebSocket support between API and desktop for real-time updates
-**Why bad:** The desktop app runs a local timer. It doesn't need real-time push from the server. HTTP polling on app launch is sufficient for dashboard data.
-**Instead:** REST API with polling on focus/launch. Timer countdown runs entirely client-side. State synced to API on user actions (start, pause, stop).
+### Anti-Pattern 3: Real-Time Timer Sync via WebSocket
+
+**What:** Building a WebSocket between desktop app and bot for real-time timer state.
+**Why bad:** Coaching only needs "what did they do recently", not "what are they doing right now". Over-engineers a read-at-context-assembly-time problem.
+**Instead:** Query `TimerSession` table in `assembleContext()`. Completed sessions from desktop are available within the same DB.
+
+### Anti-Pattern 4: Removing ALL Slash Commands
+
+**What:** Going 100% conversational with zero slash commands.
+**Why bad:** `/reminders list`, `/goals`, `/leaderboard` return instant structured data. Forcing AI processing for simple lookups is slower UX.
+**Instead:** Keep 3 slash commands for quick lookups. Everything else goes through natural language.
+
+### Anti-Pattern 5: Separate Coaching Engine Module
+
+**What:** Building a standalone "coaching-engine" module that orchestrates all coaching logic.
+**Why bad:** The coaching pipeline is already distributed across existing modules (briefs, reflections, nudges, recaps). A central orchestrator would duplicate logic and add an abstraction layer with no benefit.
+**Instead:** Enhance existing modules in place. The `CoachingConfig` model is the only new coordination point.
+
+---
+
+## Suggested Build Order
+
+Based on dependency analysis and risk ordering:
+
+### Phase A: Clean Slate (no new features, just removal + cleanup)
+1. Remove `timer/` module directory
+2. Remove timer imports from `ai-assistant/index.ts`
+3. Remove timer events from `events.ts`
+4. Remove private channel logic from `ai-assistant/index.ts`
+5. Simplify `delivery.ts` to DM-only
+6. Verify bot still works with all remaining modules
+
+### Phase B: Coaching Foundation (context + personality changes)
+1. Add timer session query to `memory.ts` `assembleContext()`
+2. Update `personality.ts` CHARACTER_PROMPT and CONVERSATION_RULES
+3. Create `ai-assistant/intent-router.ts` (extract from index.ts)
+4. Refactor `ai-assistant/index.ts` to use intent router
+5. Store briefs as conversation messages (`briefs.ts`)
+6. Store reflections as conversation messages (`reflection/flow.ts`)
+7. Store recaps as conversation messages (`recap/generator.ts`)
+
+### Phase C: Natural Language Actions + Settings
+1. Create `CoachingConfig` Prisma model + migration
+2. Create `coaching-settings/` module
+3. Add natural language check-in intent detection + handler
+4. Add natural language goal update intent detection + handler
+5. Add natural language settings change intent detection + handler
+6. Add weekly recap task type to scheduler
+
+### Build Order Rationale
+
+- **Phase A first** because removal is risk-free and creates a cleaner codebase to build on
+- **Phase B second** because coaching context + personality are prerequisites for natural language actions (Jarvis needs the right tone before handling check-ins conversationally)
+- **Phase C third** because it depends on both the intent router (Phase B) and coaching config schema
 
 ---
 
 ## Scalability Considerations
 
-| Concern | 10-25 users (current) | 100+ users (future) |
-|---------|----------------------|---------------------|
-| API load | ~50 req/day total | Add response caching |
-| Timer polling | 30s cron, <1 query | Still fine at 100 |
-| DB connections | 2 clients (bot + API) | PgBouncer if needed |
-| Auth tokens | In-memory JWT verify | Still fine |
-| Desktop updates | Manual/GitHub releases | Tauri auto-updater |
-
-This architecture is deliberately simple for the current scale. Every component can be enhanced independently if the user base grows.
+| Concern | At 10 users | At 25 users | At 100 users (future) |
+|---------|-------------|-------------|----------------------|
+| AI cost per day | ~$1.00 | ~$2.50 | Need model downgrade or response caching |
+| Outreach storage (conversation messages) | ~600 tokens/user/day | Negligible vs 1.4M budget | Still fine |
+| Timer session queries in context | 1 query per chat message | Negligible | Add index on (memberId, startedAt, status) |
+| Cron task count | ~60 tasks (add recap) | ~150 tasks | node-cron handles thousands |
+| Intent classification | <1ms (regex) | <1ms | Still regex, still <1ms |
+| Daily message cap | 50 msgs/member | Same | May need adjustment if coaching is chatty |
 
 ---
 
 ## Sources
 
-- [Prisma + Turborepo Guide](https://www.prisma.io/docs/guides/turborepo) -- Official guide for shared DB package (HIGH confidence)
-- [Turborepo Repository Structure](https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository) -- apps/ vs packages/ convention (HIGH confidence)
-- [Tauri v2 System Tray](https://v2.tauri.app/learn/system-tray/) -- Tray icon, title, menu items (HIGH confidence)
-- [Tauri v2 Create Project](https://v2.tauri.app/start/create-project/) -- React + Tauri setup (HIGH confidence)
-- [tauri-plugin-oauth](https://github.com/FabianLars/tauri-plugin-oauth) -- OAuth flow for desktop apps (MEDIUM confidence)
-- [Fastify OAuth2 Plugin](https://github.com/fastify/fastify-oauth2) -- Discord OAuth integration (HIGH confidence)
-- [Fastify JWT Plugin](https://github.com/fastify/fastify-jwt) -- JWT signing/verification (HIGH confidence)
-- [Discord OAuth2 Docs](https://docs.discord.com/developers/topics/oauth2) -- Scopes, endpoints (HIGH confidence)
-- [Prisma + Fastify Example](https://github.com/prisma/prisma-examples/tree/latest/typescript/rest-fastify) -- REST API pattern (HIGH confidence)
-- [TypeScript Monorepo Best Practice 2026](https://hsb.horse/en/blog/typescript-monorepo-best-practice-2026/) -- pnpm + Turborepo + TS Project References (MEDIUM confidence)
+- Direct codebase analysis of all files referenced above (HIGH confidence)
+- `ai-assistant/index.ts` -- 353 lines, current intent cascade (HIGH confidence)
+- `ai-assistant/memory.ts` -- 604 lines, tiered context system (HIGH confidence)
+- `ai-assistant/personality.ts` -- 301 lines, system prompt builder (HIGH confidence)
+- `ai-assistant/nudge.ts` -- 258 lines, nudge delivery pattern (HIGH confidence)
+- `scheduler/manager.ts` -- 335 lines, cron task lifecycle (HIGH confidence)
+- `scheduler/index.ts` -- 312 lines, module wiring (HIGH confidence)
+- `scheduler/briefs.ts` -- 506 lines, brief generation (HIGH confidence)
+- `shared/delivery.ts` -- 75 lines, DM/channel delivery (HIGH confidence)
+- `shared/ai-client.ts` -- 285 lines, centralized AI routing (HIGH confidence)
+- `core/events.ts` -- 98 lines, event bus (HIGH confidence)
+- `core/module-loader.ts` -- 68 lines, dynamic module loading (HIGH confidence)
+- `packages/db/prisma/schema.prisma` -- Full schema review (HIGH confidence)

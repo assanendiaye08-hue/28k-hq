@@ -1,185 +1,231 @@
 # Project Research Summary
 
-**Project:** 28K HQ v2.0 -- Desktop Companion App
-**Domain:** Desktop productivity app (Tauri v2 + React) with REST API (Fastify) extending an existing Discord bot platform
-**Researched:** 2026-03-21
-**Confidence:** HIGH
+**Project:** Discord Hustler — Jarvis Coach Evolution (v3.0)
+**Domain:** Conversational AI productivity coaching bot on Discord
+**Researched:** 2026-03-22
+**Confidence:** HIGH (stack, architecture from direct codebase analysis); MEDIUM (features, pitfalls — no web search available)
 
 ## Executive Summary
 
-The v2.0 milestone transforms a single-process Discord bot (23K LOC TypeScript, Prisma 7, PostgreSQL) into a three-application platform: the existing bot, a new Fastify REST API, and a Tauri v2 desktop companion app. The desktop app provides visual UX for features that are awkward in Discord embeds -- a menu bar countdown timer, a goal hierarchy tree, and an at-a-glance dashboard with streaks, rank, and priorities. The entire stack is TypeScript end-to-end, with a pnpm + Turborepo monorepo sharing a Prisma database package and a constants/types package across all three apps. No new cloud services are needed; the API runs on the same VPS as the bot, and the desktop app runs on user machines.
+v3.0 transforms Jarvis from a slash-command-driven assistant into a proactive conversational coach. The core shift: members stop typing `/checkin title:...` and start saying "I finished the API endpoints today." Every interaction becomes a conversation — Jarvis detects intent, asks clarifying questions, confirms before persisting, and maintains context across morning briefs, reflections, nudges, and weekly recaps. The architecture to support this already exists in the codebase. No new npm dependencies are required. The work is extension and refactoring, not greenfield. Estimated: 5 new files, modifications to 8 existing modules, 2 Prisma migrations, ~1,165 LOC added.
 
-The recommended approach is to execute the migration in strict sequence: monorepo restructure first (extract shared packages, move the bot, verify nothing breaks), then API server with Discord OAuth, then desktop app shell with auth, then cross-platform timer integration, then goals/dashboard/polish. This order is non-negotiable because each layer depends on the one below it. The monorepo restructure is the riskiest phase -- it touches every import path in 23K lines of code and introduces pnpm's strict dependency resolution, which will surface a known Prisma 7 TypeScript bug (TS2742 with `@prisma/client-runtime-utils`). The timer integration is the most architecturally complex phase because two processes (bot and API) write to the same `TimerSession` table, requiring the API to be the single authority for timer state to prevent race conditions and double XP awards.
+The recommended build order is three phases: clean up legacy code first (remove timer module, remove private channel system), then lay the coaching foundation (context improvements, personality update, conversation continuity for all proactive outreach), then add natural language action handlers and per-user coaching settings. This order is dependency-driven — you cannot build correct coaching conversations on a personality prompt that still references slash commands and timer flows. The removal phase is also risk-free: reducing surface area before adding new complexity is always the right call.
 
-The key risks are: (1) the monorepo migration breaking the live bot during restructure, (2) Tauri's WebView background throttling silently killing timer accuracy in the menu bar app, and (3) the menu bar countdown being macOS-only (Windows system tray does not support text display). All three have documented mitigations. The competitive advantage is not in building a better timer -- Flow, Be Focused Pro, and Pomotroid already exist -- but in being the visual layer for a gamified community ecosystem where timer sessions feed XP, streaks, and AI coach context.
+The primary risk is trust erosion from intent misclassification. When Jarvis silently logs a check-in the member did not intend, or confirms a goal update that failed, members stop trusting the system within days. The mitigation is non-negotiable: every state-changing action requires a confirmation loop before any database write, and the `extractAction() → executeAction() → generateConfirmation(result)` pipeline must be built before any action-taking conversational handler ships. A second major risk is notification fatigue — morning briefs, nudges, reflections, and recaps added together equal 3-4 unsolicited DMs per day per member. A global daily outreach budget (max 2-3 messages/member/day across all feature types) must be designed as a single system, not bolted on per-feature.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack leverages the existing TypeScript/Prisma/PostgreSQL foundation and adds Tauri v2 for the desktop app, Fastify 5.x for the REST API, and Turborepo + pnpm for monorepo orchestration. All new dependencies are zero-cost (no new SaaS). The desktop app uses React 19, Tailwind CSS 4, Zustand 5 for state, and React Router 7 for routing. Vite 6 or 7 (not 8 -- too fresh) is the build tool. Discord OAuth2 is implemented natively (3 fetch calls, no auth library).
+The existing stack requires zero new npm packages for v3.0. Every capability maps to an already-installed dependency: `discord.js` for DM handling, `@openrouter/sdk` for AI calls via the centralized `callAI()` function, `node-cron` for proactive scheduling via `SchedulerManager`, `Prisma 7` for persistence. The only infrastructure change is two Prisma migrations: add a `topic` column to `ConversationMessage` for topic-aware context filtering, and add a `CoachingConfig` model (or extend `MemberSchedule`) with coaching feature toggles and schedule fields.
+
+See `.planning/research/STACK.md` for full module-by-module analysis and "what NOT to add" rationale.
 
 **Core technologies:**
-- **Tauri v2** (2.10.x): Desktop app framework -- 5-10MB binary, ~30MB RAM vs Electron's 150MB+. Native system tray, notifications, autostart, auto-updater, and deep linking via official plugins.
-- **Fastify 5.x** (5.8.2): REST API -- 78K req/s, built-in JSON schema validation, first-class TypeScript, plugin architecture. With @fastify/jwt, @fastify/cors, @fastify/cookie for auth.
-- **Turborepo 2.x + pnpm 10.x**: Monorepo tooling -- single `turbo.json` for build orchestration, pnpm's strict symlink `node_modules` prevents phantom dependencies. 30-minute learning curve.
-- **React 19 + Tailwind CSS 4 + Zustand 5**: Desktop frontend -- standard SPA stack. Zustand's selector-based subscriptions prevent re-render storms from the 1-second timer tick. No SSR/SSG needed in a desktop app.
-- **Discord OAuth2 (native PKCE)**: Authentication -- authorization code flow with PKCE (no client secret in desktop binary). API exchanges code for tokens and issues its own JWT.
+- `discord.js ^14.25.1` — DM delivery, typing indicators — unchanged; already handles all message events
+- `@openrouter/sdk ^0.9.11` via `callAI()` — all AI calls, budget enforcement, model routing — add new feature tags only; the client itself needs no changes
+- `node-cron ^4.2.1` via `SchedulerManager` — per-member proactive outreach — extend with weekly recap, EOD reflection, goal deadline nudge task types
+- `Prisma 7 ^7.5.0` — all persistence — two migrations required (topic field on ConversationMessage + CoachingConfig model)
 
-**Critical version note:** Pin Vite to 6.x or 7.x. Vite 8 shipped 4 days ago with Rolldown internals -- untested with Tauri v2 and Tailwind v4.
+**Explicit "do not add" decisions:**
+- No LangChain or LangGraph — `callAI()` already handles everything at this scale
+- No vector database (pgvector, Pinecone, ChromaDB) — topic column + WHERE clause handles context filtering for 10-25 users; PostgreSQL handles it trivially
+- No Redis — in-memory `Map<>` patterns already in use; the scale does not justify another service to operate
+- No separate NLP service — Grok 4.1 Fast via regex-first + AI fallback handles intent classification better than any local NLP library at this scale
 
 ### Expected Features
 
-**Must have (table stakes):**
-- Pomodoro timer with custom work/break/long break intervals and session count
-- Menu bar countdown display (the defining UX -- glance up and see "14:32")
-- Popover controls on tray click (play/pause/skip/stop, progress ring, session counter)
-- Phase transition notifications with alarm sounds
-- Session sync to bot API (the whole point -- feeds XP, streaks, Jarvis context)
-- Discord OAuth login (gates all personalized features)
-- Goal hierarchy view (read-only nested tree with progress bars, expand/collapse)
-- Dashboard (today's priorities, weekly goal progress, streak, rank, daily quote)
-- Dark theme with gold accents, minimize to tray, global keyboard shortcut
+The research identified three tiers. Per-user coaching config is the blocking dependency — it must ship before any proactive feature goes live. Without it, there is no safe way to control outreach frequency per member.
 
-**Should have (differentiators, v2.x):**
-- Flowmodoro mode (count-up timer with auto-calculated break -- very few desktop apps offer this)
-- Live XP animation on session complete ("+50 XP" dopamine hit -- no standalone timer does this)
-- Screen focus on break transition (assertive break reminder, more than a notification)
-- Ticking/ambient sounds during focus (ADHD focus ritual cue)
+See `.planning/research/FEATURES.md` for full analysis including competitor comparison and dependency graph.
 
-**Defer (v3+):**
-- Goal creation/editing from desktop (duplicates complex bot logic, creates sync conflicts)
-- Community-aware dashboard with leaderboard position (API endpoints don't exist yet)
-- Detailed analytics/statistics (monthly recaps and Jarvis already handle retrospectives)
-- App/website blocking (requires elevated OS permissions, not the core value prop)
+**Must have (v3.0 table stakes):**
+- Per-user coaching configuration — accountability level tiers (light/medium/heavy) that bundle all settings; this is the foundation everything else depends on
+- Conversational goal setting — detect "I want to read more" in DMs, ask clarifying questions, create Goal records without slash commands
+- Enhanced morning briefs — shift from embed delivery to conversational plain-text DM that invites a reply; reference yesterday's EOD priority if set
+- End-of-day reflection with next-day planning — extend existing reflection flow to capture "what's your #1 priority tomorrow?", feed that into the next morning brief
+- Smart nudges: stale goals + broken streaks — two new triggers added to existing `nudge.ts` infrastructure; respect per-user coaching config
+- Weekly goal review enhancement — add keep/adjust/drop step per goal to the existing Sunday planning session
+- Remove bot timer module + DMs only migration — cleanup tasks already planned in PROJECT.md; reduces maintenance surface
 
-**Anti-features (never build):**
-- Built-in task manager, calendar integration, activity tracking, music integration, theme customization, sync/cloud storage for settings
+**Should have (v3.1 differentiators):**
+- Session summaries from desktop timer — when a timer session completes, Jarvis DMs "45 min deep work on API — want to log progress?"
+- Community momentum nudges — "3 people are locked in voice right now" social proof nudge
+- Quiet period detection enhancement — track last DM interaction (not just check-in), offer to pause all coaching temporarily
+
+**Defer (v3.2+):**
+- Pattern-based coaching insights — high AI cost per analysis; validate demand first before committing
+- Adaptive coaching cadence — needs 2+ weeks of delivery tracking data before it can work
+- Goal velocity tracking and coaching effectiveness scoring
+
+**Anti-features to reject outright:**
+- Automated goal creation from check-ins — removes intentionality; Jarvis should offer, never auto-create
+- Aggressive streak recovery mechanics — cheapens the mechanic; reset cleanly, reframe forward, never let members game it
+- AI-generated goals — removes ownership; Jarvis refines and decomposes goals the member proposes, never originates them
+- Calendar/Google integration — scope creep; conversation memory handles routine context without API complexity
 
 ### Architecture Approach
 
-The architecture follows a strict three-tier model: desktop app (thin client) -> Fastify API (auth + data gateway) -> PostgreSQL (shared database). The bot and API are separate Node.js processes on the same VPS, both consuming `@28k/db` (Prisma schema, client, encryption) and `@28k/shared` (types, constants, XP engine, timer constants). The desktop app imports only `@28k/shared` for types/constants and never touches the database. The timer uses a "database as source of truth" pattern: the bot owns in-memory state for Discord timers, the API writes DB records for desktop timers, and a 30-second bot polling cron detects desktop completions for Discord DM notifications and role updates.
+The existing module architecture does not require restructuring. The v3.0 build modifies 5 existing modules, removes 1 module (timer), and adds 1 new module (coaching-settings). The single most impactful architectural change is making all bot-initiated outreach part of the conversation history — currently only nudges are stored as conversation messages (with `[NUDGE]` marker), which means Jarvis has no context when a member replies to a morning brief. Every proactive message must be stored immediately after delivery using the store-then-deliver pattern.
+
+See `.planning/research/ARCHITECTURE.md` for component boundaries, data flow diagrams, and the complete removal plan for the timer module.
 
 **Major components:**
-1. **`packages/db`** -- Prisma schema, client singleton with AES-256-GCM encryption extension, generated types. Single source of truth for all database access.
-2. **`packages/shared`** -- Constants (RANK_PROGRESSION, BRAND_COLORS, TIMER_DEFAULTS), XP engine (awardXP, getRankForXP), timer constants. Pure functions + types, no runtime dependencies beyond `@28k/db` types.
-3. **`apps/api`** -- Fastify REST server. Discord OAuth + JWT auth, timer CRUD, goals read, dashboard aggregation. Stateless, thin data layer. Deployed behind nginx with TLS on same VPS.
-4. **`apps/desktop`** -- Tauri v2 + React SPA. System tray with countdown, popover timer controls, goal tree view, dashboard. All data via REST API. Timer countdown runs client-side (JavaScript), syncs to API on user actions.
-5. **`apps/bot`** -- Existing Discord bot (unchanged internally). Moved to `apps/bot/`, imports from `@28k/db` and `@28k/shared`. New: 30-second cron polling for desktop timer completions.
+1. **Intent Router** (`ai-assistant/intent-router.ts`, new file) — regex-first classification of 5 intent types: reminder, decomposition, check-in, goal-update, settings. Falls through to chat for anything ambiguous. No AI calls for classification — keeps latency under 1ms.
+2. **Coaching Settings Module** (`coaching-settings/`, new module) — `CoachingConfig` Prisma model with feature toggles, intensity tiers (light/medium/heavy), schedule overrides. Natural language settings changes route here, update DB, emit `scheduleUpdated` event so SchedulerManager rebuilds cron tasks.
+3. **Modified Scheduler** (`scheduler/manager.ts`) — add weekly recap, EOD reflection, and goal deadline nudge task types. All proactive delivery uses store-then-deliver: message is stored as conversation message with type marker (`[BRIEF]`, `[REFLECTION]`, `[RECAP]`) after successful delivery.
+4. **Modified Memory** (`ai-assistant/memory.ts`) — add topic column query for context filtering, add timer session query in `assembleContext()` (reads desktop timer data), add `storeOutreach()` helper.
+5. **Modified Personality** (`ai-assistant/personality.ts`) — update `CHARACTER_PROMPT` for coaching-first posture with intensity-aware instructions, remove all slash command references except `/reminders`, `/goals`, `/leaderboard`.
+
+**Key patterns to follow:**
+- Store-Then-Deliver: every proactive message stored as conversation message so Jarvis has continuity when the member replies
+- Natural Language Action with Confirmation: detect intent via regex → confirm ("Logging that as a check-in — sound right?") → execute action → generate response that includes the actual result — never generate a "Done!" before the DB write succeeds
+- Coaching-Aware System Prompt: `buildSystemPrompt()` reads `CoachingConfig` intensity and injects the matching instruction bundle (light/medium/heavy)
+
+**Build order (validated by dependency analysis):**
+- Phase A: Remove timer module, private channels, simplify delivery to DM-only
+- Phase B: Coaching foundation — timer context in memory, personality update, intent router, conversation continuity for all outreach
+- Phase C: Natural language action handlers + coaching-settings module + weekly recap
 
 ### Critical Pitfalls
 
-1. **Monorepo migration breaks the live bot** -- Moving 23K LOC to a new directory structure changes every import path, `prisma.config.ts` path resolution, PM2 entry points, and `.env` loading. Mitigation: dedicated migration phase with zero new features; move one package at a time; verify bot starts after each step.
+See `.planning/research/PITFALLS.md` for recovery strategies and a pitfall-to-phase mapping table.
 
-2. **Prisma 7 + pnpm TypeScript errors (TS2742)** -- Known open bug where Prisma 7's generated client references `@prisma/client-runtime-utils` which pnpm's strict `node_modules` can't resolve. Mitigation: explicitly install `@prisma/client-runtime-utils` in `packages/db`; if needed, add `public-hoist-pattern[]=@prisma/*` to `.npmrc`.
+1. **Intent Detection Regression** — a 10% misclassification rate on state-changing actions (check-in, goal update) erodes trust faster than any other bug. Prevention: confirmation loop before every database write; never auto-persist from a single ambiguous message. This is a Phase 1 design requirement, not a v3.1 refinement.
 
-3. **WebView background throttling kills timer accuracy** -- Tauri's WebView suspends JavaScript timers when the app window is hidden (the normal state for a menu bar app). `setInterval` stops firing entirely after 5-6 minutes. Mitigation: set `backgroundThrottling: "disabled"` in `tauri.conf.json`; compute elapsed time from `Date.now() - startedAt` timestamps, never trust `setInterval` cadence.
+2. **Proactive Message Fatigue** — morning brief + nudge + reflection + recap = 3-4 unsolicited DMs per day. Prevention: global daily outreach budget per member (max 2-3 messages/day across all feature types, not per-feature caps); priority queue (brief > goal deadline > nudge > reflection > recap); if member chatted with Jarvis in last 2 hours, skip the scheduled proactive message.
 
-4. **Menu bar countdown is macOS-only** -- `TrayIcon.set_title()` only works on macOS. Windows system tray has no text display equivalent. Mitigation: design two UX patterns from day one -- macOS uses `set_title()`, Windows uses an always-on-top frameless mini-window.
+3. **Stale Context Hallucination** — warm/cold tier summaries are historical snapshots; when a goal is completed or abandoned, the compressed summary still references it as active. Prevention: system prompt instruction "CURRENT STATS is always authoritative"; inject system messages on goal state transitions; cross-reference summaries against live goals during compression.
 
-5. **Bot and desktop timer race condition** -- Two processes writing `TimerSession` records for the same member causes duplicate sessions, stale state, and double XP awards. Mitigation: API is the single authority for all timer writes; enforce one active timer per member at the application level; bot polls DB for desktop completions rather than managing state independently.
+4. **Action Execution Gap** — `chat.ts` is a pure conversation pipeline with no database mutation capability. Adding "conversational goal update" without an execution layer means Jarvis says "Done!" but nothing changed. Prevention: build `extractAction() → executeAction() → generateConfirmation(result)` pipeline before any action-taking handler ships. This is the most dangerous single mistake available in this build.
+
+5. **Cost Explosion from Conversational Volume** — slash commands rate-limit themselves via friction; conversational AI invites 10x more messages. At 25 members doing 20-30 messages/day, cost could reach ~$10/day vs. the $75/month target. Prevention: lightweight context routing for simple messages, cache `buildSystemPrompt()` results (currently 7 DB queries per call), consider DeepSeek V3.2 as primary for simple turns. Design this before shipping conversational mode.
+
+---
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+Based on combined research, three phases are suggested. The architecture research provided a concrete build order (Phase A/B/C) that maps directly to roadmap phases. The dependency ordering is strict — do not reorder.
 
-### Phase 1: Monorepo Restructure
-**Rationale:** Everything depends on the monorepo being right. The API cannot exist without `packages/db`. The desktop app cannot exist without `packages/shared`. The bot cannot be touched until it is moved to `apps/bot/`. This is pure infrastructure with zero new features.
-**Delivers:** Working monorepo with pnpm + Turborepo. Bot running identically from `apps/bot/`. Shared packages extracted and importable.
-**Addresses:** Foundation for all features
-**Avoids:** Pitfall 1 (migration breaks bot), Pitfall 2 (Prisma + pnpm TS errors), Pitfall 7 (Prisma generate path issues), Pitfall 13 (Turborepo cache invalidation), Pitfall 10 (encryption module sharing)
-**Key tasks:** Create `pnpm-workspace.yaml`, extract `packages/db` (schema + client + encryption), extract `packages/shared` (constants + XP engine + timer constants), move bot to `apps/bot/`, update all imports, verify `pnpm dev --filter bot` works, update deploy scripts.
+### Phase 1: Clean Slate + Coaching Foundation
 
-### Phase 2: REST API + Authentication
-**Rationale:** The desktop app is useless without an API to talk to. Auth gates every personalized feature. Build the data layer before the presentation layer.
-**Delivers:** Running Fastify server with Discord OAuth + JWT auth, profile/dashboard/goals read endpoints, timer CRUD endpoints. Deployed behind nginx on same VPS.
-**Uses:** Fastify 5.x, @fastify/jwt, @fastify/cors, @fastify/cookie, Discord OAuth2 PKCE
-**Implements:** API server component, JWT auth middleware, all REST routes
-**Avoids:** Pitfall 6 (OAuth redirect URI confusion -- use PKCE + fixed localhost port), Pitfall 8 (connection pool exhaustion -- set `max: 5` per process), Pitfall 14 (API must not create Discord gateway client)
-**Key tasks:** Scaffold `apps/api`, implement Discord OAuth with PKCE, JWT signing/verification, timer routes (POST/PATCH/GET), goals route (GET hierarchy), dashboard route (aggregated data), deploy as systemd service behind nginx.
+**Rationale:** Removal is risk-free and must precede new features. Cannot build correct coaching conversations on a codebase that still imports timer modules and routes private channel messages. Coaching foundation (personality, context, conversation continuity) is a prerequisite for every natural language feature — if the system prompt still references slash commands, every conversational handler built on top of it will have tone inconsistency baked in.
 
-### Phase 3: Desktop App Shell + Auth + Dashboard
-**Rationale:** Get the Tauri app booting, authenticated, and showing read-only data before tackling the complex timer integration. This validates the full stack end-to-end (OAuth -> JWT -> API -> data display) with the simplest possible features.
-**Delivers:** Installable Tauri app with Discord login, dashboard view (priorities, streak, rank, quote), goal hierarchy tree view, system tray icon, dark theme with gold accents.
-**Uses:** Tauri v2, React 19, Tailwind CSS 4, Zustand 5, Vite 6/7, React Router 7
-**Implements:** Desktop app component, OAuth flow, dashboard + goals views, system tray icon
-**Avoids:** Pitfall 11 (use localhost redirect for OAuth, not deep links during dev), Pitfall 9 (set up CI matrix builds immediately), Pitfall 12 (tray icon bugs -- create in `setup()`, test both platforms)
-**Key tasks:** Scaffold Tauri app, implement OAuth login flow with `tauri-plugin-oauth`, build dashboard view, build goal tree view, system tray with gold ouroboros icon, dark theme, minimize to tray, set up GitHub Actions CI for macOS + Windows builds.
+**Delivers:**
+- Working bot with timer module (8 files, ~380 LOC) and private channel logic removed
+- Updated Jarvis personality with coaching-first posture, consistent across all features
+- Intent router (`intent-router.ts`) extracted from `index.ts`, structured for action handlers
+- All proactive outreach stored as conversation messages (conversation continuity when members reply to briefs, reflections, recaps)
+- Timer session data from desktop app surfaced in Jarvis context via `assembleContext()` query
+- Topic-aware context filtering (topic column migration + topic-tagged message storage and retrieval)
 
-### Phase 4: Cross-Platform Timer
-**Rationale:** The timer is the core feature and the most architecturally complex integration. It requires the API (Phase 2) and the desktop shell (Phase 3) to be working. Timer integration touches both the desktop app and the bot (polling cron), so it must be built with both sides in mind.
-**Delivers:** Working Pomodoro timer in the desktop app with menu bar countdown, popover controls, phase transitions, notifications, sounds, session sync to API, XP award on completion, bot DM notification of desktop sessions.
-**Addresses:** Pomodoro timer (P1), menu bar countdown (P1), popover controls (P1), phase transitions + sounds (P1), session sync (P1), global keyboard shortcut (P1)
-**Avoids:** Pitfall 3 (design macOS + Windows UX from day one), Pitfall 4 (disable background throttling, use timestamp math), Pitfall 5 (API as single timer authority, one active session per member)
-**Key tasks:** Timer state machine (idle/working/break/long_break), Pomodoro countdown UI, menu bar countdown (macOS `set_title`, Windows mini-window), popover with progress ring + session counter, phase transition notifications + alarm sounds, session sync (POST on start, PATCH on pause/resume/stop), XP feedback display, bot polling cron for desktop completions, add `source` + `botNotified` fields to `TimerSession` schema.
+**Addresses from FEATURES.md:** DMs-only migration, timer module removal, enhanced morning briefs (conversation storage prerequisite)
 
-### Phase 5: Polish + Distribution
-**Rationale:** Polish features that are not MVP-critical but round out the product. Distribution infrastructure (auto-updater) is needed before sharing with the 10-25 member group.
-**Delivers:** Flowmodoro mode, XP animation, ambient sounds, auto-start preferences, launch at login, auto-update via GitHub Releases, error handling, offline resilience.
-**Addresses:** P2 features (flowmodoro, XP animation, ambient sounds, auto-start, launch at login)
-**Avoids:** Pitfall 15 (use GitHub Releases for auto-update backend)
-**Key tasks:** Flowmodoro count-up timer + auto-calculated break, XP gain animation on session complete, ticking/ambient sounds, auto-start next phase toggle, launch at login toggle, Tauri updater plugin with GitHub Releases, offline session queueing with retry, error boundaries + graceful degradation.
+**Pitfalls to prevent here:** Coaching tone uncanny valley (lock CHARACTER_PROMPT before writing any new feature prompts), stale context hallucination (add "CURRENT STATS is authoritative" instruction + goal state transition system messages), cost explosion (design lightweight context routing and system prompt caching before any conversational volume lands)
+
+### Phase 2: Natural Language Actions + Coaching Settings
+
+**Rationale:** With the foundation in place, add the interaction layer. The intent router (Phase 1) is the prerequisite for action handlers. Coaching settings must come before proactive features — without knowing which features a member has enabled, it is not safe to send proactive messages at any frequency. The action execution pipeline must be built and verified before any "do X for me" conversational handler goes live.
+
+**Delivers:**
+- `CoachingConfig` Prisma model + migration (feature toggles, intensity tiers, schedule overrides)
+- `coaching-settings/` module with natural language settings changes that persist across bot restarts
+- Conversational check-in handler with `extractAction() → executeAction() → generateConfirmation(result)` pipeline and XP integration
+- Conversational goal update handler with same validation rules as `/goals update`
+- Global daily outreach budget enforcer (single system, not per-feature caps), priority queue logic
+- Per-user coaching configuration exposed via natural language DM ("Jarvis, ease up on the nudges")
+
+**Addresses from FEATURES.md:** Per-user coaching configuration (P1), conversational goal setting (P1), smart nudges — stale goals + broken streaks (P1)
+
+**Pitfalls to prevent here:** Intent detection regression (confirmation loop on every state-changing action, target >95% correct classification before shipping), action execution gap (pipeline built and end-to-end tested before any action handler goes live), settings explosion (tier bundles only; individual overrides as JSON blob, not column proliferation), DM discoverability failure (Jarvis initiates first DM to new members; onboarding redesign alongside channel removal from Phase 1)
+
+### Phase 3: Proactive Coaching Routines
+
+**Rationale:** Proactive features depend on coaching settings (Phase 2) to know what each member has enabled. Building them last means they inherit the global outreach budget enforcer, the coaching-aware system prompt, and conversation continuity — all outputs of Phases 1 and 2. Weekly recap reuses the existing `recap/generator.ts` pattern with a shorter time window, making it the lowest-risk new proactive feature.
+
+**Delivers:**
+- End-of-day reflection with next-day planning (extend `reflection/flow.ts`, add tomorrow's priority DB field, reference in next morning brief)
+- Weekly goal review enhancement (add keep/adjust/drop step to Sunday planning session)
+- Weekly recap task type in SchedulerManager (new file following `recap/generator.ts` pattern, ~200 LOC)
+- EOD reflection DM generator (new file following `briefs.ts` pattern, ~150 LOC)
+- Goal deadline nudge (new file following `nudge.ts` pattern, ~100 LOC)
+- All proactive messages staggered across 30-minute window to avoid Discord DM rate limits
+
+**Addresses from FEATURES.md:** End-of-day reflection + next-day planning (P1), weekly goal review (P1), all remaining P1 proactive features
+
+**Pitfalls to prevent here:** Proactive message fatigue (global outreach budget from Phase 2 enforced here; verify no member receives >3 proactive messages/day across all feature types combined), bot restart recovery (verify all cron tasks re-register via `rebuildAll()` after PM2 restart; verify "stop morning briefs" NL opt-out persists across restarts)
 
 ### Phase Ordering Rationale
 
-- **Phase 1 before everything:** The monorepo restructure is a prerequisite for all new code. Both the API and desktop app depend on shared packages that do not exist yet. The bot must survive the migration without downtime.
-- **Phase 2 before Phase 3:** The desktop app is a thin client that calls the API. Without the API, the desktop app has nothing to display. Auth must exist before any authenticated views.
-- **Phase 3 before Phase 4:** The timer requires a working desktop shell with auth, system tray, and notification capabilities. Starting with read-only views (dashboard, goals) validates the stack with simpler features before tackling the complex timer.
-- **Phase 4 as the integration phase:** Timer is where bot, API, and desktop all interact. It touches schema changes (`source`, `botNotified`), API routes, desktop UI, and bot cron. All three must be working before this integration.
-- **Phase 5 as polish:** Flowmodoro, XP animations, and auto-update are valuable but not critical for initial validation with the 10-25 member group.
+- **Removal before addition:** Timer module (8 files) is intertwined with the intent detection cascade in `index.ts`. Removing it before building new intent handlers prevents building on top of code about to be deleted.
+- **Personality before actions:** Every action handler generates AI responses. If CHARACTER_PROMPT still says "sharp personal operator with hustler energy" while handlers expect a coaching posture, tone inconsistency is baked in from day one across all features.
+- **Settings before proactive:** The global outreach budget depends on knowing each member's configured tier. Without settings, every proactive feature must use hardcoded defaults, which will be wrong for some members and will trigger opt-out conversations.
+- **Foundation before differentiators:** Session summaries (requires timer event pipeline to bot), community momentum nudges, and adaptive cadence all depend on v3.0 core functioning reliably. They are v3.1 scope.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 1 (Monorepo Restructure):** The Prisma 7 + pnpm TS2742 bug is an open issue with workarounds but no upstream fix. May need hands-on experimentation to find the right combination of `@prisma/client-runtime-utils` installation + `.npmrc` hoisting. Research the exact current state of the issue before starting.
-- **Phase 2 (API + Auth):** Discord OAuth PKCE for desktop apps has scattered documentation. The exact redirect URI configuration (localhost port vs deep link) and `tauri-plugin-oauth` integration need validation with a minimal prototype before committing to a pattern.
-- **Phase 4 (Cross-Platform Timer):** The macOS vs Windows tray text disparity needs a concrete Windows UX prototype. The background throttling fix (`backgroundThrottling: "disabled"`) needs validation that it actually works with Tauri v2.10.x -- the config option was added relatively recently.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 3 (Desktop Shell + Dashboard):** Tauri + React + Vite is a well-documented setup. Dashboard and goal tree views are standard React data display. OAuth login flow follows the pattern designed in Phase 2.
-- **Phase 5 (Polish):** Flowmodoro is a UI variation of the existing timer. Auto-update via GitHub Releases is documented in Tauri's official guides.
+- **Phase 2 — Action Execution Pipeline (Grok tool calling):** It is not confirmed whether Grok 4.1 Fast supports function/tool calling via OpenRouter. If it does not, the two-step pattern (classify intent as structured JSON in one call, execute deterministically, generate confirmation) is the fallback — but it must be explicitly designed. Do not assume tool calling is available; validate against OpenRouter's capability matrix before designing the execution layer.
+- **Phase 2 — Cost Model Validation:** The $0.02-0.05/day estimate for proactive features is solid. The conversational volume cost at 20-30 messages/member/day is a projection. Run a cost model calculation using actual token counts from current chat logs before committing to Phase 2 scope and the 500K daily token budget per member.
+- **Phase 3 — Discord DM Rate Limits:** Staggering 25 morning briefs across a 30-minute window is the assumed mitigation for Discord rate limits. The exact rate limits for bot DMs need verification against Discord developer docs before Phase 3 implementation.
+
+Phases with standard patterns (skip deeper research):
+
+- **Phase 1 — Timer Module Removal:** Straightforward file deletion + import cleanup. All affected files and exact import paths are documented in ARCHITECTURE.md. No research needed.
+- **Phase 1 — Conversation Continuity (store-then-deliver):** The `[NUDGE]` marker pattern already exists and is proven in `nudge.ts`. Extending it to briefs and reflections is pattern duplication, not novel work.
+- **Phase 3 — Weekly Recap:** Reuses `recap/generator.ts` pattern with a shorter time window. Monthly recap is already proven in production; weekly is a configuration change, not new architecture.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified via npm registry. Tauri v2, Fastify 5, React 19, Turborepo 2, pnpm 10 are all stable releases. Only concern: Vite 8 is too new (pinned to 6/7). |
-| Features | MEDIUM-HIGH | Based on competitor analysis of 6+ apps (Flow, Be Focused Pro, Pomotroid, TomatoBar, Flowmo, Pomofocus). Feature prioritization is sound but user validation needed -- the 10-25 person group may have different priorities than the general market. |
-| Architecture | HIGH | Full codebase review performed. Monorepo structure follows official Prisma + Turborepo guides. Timer cross-platform flow is the most novel design and has clear patterns (API as authority, bot polling). |
-| Pitfalls | HIGH | Verified against GitHub issue trackers (Tauri, Prisma, Turborepo), official docs, and community post-mortems. The Prisma 7 + pnpm bug and Tauri background throttling are confirmed issues with documented workarounds. |
+| Stack | HIGH | Based on direct codebase analysis of all 8 core files and `package.json`. No new dependencies required — verified. Build order based on verified module dependencies. |
+| Features | MEDIUM-HIGH | Based on codebase analysis and domain expertise. Competitor analysis is directional (6 competitors, no web search for verification). Feature prioritization is sound but external market validation unavailable. |
+| Architecture | HIGH | Based on direct codebase analysis of all affected modules (353 LOC index.ts, 604 LOC memory.ts, 335 LOC manager.ts, 506 LOC briefs.ts, etc.). Build order is dependency-driven and verifiable from the code. |
+| Pitfalls | MEDIUM | Based on domain expertise and codebase analysis. Architectural pitfalls (intent regression, action execution gap) are verifiable. Cost model and Discord rate limit specifics need external validation. |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH for build order, architecture decisions, and zero-new-dependency stance. MEDIUM for cost projections and feature market fit.
 
 ### Gaps to Address
 
-- **Prisma 7 + pnpm TS2742 resolution:** The workaround (installing `@prisma/client-runtime-utils`) needs hands-on validation. If it does not work, the fallback is `.npmrc` hoisting, but this weakens pnpm's strict resolution benefit. Check the GitHub issue status before Phase 1.
-- **Windows timer UX:** The always-on-top mini-window approach for Windows countdown display is a reasonable design but has no precedent in the Tauri ecosystem. Needs prototyping early in Phase 4.
-- **Discord OAuth PKCE with tauri-plugin-oauth:** The exact integration between `tauri-plugin-oauth` (localhost redirect capture) and Discord's PKCE flow needs a proof-of-concept. The plugin may handle PKCE natively or may need manual code_verifier generation.
-- **Bot polling for desktop completions:** The 30-second polling cron is architecturally simple but the UX implication (up to 30s delay for Discord DM after completing a desktop timer session) should be validated with users. May need to reduce to 10 seconds or switch to a direct HTTP call from API to bot.
-- **macOS code signing cost:** Apple Developer certificate is $99/year. Not a technical gap but a decision to make before the first macOS release. Unsigned apps trigger Gatekeeper warnings that may confuse the 10-25 user base.
+- **OpenRouter tool/function calling support for Grok 4.1 Fast:** Not verified. If not supported, the action execution pattern changes design significantly. Validate against OpenRouter capability docs before designing Phase 2 action handlers.
+- **Actual AI cost at conversational volume:** Run a cost calculation against actual current chat log token counts before committing Phase 2 scope. The 500K daily token budget may need recalibration for conversational volume vs. command-response volume.
+- **Discord DM rate limits at scale:** The stagger-across-30-minutes mitigation is assumed sufficient for 25 members. Verify exact limits before Phase 3 implementation.
+- **`buildSystemPrompt` caching:** Currently runs 7 DB queries per call. A 5-minute member-scoped TTL cache is recommended in PITFALLS.md but not yet designed. This should be addressed in Phase 1 or early Phase 2, not as a late optimization.
+- **`withMemberLock` coverage for proactive messages:** All new proactive handlers (EOD, weekly recap, goal nudge) must acquire the existing member lock before any database mutations. Verify this is enforced in each handler's implementation, not just in the chat path.
+
+---
 
 ## Sources
 
-### Primary (HIGH confidence)
-- [Tauri v2 official documentation](https://v2.tauri.app/) -- Plugins, system tray, deep linking, configuration reference
-- [Tauri npm packages](https://www.npmjs.com/package/@tauri-apps/cli) -- Version 2.10.1 verified
-- [Fastify documentation](https://fastify.dev/) -- TypeScript guide, plugin architecture
-- [Fastify + plugins on npm](https://www.npmjs.com/package/fastify) -- Version 5.8.2 verified
-- [Turborepo documentation](https://turborepo.dev/) -- Repository structure, task dependencies
-- [Prisma monorepo guides](https://www.prisma.io/docs/guides/turborepo) -- pnpm workspaces, Turborepo integration
-- [Discord OAuth2 documentation](https://discord.com/developers/docs/topics/oauth2) -- PKCE flow, scopes
+### Primary (HIGH confidence — direct codebase analysis)
+- `apps/bot/src/modules/ai-assistant/index.ts` — intent cascade, DM handler (353 LOC)
+- `apps/bot/src/modules/ai-assistant/memory.ts` — tiered context assembly, compression (604 LOC)
+- `apps/bot/src/modules/ai-assistant/personality.ts` — system prompt builder, 7 DB queries per call (301 LOC)
+- `apps/bot/src/modules/ai-assistant/chat.ts` — per-member locked chat handler (166 LOC)
+- `apps/bot/src/modules/ai-assistant/nudge.ts` — proactive nudge delivery, daily caps, silence detection (258 LOC)
+- `apps/bot/src/modules/scheduler/manager.ts` — per-member cron task lifecycle (335 LOC)
+- `apps/bot/src/modules/scheduler/briefs.ts` — morning brief generation (506 LOC)
+- `apps/bot/src/shared/ai-client.ts` — centralized AI routing, budget enforcement (285 LOC)
+- `packages/db/prisma/schema.prisma` — full schema: MemberSchedule, ConversationMessage, TimerSession, Goal models
+- `apps/bot/package.json` — current dependency list (12 deps, 4 devDeps)
+- `.planning/PROJECT.md` — v3.0 active requirements
 
-### Secondary (MEDIUM confidence)
-- [Prisma + pnpm TS2742 bug](https://github.com/prisma/prisma/issues/28581) -- Open issue, workarounds documented
-- [Tauri background throttling](https://github.com/tauri-apps/wry/issues/1246) -- Fix exists in Tauri v2 but is not default
-- [Tauri tray icon quirks](https://github.com/tauri-apps/tauri/issues/8982) -- Known bugs with workarounds
-- [tauri-plugin-oauth](https://github.com/FabianLars/tauri-plugin-oauth) -- Community plugin for desktop OAuth
-- Competitor analysis: Flow, Be Focused Pro, Pomotroid, TomatoBar, Flowmo, Pomofocus
+### Secondary (MEDIUM confidence — domain expertise, no external verification)
+- Competitor feature analysis in FEATURES.md — directional, not exhaustive
+- Cost model projections — based on published OpenRouter pricing, not verified against actual usage logs
+- Notification fatigue thresholds — based on domain knowledge, not user research with this specific group
 
-### Tertiary (LOW confidence)
-- [Discord OAuth PKCE for desktop apps](https://github.com/discord/discord-api-docs/issues/4002) -- Community discussion, not official guidance
-- [TypeScript Monorepo Best Practice 2026](https://hsb.horse/en/blog/typescript-monorepo-best-practice-2026/) -- Blog post, single source
+### Gaps requiring external validation
+- OpenRouter capability matrix for Grok 4.1 Fast tool/function calling
+- Discord developer docs on DM rate limits for bots
+- Actual per-call token costs at projected conversational volume
 
 ---
-*Research completed: 2026-03-21*
+*Research completed: 2026-03-22*
 *Ready for roadmap: yes*

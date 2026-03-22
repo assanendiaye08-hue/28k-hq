@@ -1,465 +1,305 @@
-# Domain Pitfalls: v2.0 Desktop Companion App
+# Pitfalls Research
 
-**Domain:** Adding Tauri v2 desktop app, Fastify REST API, and Turborepo monorepo restructure to existing 23K LOC Discord bot with Prisma 7 / PostgreSQL
-**Researched:** 2026-03-21
-**Confidence:** HIGH (verified against Tauri v2 docs, Prisma official guides, GitHub issue trackers, and community post-mortems)
+**Domain:** Conversational AI coaching evolution for Discord productivity bot
+**Researched:** 2026-03-22
+**Confidence:** MEDIUM (codebase analysis + domain expertise; web search unavailable for verification)
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, data loss, or week-long debugging sessions.
-
----
-
-### Pitfall 1: Monorepo Migration Breaks the Working Bot
+### Pitfall 1: Intent Detection Regression -- Natural Language Fails Where Slash Commands Succeeded
 
 **What goes wrong:**
-The existing project is a single-app Node.js repo with a flat `package.json`, `src/` directory, and `prisma/` at root. Restructuring to `apps/bot`, `apps/api`, `apps/desktop`, `packages/db`, `packages/shared` requires moving every file, updating every import path, reconfiguring TypeScript, and switching from npm to pnpm -- all at once. A half-migrated state where the bot can't start means the live Discord server goes dark. The current `package.json` has 12 dependencies and 8 devDependencies with npm lockfile. pnpm's strict node_modules structure will immediately surface phantom dependencies the project may be silently relying on (packages importable because npm hoisted them, not because they're declared).
+Moving from `/checkin "Did 3 hours of coding"` to "Hey Jarvis, I did 3 hours of coding today" means the bot must now distinguish between a casual mention of work and an actual check-in intent. Members say "I finished my goal" in conversation, and the bot either (a) silently logs a check-in they didn't intend, or (b) misses an actual check-in because it thought it was casual chat. The current system has zero ambiguity -- `/checkin` is a check-in, period. Removing that clarity is the single biggest risk of the transition.
 
 **Why it happens:**
-"It's just moving files" underestimates the scope. Every `import` path changes. The `tsconfig.json` needs `rootDir`, `outDir`, and path mapping changes. The `prisma.config.ts` uses `import.meta.dirname` for path resolution -- this breaks when the file moves to `packages/db/`. PM2's `ecosystem.config.cjs` points to `dist/index.js` -- the build output path changes. The `.env` loading assumes root-level `.env` file -- Turborepo recommends per-package `.env` files. The `deploy-commands.ts` script that registers Discord slash commands needs its own build step or to be co-located with the bot app.
+Developers assume LLMs can reliably detect intent from natural language. They can -- 90% of the time. That 10% failure rate on critical actions (logging check-ins, updating goals, marking completions) erodes trust faster than any other bug. Members stop trusting the bot when it misinterprets them on something that matters.
 
-**Consequences:**
-- Bot goes offline during migration if done on the same branch/deploy
-- Import errors cascade: moving `src/shared/` to `packages/shared/` breaks every module that imports from it
-- pnpm `--frozen-lockfile` fails in CI because `pnpm-lock.yaml` doesn't exist yet
-- `prisma generate` fails because `prisma.config.ts` can't find the schema at its old path
-- PM2 can't find the entry point because `dist/index.js` moved to `apps/bot/dist/index.js`
+**How to avoid:**
+- Keep confirmation loops for destructive or state-changing actions. Jarvis should say "Sounds like you're checking in -- want me to log that?" before actually writing to the database
+- Define a clear taxonomy of "action intents" vs "conversation intents" in the system prompt. Actions: check-in, goal update, goal completion, timer start. Conversation: everything else
+- Use structured JSON output for intent classification as a separate AI call before executing actions. Do NOT have a single prompt both classify intent and generate a response
+- Keep `/checkin`, `/goals`, `/leaderboard` as escape hatches per the v3.0 spec -- this is already planned correctly
 
-**Prevention:**
-1. Do the migration in a single dedicated phase BEFORE adding any new code. No new features in the same PR.
-2. Use `pnpm import` to generate `pnpm-lock.yaml` from the existing `package-lock.json` -- don't start from scratch.
-3. Create `pnpm-workspace.yaml` first, then move directories one at a time: `packages/db` first (schema + client), then `packages/shared`, then `apps/bot`, then add `apps/api` and `apps/desktop` as empty scaffolds.
-4. Update `ecosystem.config.cjs` and deploy scripts immediately after moving `apps/bot`.
-5. Test that `pnpm run dev` starts the bot and connects to Discord BEFORE moving to the next step.
-6. Keep the `.env` file at root AND symlink/copy to `packages/db/.env` during migration. Consolidate later.
-
-**Detection:**
-- Bot doesn't start after file moves
-- `Module not found` errors referencing old paths
-- `prisma generate` or `prisma migrate` fails with path errors
+**Warning signs:**
+- Members start saying "no I didn't mean to check in" or "why didn't you log that?"
+- XP transactions appear without explicit member confirmation
+- Members revert to using slash commands because they don't trust conversational input
 
 **Phase to address:**
-Phase 1 (Monorepo Restructure). This must be the FIRST thing done. Everything else depends on it.
+Phase 1 (conversational AI core). Intent detection architecture must be designed before any action-taking conversational flow ships.
 
 ---
 
-### Pitfall 2: Prisma 7 + pnpm Monorepo TypeScript Resolution Failure
+### Pitfall 2: Proactive Message Fatigue -- Jarvis Becomes the Annoying Friend
 
 **What goes wrong:**
-Prisma 7.x has a known, open bug ([prisma/prisma#28581](https://github.com/prisma/prisma/issues/28581)) where the generated Prisma Client produces TypeScript TS2742 errors in pnpm monorepos. The error looks like: `The inferred type of 'DbNull' cannot be named without a reference to '.pnpm/@prisma+client-runtime-utils@7.x.x/...'`. This happens because Prisma 7's generated code references `@prisma/client-runtime-utils` which TypeScript can't resolve through pnpm's symlink structure. The project is on Prisma 7.5.0 -- directly affected.
+The v3.0 spec adds morning briefs, end-of-day reflections, weekly recaps, AND goal nudges on top of the existing accountability nudges. That is potentially 3-4 unsolicited messages per day per member. Members mute Jarvis's DMs within a week. Worse, Discord itself may rate-limit the bot for excessive DM activity. The current nudge system (`nudge.ts`) already has daily caps, but adding morning briefs and reflections as separate systems with their own schedules creates an additive flood nobody accounted for.
 
 **Why it happens:**
-Prisma 7 restructured its generated client to depend on `@prisma/client-runtime-utils` as a separate package. pnpm's strict, non-hoisted `node_modules` structure means this transitive dependency isn't directly accessible where TypeScript expects it. npm's flat hoisting hid this issue, which is why the current single-app setup works fine.
+Each proactive feature is designed in isolation. Morning briefs feel reasonable alone. Nudges feel reasonable alone. Reflections feel reasonable alone. But the member receives ALL of them, and 3-4 bot DMs per day from the same bot feels like spam -- especially when the member is busy or having an off day.
 
-**Consequences:**
-- `tsc` fails across the entire monorepo after migration to pnpm
-- `apps/bot`, `apps/api`, and any package importing from `@repo/db` all get the same TS2742 error
-- Build pipeline completely blocked
+**How to avoid:**
+- Implement a **global daily outreach budget** per member, not per-feature caps. Example: max 2 proactive messages per day total, regardless of type. Morning brief counts toward the same budget as a nudge
+- Priority queue for outreach: morning brief > goal deadline approaching > accountability nudge > reflection prompt > weekly recap. If the budget is spent, lower-priority messages are skipped, not queued for later
+- Respect "conversation already happened" -- if a member chatted with Jarvis within the last 2 hours, skip the scheduled proactive message. The conversation itself serves the same purpose
+- Add a natural language "leave me alone today" that suppresses all proactive messages for 24 hours
+- Track member response rate to proactive messages. If a member ignores 5 consecutive proactive messages, auto-reduce to "light" mode
 
-**Prevention:**
-1. Explicitly install `@prisma/client-runtime-utils` as a dependency in `packages/db/package.json`: `pnpm add @prisma/client-runtime-utils --filter @repo/db`
-2. If that doesn't resolve it, add to `.npmrc` at root: `public-hoist-pattern[]=@prisma/*` to hoist Prisma packages (targeted, not blanket hoisting)
-3. Set `"declaration": false` in `packages/db/tsconfig.json` if generating declarations triggers the bug (only use this if the package exports the client instance, not raw types)
-4. Monitor the GitHub issue for an upstream fix in Prisma 7.6+
-5. Test `tsc --noEmit` across all workspaces immediately after setting up `packages/db`
-
-**Detection:**
-- TS2742 errors mentioning `@prisma/client-runtime-utils` in any `tsc` build
-- CI passes locally (npm/hoisted) but fails in CI (pnpm strict)
+**Warning signs:**
+- Member response rate to proactive messages drops below 30%
+- Members explicitly mute the bot (you cannot detect this via Discord API, so track response rates instead)
+- Members ask "can you stop messaging me so much"
 
 **Phase to address:**
-Phase 1 (Monorepo Restructure). Must be validated immediately after moving Prisma to `packages/db`.
+Phase 2 (proactive coaching routines). Must be designed with a unified outreach scheduler, not as independent cron jobs per feature.
 
 ---
 
-### Pitfall 3: Timer Countdown in Menu Bar -- macOS-Only Feature Treated as Cross-Platform
+### Pitfall 3: Stale Context Hallucination -- Jarvis References Goals That No Longer Exist
 
 **What goes wrong:**
-The PRD specifies "menu bar countdown" for the productivity timer. Tauri's `TrayIcon.set_title()` API displays text next to the tray icon in the macOS menu bar -- perfect for showing "23:45" counting down. But `set_title()` is **macOS-only**. Windows has no equivalent: the system tray shows icons and tooltips, not arbitrary text. Linux shows the title only if an icon is also present, and explicitly warns it "can take up a significant amount of space on the user's panel." Building a "menu bar countdown" feature assuming cross-platform parity will result in a Mac-only feature that silently does nothing on Windows.
+The current `personality.ts` and `memory.ts` build context from live database queries, which is correct. But the warm/cold tier summaries (`compressSummary`) are AI-generated text that may reference goals, streaks, or commitments the member has since changed or abandoned. Jarvis says "How's that ecommerce store launch going?" when the member pivoted to freelancing two weeks ago. The compressed summary still mentions the old goal. Even worse: the member completed a goal, and Jarvis's cold-tier summary still references it as active because the summary was generated before completion.
 
 **Why it happens:**
-The macOS menu bar is architecturally different from the Windows system tray. macOS menu bar items can display text + icon natively. Windows system tray only supports icon + tooltip (hover text). Tauri correctly exposes what the OS supports, but the abstraction doesn't paper over this difference.
+Rolling summaries are a snapshot of historical context. They compress conversation history, not live state. When live state changes (goal deleted, goal completed, streak reset), the summary is not updated. The current code only compresses messages older than 30 days -- but a goal can change in a day.
 
-**Consequences:**
-- Windows users see a static tray icon with no countdown -- the headline feature is missing
-- Tooltip updates on Windows are limited to hover-only text, not persistent display
-- Design and UX assumptions made for macOS don't transfer
+**How to avoid:**
+- Never rely on summaries for current state. The system prompt already includes live goal data from the database (in `buildSystemPrompt`). Add an explicit instruction in the system prompt: "Your CURRENT STATS section is always authoritative. If the historical context mentions a goal that is not in CURRENT STATS, that goal was changed or completed -- do not reference it as active"
+- When a goal is completed, deleted, or significantly modified, inject a system message into the conversation: `[SYSTEM] Goal "Launch ecom store" was completed on 2026-03-15`. This ensures the hot tier captures state transitions
+- During summary compression, include a step that cross-references the summary against current active goals and removes stale references
+- Add a `summaryInvalidatedAt` timestamp that triggers re-compression when member data changes significantly
 
-**Prevention:**
-1. Design TWO timer UX patterns from the start:
-   - **macOS:** `set_title("23:45")` next to the tray icon for persistent countdown
-   - **Windows:** Always-on-top frameless mini-window (Tauri supports `always_on_top: true`, `decorations: false`, `width: 120, height: 40`) pinned to a screen corner, showing the countdown
-2. Use `std::env::consts::OS` in Rust or `navigator.platform` / Tauri's `os` plugin in the frontend to branch behavior
-3. The tooltip (`set_tooltip`) works on both macOS and Windows -- use it as a supplementary display on both platforms, but don't rely on it as the primary countdown mechanism since it only shows on hover
-4. Test on both platforms in Phase 1 of desktop development, not at the end
-
-**Detection:**
-- Timer works great on Mac, Windows users report "I can't see the timer"
-- QA only tests on developer's Mac
+**Warning signs:**
+- Jarvis references goals not in the member's active goals list
+- Members correct Jarvis about their current focus more than once per week
+- Summaries contain outdated accountability levels or timezone references
 
 **Phase to address:**
-Phase 2 (Desktop App MVP). The timer UI must be designed platform-aware from day one. Don't build the Mac version first and "fix Windows later."
+Phase 1 (context management). Summary staleness mitigation must be part of the core context assembly redesign.
 
 ---
 
-### Pitfall 4: Background Throttling Kills Timer Accuracy
+### Pitfall 4: The Action Execution Gap -- Jarvis Says It Did Something But Didn't
 
 **What goes wrong:**
-Tauri uses a WebView (WKWebView on macOS, WebView2 on Windows) to render the frontend. By default, WebKit applies an `inactiveSchedulingPolicy` of `suspend` -- when the app window is minimized or hidden (common for a menu bar app!), **all JavaScript timers stop**. `setInterval` and `setTimeout` cease firing. The timer countdown freezes silently. After 5-6 minutes minimized, the entire webview may fully suspend. Users reported timers stopping entirely when the app was minimized ([tauri-apps/tauri#5147](https://github.com/tauri-apps/tauri/issues/5147)). For a productivity timer app that runs in the background by design, this is catastrophic.
+In conversational mode, a member says "update my reading goal to 15 books" and Jarvis responds "Done! Updated your reading goal to 15 books." But the actual database update failed silently, or the AI generated the response without actually executing any database operation because there is no action execution layer -- just a chat response. The member trusts the confirmation, checks their goals later, and finds nothing changed.
 
 **Why it happens:**
-A menu bar / system tray app has no visible window most of the time. The webview interprets "no visible window" as "background tab" and applies aggressive throttling. This is browser behavior inherited by the webview -- designed for battery life, destructive for timer apps. The fix exists in Tauri v2 (the `backgroundThrottling` config option was added after [wry#1246](https://github.com/tauri-apps/wry/issues/1246) was resolved) but is NOT the default.
+The current architecture (`chat.ts`) is a pure conversation pipeline: receive message, assemble context, call AI, return text. There is no mechanism for the AI to trigger database mutations. Adding tool/function calling means building an entirely new execution layer. Developers often ship the conversational interface first and add tool execution later, creating a window where Jarvis sounds capable but isn't.
 
-**Consequences:**
-- Timer shows "23:45" when minimized, still shows "23:45" when restored 10 minutes later
-- Timer completion notifications never fire while app is in background
-- XP awards and session data are incorrect because elapsed time tracking breaks
-- Users lose trust in the timer's accuracy
+**How to avoid:**
+- Build the action execution layer BEFORE expanding the conversational interface. If Jarvis can't actually update goals via conversation, Jarvis should say "Use `/goals update` for that" instead of pretending
+- Use function calling / tool use if the LLM supports it (Grok via OpenRouter may not support tool use -- verify before building). If not, use a two-step pattern: AI classifies intent and extracts parameters as structured JSON, then a deterministic handler executes the action
+- Never let the AI generate "Done!" confirmation text. Instead: execute the action first, check success, then generate a response that includes the actual result. Pattern: `extractAction() -> executeAction() -> generateConfirmation(result)`
+- Add explicit capability declarations in the system prompt: "You CAN: create goals, update goal progress, log check-ins. You CANNOT: delete goals, change settings, modify XP"
 
-**Prevention:**
-1. Set `backgroundThrottling: "disabled"` in `tauri.conf.json` window configuration. This is mandatory for a timer app.
-2. Even with throttling disabled, don't rely solely on JavaScript `setInterval` for time tracking. Store `startedAt` timestamp and compute elapsed time from `Date.now() - startedAt` on each tick. This way, even if a tick is delayed, the displayed time is always correct.
-3. Move critical timer logic to the Rust backend via Tauri commands. Rust threads are not affected by webview throttling. Use `tokio::time::interval` in Rust to track timer state and push updates to the frontend via events.
-4. On window restore / visibility change, immediately recalculate displayed time from the authoritative timestamp, don't trust the last displayed value.
-
-**Detection:**
-- Timer appears to "jump" when window is restored (shows wrong time, then corrects)
-- Timer completion notifications arrive minutes late
-- Works perfectly when the window is visible, breaks when minimized
+**Warning signs:**
+- Members report data discrepancies between what Jarvis said and what the database shows
+- AI responses include "I've updated..." phrasing without any corresponding database write in the logs
+- TokenUsage shows a chat call but no corresponding data mutation
 
 **Phase to address:**
-Phase 2 (Desktop App MVP). Set `backgroundThrottling: "disabled"` in the initial `tauri.conf.json` scaffold. Implement timestamp-based time calculation from the first timer prototype.
+Phase 1 (conversational AI core). The action execution pipeline is foundational -- it must exist before any "do X for me" conversational flow.
 
 ---
 
-### Pitfall 5: Two Processes Writing Timer State -- Bot and Desktop Race Condition
+### Pitfall 5: Cost Explosion from Conversational Volume
 
 **What goes wrong:**
-The current bot persists timer state to the `TimerSession` table: `timerState`, `prePauseState`, `remainingMs`, `lastStateChangeAt`, `totalWorkedMs`, `totalBreakMs`, `pomodoroCount`. The desktop app will also create and manage timer sessions. If both the Discord bot (via `/timer start`) and the desktop app can create and modify `TimerSession` records for the same member simultaneously, they will overwrite each other. Member starts a timer on desktop, pauses it via Discord slash command -- the bot reads stale `remainingMs` because the desktop app updated it 2 seconds ago but the bot cached the old value.
+Slash commands are inherently rate-limited by user friction -- typing `/checkin` takes deliberate effort. Conversational AI removes that friction entirely. Members who currently send 2-3 slash commands per day may send 20-30 conversational messages. With 25 members, that is potentially 500-750 AI calls per day instead of the current 50-75. At Grok 4.1 Fast pricing ($0.20/M input, $0.60/M output), the context assembly alone (sending ~50K tokens of member context per call) means each call costs roughly $0.01 input + $0.003 output. At 750 calls/day that is approximately $10/day or $300/month. The current budget target is $0.10/day per member ($75/month total for 25 members).
 
 **Why it happens:**
-The bot holds timer state in-memory (`activeTimers` Map in `src/modules/timer/manager.ts`) AND persists to DB for restart recovery. The desktop app would naturally hold its own in-memory state and sync to the same DB. Neither knows about the other's in-memory state. The database becomes a shared mutable resource with no coordination.
+Conversational interfaces invite longer, more frequent interactions. The "operator" personality encourages back-and-forth. Morning briefs, reflections, and nudges are bot-initiated AI calls that don't count against member message caps but DO consume tokens. The current 500K daily token budget per member and 50 message cap exist but may need recalibration.
 
-**Consequences:**
-- Duplicate timer sessions for the same member (one from bot, one from desktop)
-- Pause/resume from one client doesn't affect the other's in-memory state
-- XP double-awarded when both clients complete the "same" session
-- `totalWorkedMs` and `pomodoroCount` drift between clients
+**How to avoid:**
+- Recalculate the cost model for conversational volume BEFORE shipping. Model: (avg messages/day/member) x (avg context tokens) x (price per token) x members
+- Reduce context assembly cost: not every message needs the full 50K+ token context. Quick replies ("thanks", "ok", "lol") can use a lightweight context (last 5 messages + member name only). Route based on message complexity
+- Cache the system prompt per member with a TTL (it changes infrequently). Currently `buildSystemPrompt` does 7 database queries every single call. Cache for 5 minutes
+- Consider DeepSeek V3.2 as primary for simple conversational turns (much cheaper) and Grok 4.1 Fast only for complex coaching conversations that need the full context
+- Proactive messages (briefs, nudges, reflections) should use the fallback model by default -- they are generated text, not conversations needing deep context
 
-**Prevention:**
-1. **Single source of truth: the API.** The Fastify API must be the ONLY process that reads/writes `TimerSession`. The bot should call the API (internal HTTP or shared library), NOT access the database directly for timer operations. The desktop app already calls the API by design.
-2. **Active session constraint:** Add a unique constraint or application-level check: one active timer per member, regardless of source. `@@unique([memberId, status])` with a partial unique index on `status = 'ACTIVE'` (Prisma doesn't support partial unique indexes natively -- enforce in application code or raw SQL).
-3. **Event-driven sync:** When the API updates a timer, emit an event (WebSocket to desktop, Discord message edit to bot). Both clients subscribe to state changes rather than polling.
-4. **Optimistic locking:** Add a `version` field to `TimerSession`. Any update must include the current version; reject if version mismatch. This catches concurrent writes.
-
-**Detection:**
-- Member reports "I have two timers running"
-- XP transaction log shows duplicate `TIMER_SESSION` awards for overlapping time periods
-- Timer shows different state on Discord vs desktop
+**Warning signs:**
+- Daily estimated cost exceeds $0.15/member consistently
+- Token usage per member doubles after conversational mode launches
+- Budget degradation kicks in for active members before end of day
 
 **Phase to address:**
-Phase 2 (API Server) and Phase 3 (Desktop Timer). Design the "API as single authority" pattern before building either client's timer feature.
+Phase 1 (before launch). Cost model validation and lightweight routing must be designed alongside the conversational core.
 
 ---
 
-## Moderate Pitfalls
-
-Mistakes that cost days, not weeks. Recoverable but painful.
-
----
-
-### Pitfall 6: Discord OAuth Redirect URI -- localhost vs Deep Link Confusion
+### Pitfall 6: The Uncanny Valley of Coaching Tone
 
 **What goes wrong:**
-Discord OAuth2 for desktop apps requires a redirect URI. The two options are: (a) `http://127.0.0.1:{port}/callback` using a temporary localhost server, or (b) a custom URL scheme like `myapp://callback` via deep linking. Discord supports custom schemes ONLY when using PKCE flow. Developers commonly try `http://localhost/callback` (fails -- Discord requires `127.0.0.1`, not `localhost`) or try custom schemes without PKCE (fails with `invalid_grant`). Additionally, the redirect URI registered in the Discord Developer Portal must EXACTLY match what the app sends, including port number for localhost -- but a temporary localhost server gets a random port each time.
+The v3.0 spec says "ruthlessly objective coaching tone -- not a persona." But the existing `personality.ts` defines Jarvis as "a sharp personal operator with hustler energy, casual language and slang." These are contradictory. If you ship both, Jarvis oscillates between "Yo bro you crushed it" in casual chat and cold analytical coaching in morning briefs. Members find it jarring. Alternatively, if you strip the personality entirely, Jarvis becomes generic ChatGPT -- boring, members stop engaging.
 
 **Why it happens:**
-Discord's OAuth2 docs are scattered across three pages (OAuth2 general, Social SDK authentication, discord-api-docs issues). The desktop-specific guidance is minimal. Most tutorials show web app flows with fixed redirect URIs. Desktop apps need either a fixed localhost port (port conflicts risk) or PKCE + custom scheme (more complex setup).
+"Ruthlessly objective" and "personality with hustler energy" are genuinely in tension. The team hasn't resolved which one wins. When different features (chat, briefs, nudges, reflections) are built by different prompts at different times, they each lean differently on this spectrum.
 
-**Consequences:**
-- `invalid_grant` or `Invalid OAuth2 redirect_uri` errors during development
-- Auth flow works on developer's machine (port 9876 is free) but fails on user's machine (port in use)
-- Custom scheme deep links require app to be installed (not just running from `tauri dev`)
-- On macOS, deep link schemes can only be registered at install time, not runtime
-- On Windows/Linux, deep links arrive as command-line args to a new process instance -- must coordinate with running instance via single-instance plugin
+**How to avoid:**
+- Decide once: Jarvis has personality BUT is objective about data. The personality is the delivery vehicle, the objectivity is the content. "Your streak is at 12 days but your weekly goals are 0/3 -- real talk, something's off" is both personality AND objectivity
+- Create a single canonical tone guide (5-7 bullet points max) that every prompt inherits. Currently `CHARACTER_PROMPT` serves this role but needs updating for v3.0's coaching emphasis
+- All proactive messages (briefs, nudges, reflections) should use the same `buildSystemPrompt` as chat -- not separate system prompts. Currently `nudge.ts` already does this correctly
+- Test tone consistency: generate 10 sample outputs across all features (chat, brief, nudge, reflection) and read them in sequence. Do they sound like the same entity?
 
-**Prevention:**
-1. **Use PKCE + localhost with a fixed port.** Register `http://127.0.0.1:28457/callback` in Discord Developer Portal (use a high, unusual port to minimize conflicts). Use the `tauri-plugin-oauth` library which spawns a temporary localhost server to capture the redirect.
-2. **Implement PKCE flow.** Discord requires PKCE for desktop/mobile apps. Generate code_verifier (43-128 chars, alphanumeric + `-._~`), compute code_challenge with S256. Send both in the authorization request. Exchange code + verifier for tokens server-side (in the Fastify API, NOT in the desktop app -- don't expose client_secret).
-3. **Token exchange on the API server.** Desktop sends the authorization code to `POST /auth/discord/callback` on the Fastify API. API exchanges code for tokens using client_secret (which never touches the desktop app). API returns a session token/JWT to the desktop app.
-4. **Store tokens securely.** Use Tauri's `tauri-plugin-store` with encryption, NOT plain localStorage. Refresh tokens must be rotated and stored server-side.
-
-**Detection:**
-- Auth works in development but fails in production builds
-- "Invalid redirect URI" errors in Discord OAuth flow
-- Port conflict errors on app launch
+**Warning signs:**
+- Members describe Jarvis differently ("sometimes he's chill, sometimes he's weird")
+- Different proactive features feel like they come from different bots
+- Members engage with chat but ignore proactive messages (or vice versa) due to tone mismatch
 
 **Phase to address:**
-Phase 2 (API Server + Auth). Implement OAuth flow early -- it gates all authenticated API calls.
+Phase 1 (personality redesign). Tone must be locked before any new feature prompts are written.
 
 ---
 
-### Pitfall 7: Prisma Schema Sharing -- generate Runs in Wrong Location
+### Pitfall 7: DM-Only Migration Breaks Discoverability
 
 **What goes wrong:**
-Moving `prisma/schema.prisma` and `prisma.config.ts` to `packages/db/` means `prisma generate` must run from within that package. But Turborepo tasks and developer habits (`pnpm prisma generate` from root) will try to run it from the wrong directory. The current `prisma.config.ts` uses `import.meta.dirname` for path resolution -- this ONLY works when executed from the directory containing the config file. Running from root resolves paths relative to root, not `packages/db/`. Additionally, Prisma 7 no longer runs `prisma generate` automatically after `migrate dev` -- developers must run it explicitly, and forgetting means stale types.
+The v3.0 spec moves to "DMs only -- remove private channel per-member system." But new members who join the Discord server have no idea they can DM Jarvis. Current flow uses private channels that are visible in the server sidebar -- members see them and use them. DMs are invisible to other members, so there is no social proof that anyone is using Jarvis. The onboarding flow must explicitly teach DM interaction, and if it fails (member skips onboarding, doesn't read instructions), the member never discovers the core product.
 
 **Why it happens:**
-Prisma's CLI looks for `prisma.config.ts` in the current working directory by default. In a monorepo, "current working directory" depends on whether you ran the command from root (`pnpm run db:generate`) vs from the package (`cd packages/db && pnpm prisma generate`). Turborepo's `--filter` flag changes the cwd, but not all developers know to use it.
+DMs are a better privacy model (the v1.0 decision was correct) but worse for discoverability. Developers assume members will figure it out. With 10-25 friends, you might be right -- but even friends need clear onboarding.
 
-**Consequences:**
-- `prisma generate` silently generates client in the wrong `node_modules` directory
-- Apps import `@prisma/client` but get stale or empty types
-- `prisma migrate dev` fails with "datasource property is required" because it can't find the config
-- CI builds fail because `db:generate` ran before `packages/db` dependencies were installed
+**How to avoid:**
+- Jarvis should initiate the first DM to a new member after setup, not wait for the member to reach out. "Hey [name], I'm Jarvis -- your operator. DM me anytime to check in, set goals, or just talk strategy. I'll also send you morning briefs and accountability nudges here"
+- Keep a `#jarvis-tips` channel in the server that shows anonymized examples of what Jarvis can do. Not conversations -- just capabilities
+- If a member hasn't DM'd Jarvis within 3 days of setup, send a single DM prompt: "Hey, haven't heard from you yet. Just a reminder -- DM me here for anything productivity-related"
+- Consider keeping `/ask` as a server-channel command that responds ephemerally. This gives members a way to interact with Jarvis without remembering to DM
 
-**Prevention:**
-1. In `packages/db/package.json`, define explicit scripts:
-   ```json
-   {
-     "scripts": {
-       "db:generate": "prisma generate",
-       "db:migrate": "prisma migrate dev",
-       "db:push": "prisma db push"
-     }
-   }
-   ```
-2. In root `turbo.json`, configure task dependencies:
-   ```json
-   {
-     "tasks": {
-       "db:generate": { "cache": false },
-       "build": { "dependsOn": ["^db:generate"] },
-       "dev": { "dependsOn": ["^db:generate"] }
-     }
-   }
-   ```
-3. `packages/db/prisma.config.ts` must start with `import "dotenv/config"` and use `import.meta.dirname` for path resolution (already the pattern in the current codebase).
-4. Export the Prisma client singleton AND all generated types from `packages/db/src/index.ts`. Other packages import `from "@repo/db"`, never directly from `@prisma/client`.
-5. Add `DATABASE_URL` to `globalEnv` in `turbo.json` so task hashing accounts for database changes.
-
-**Detection:**
-- TypeScript errors about missing Prisma model types after schema changes
-- "Generate" works locally but types are stale in CI
-- `prisma migrate dev` fails with path resolution errors
+**Warning signs:**
+- New members have zero conversation messages after 7 days
+- Members ask in public channels how to talk to Jarvis
+- Conversation adoption rate is below 80% of active members
 
 **Phase to address:**
-Phase 1 (Monorepo Restructure). Set up the `packages/db` pipeline correctly before adding any new apps.
+Phase 2 (DM migration). Onboarding redesign should happen alongside the channel removal.
 
 ---
 
-### Pitfall 8: Two Database Clients Exhausting Connection Pool
+### Pitfall 8: Per-User Settings Explosion
 
 **What goes wrong:**
-Currently, the bot creates one `PrismaClient` instance (in `src/db/client.ts`) which manages a connection pool to PostgreSQL. After the migration, three processes could connect to the same database: the bot (via `packages/db`), the Fastify API (via `packages/db`), and potentially `prisma studio` or migration scripts. Each `PrismaClient` instance creates its own connection pool (default: `num_cpus * 2 + 1` connections for PostgreSQL via the `pg` adapter). On a small VPS, the database may have a max of 20-100 connections. Two always-on processes (bot + API) could consume 20+ connections at baseline, leaving little room for spikes.
+The v3.0 spec says "per-user coaching settings -- members configure frequency, intensity, which features are active." With morning briefs, nudges, reflections, recaps, and coaching style, that is potentially 10+ settings per member. Members never configure them. Worse, the default settings are wrong for some members (a "heavy" accountability member who hates morning briefs, or a "light" member who wants weekly recaps). You end up either (a) over-configurable and nobody touches it, or (b) under-configurable and members can't opt out of features they dislike.
 
 **Why it happens:**
-`PrismaClient` is designed to be instantiated once per process. In a monorepo, `packages/db` exports a singleton, but each app that imports it gets its own instance (different Node.js processes). This is correct behavior -- you can't share a connection pool across processes. But developers often don't think about aggregate connection usage across all services hitting the same database.
+Feature teams add a setting for every preference instead of designing good defaults. The current system already has `accountabilityLevel` (light/medium/heavy) which maps to specific nudge behavior -- this pattern works. Trying to expose individual knobs for each feature breaks the abstraction.
 
-**Consequences:**
-- `FATAL: too many clients already` PostgreSQL errors during load
-- Bot drops queries during API traffic spikes (and vice versa)
-- Connection timeout errors that appear random
+**How to avoid:**
+- Keep the existing accountability level pattern: 3 tiers that bundle all settings. "Light" = 1 proactive message/day max, morning briefs only on request, no reflection prompts. "Medium" = 2 proactive messages/day, morning briefs daily, weekly reflection. "Heavy" = 3 proactive messages/day, morning briefs + evening recap, reflection prompts after goals complete
+- Only add individual feature toggles if members explicitly request them after trying the tier system. Start with zero individual toggles
+- Allow natural language opt-out: "Jarvis, stop sending morning briefs" should work and persist. This is easier than a settings UI and feels natural in a conversational system
+- Store overrides as a simple JSON blob per member, not as a proliferation of database columns
 
-**Prevention:**
-1. **Explicitly configure pool sizes.** In the `pg` adapter (which this project uses), set `max` connections per process. For 10-25 users, 5 connections per process is more than enough:
-   ```typescript
-   const pool = new Pool({ connectionString: env.DATABASE_URL, max: 5 });
-   ```
-2. **Use PgBouncer** if connection pressure grows. PgBouncer multiplexes connections and handles pool exhaustion gracefully. Overkill for 10-25 users now, but worth knowing about.
-3. **Monitor connection count.** Add a health check endpoint to the Fastify API that reports `SELECT count(*) FROM pg_stat_activity`.
-4. **Don't create PrismaClient in hot paths.** The `packages/db` export must be a module-level singleton, not a factory function that creates new clients.
-
-**Detection:**
-- Intermittent database errors under normal load
-- Errors correlate with both bot and API being active simultaneously
-- `pg_stat_activity` shows more connections than expected
+**Warning signs:**
+- Settings table grows to 10+ columns per member
+- Members ask "how do I change [setting]" frequently
+- Default settings cause opt-out conversations more than once per member
 
 **Phase to address:**
-Phase 2 (API Server). Configure explicit pool sizes when setting up the Fastify app's database connection.
+Phase 2 (per-user settings). Design the tier system first, add individual overrides later only if needed.
 
 ---
 
-### Pitfall 9: Cross-Compilation Doesn't Work -- You Need CI Matrix Builds
+## Technical Debt Patterns
 
-**What goes wrong:**
-Tauri cannot reliably cross-compile. You cannot build a Windows `.exe` on macOS or vice versa. MSI installers can only be built on Windows (WiX requires Windows). macOS `.app` bundles and `.dmg` installers can only be built on macOS (code signing requires macOS Keychain). Developers working on Mac will build and test only the macOS version, then discover at release time that the Windows build has issues they never saw -- different webview rendering (WebView2 vs WKWebView), different file paths, different system tray behavior.
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Single AI call for intent + response | Simpler code, fewer API calls | Can't retry action without regenerating response, intent classification tied to response quality | Never for state-changing actions. OK for pure information queries |
+| Hardcoded system prompt per feature | Quick to ship each feature | Prompts diverge, tone inconsistency, maintenance burden as features grow | Only during prototyping -- consolidate before v3.0 GA |
+| Fire-and-forget action execution | Fast response to user | Silent failures, no retry, member sees "done" but action failed | Never -- always confirm action success before responding |
+| Separate cron jobs per proactive feature | Easy to develop independently | No global rate limiting, message floods, impossible to prioritize | Only during early development with manual testing |
+| Storing settings as individual DB columns | Type-safe, easy queries | Schema migration for every new setting, column proliferation | For the 3 core settings (level, timezone, nudgeTime). Use JSON for the rest |
 
-**Why it happens:**
-Tauri's Rust backend compiles to native binaries. Native binaries require the target OS toolchain. Cross-compilation from macOS to Windows has gotten better in Tauri v2 (NSIS installers can be cross-compiled with caveats), but MSI cannot, and it's "not tested as much" per official docs. Recent versions (v2.2.0) introduced cross-compilation regressions.
+## Integration Gotchas
 
-**Consequences:**
-- No Windows build artifacts until CI is set up
-- Windows-specific bugs discovered only after release
-- macOS code signing requires Keychain access in CI (secrets management complexity)
-- Build times multiply: each platform is a separate CI job
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| OpenRouter tool/function calling | Assuming all models support it | Verify Grok 4.1 Fast supports tools via OpenRouter before building. If not, use two-step pattern (classify intent as JSON, then execute) |
+| Discord DM rate limits | Sending proactive messages to all members simultaneously | Stagger proactive messages across a 30-minute window. Discord rate limits DM creation (not existing DM channels) |
+| Discord message length | Assuming AI responses fit in 2000 chars | Already handled by `splitMessage` in commands.ts -- ensure the conversational DM handler also splits. Multi-message responses in DMs feel natural |
+| Grok 2M context window | Sending full context on every call | Current context assembly handles this with tiers. But proactive messages (briefs, nudges) should use minimal context -- they don't need 30 days of conversation history |
+| Prisma concurrent writes | Multiple proactive features updating the same member record simultaneously | Use the existing `withMemberLock` pattern from chat.ts for ALL member-scoped operations, including proactive message delivery |
+| AI response parsing | Trusting AI to return valid JSON for structured actions | Always wrap JSON.parse in try-catch. Use Zod or similar for schema validation. Retry with a simpler prompt on parse failure, never crash |
 
-**Prevention:**
-1. **Set up GitHub Actions CI matrix from day one.** Use the official `tauri-apps/tauri-action` which handles multi-platform builds. Configure a 3x matrix: `macos-latest`, `windows-latest`, `ubuntu-latest` (if Linux support is added later).
-2. **Use the `turbo-tauri` workflow template** ([LiRenTech/turbo-tauri](https://github.com/LiRenTech/turbo-tauri)) which combines Turborepo caching with Tauri multi-platform builds.
-3. **Test on Windows regularly.** Even if the developer works on Mac, spin up a Windows VM or use CI artifacts for manual testing after each feature milestone.
-4. **Handle code signing early.** macOS requires an Apple Developer certificate ($99/year). Windows Authenticode signing requires a code signing certificate. Set up signing in CI before the first release, not during.
-5. **Budget for CI costs.** macOS runners on GitHub Actions are more expensive than Linux. Each build compiles Rust from scratch unless cached. Expect 15-30 minute build times per platform.
+## Performance Traps
 
-**Detection:**
-- Developer ships macOS `.dmg` only, "Windows coming soon" indefinitely
-- Windows build fails in CI with cryptic Rust compilation errors
-- Users report the app "doesn't install" because it's unsigned
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Full context assembly for every message | Slow response times (>3s), high DB query count | Cache assembled context per member (5-min TTL), invalidate on data changes | >10 messages/member/hour with 25 members |
+| `buildSystemPrompt` runs 7 queries per call | Database connection pool exhaustion under load | Cache system prompt with member-scoped TTL, batch parallel queries (already uses Promise.all in some places) | >50 concurrent AI calls |
+| Proactive messages trigger context assembly | 25 morning briefs at 8 AM each do full context assembly simultaneously | Use lightweight context for proactive messages (member name + active goals only). Stagger sends over 30 minutes | 25 members all in the same timezone |
+| Conversation message table growth | Slow queries on `conversationMessage` table | Already handled by compression. Add composite index on (memberId, createdAt) if not present. Monitor table size | >100K messages total (unlikely at 25 members but possible after months of conversational usage) |
+| Summary compression triggered during chat | User waits 5-10 seconds for response while compression runs | Make compression async/background, never block the chat response path | When a member's cold tier exceeds 1000 messages |
 
-**Phase to address:**
-Phase 2 (Desktop App scaffold). Set up CI with platform matrix when creating the Tauri project, not after features are built.
+## Security Mistakes
 
----
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| AI-executed actions bypass permission checks | Member asks Jarvis to modify another member's goals via social engineering ("update Ahmed's reading goal") | Action execution layer must verify memberId matches the requesting member. Never accept member references in natural language as authorization |
+| Natural language "delete my data" without confirmation | AI interprets casual statement as deletion request, wipes conversation history | Require explicit confirmation for any destructive action. Keep `/deletedata` as the only hard-delete path. System prompt must say "Never delete data without explicit 'yes' confirmation" |
+| Prompt injection via member messages | Member crafts a message that overrides Jarvis's system prompt to extract other members' data or bypass budget limits | System prompt already isolates per-member context. Add input sanitization for known injection patterns. Monitor for responses that include system prompt content |
+| Proactive messages leak encrypted data in plain text | Morning brief references encrypted reflection content, sent as plain text DM | Ensure proactive message generators use the same decryption + re-encryption pipeline. Better: proactive messages should reference summaries, not raw encrypted fields |
 
-### Pitfall 10: Encrypted Data Access from API Server -- Key Management Across Processes
+## UX Pitfalls
 
-**What goes wrong:**
-The existing bot uses per-member AES-256-GCM encryption (`src/shared/crypto.ts` + `src/db/encryption.ts`) with per-member key derivation from `encryptionSalt`. The master encryption key is presumably in `.env` as an environment variable. The Fastify API needs to decrypt member data (conversation messages, check-in content, goal descriptions, reflection responses) to display in the desktop app. If the API doesn't have the same encryption key and the same decryption logic, it gets raw encrypted gibberish from the database. If it DOES have the key, now two processes hold the master key -- doubling the attack surface.
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| No visual indicator of what Jarvis can do conversationally | Members treat Jarvis as a generic chatbot, missing productivity features | First DM includes a capability card: "I can help with: check-ins, goals, timer, reflections. Just tell me what you need" |
+| AI response latency feels broken in DMs | Members see typing indicator for 3-5 seconds with no response and think bot is down | Send `channel.sendTyping()` immediately when message received, before context assembly begins |
+| Jarvis asks too many clarifying questions | Feels like filling out a form, not having a conversation | Default to the most likely interpretation and confirm: "Logging that as a check-in -- coding for 3 hours. Sound right?" instead of "Did you mean to check in? What category? How long?" |
+| Morning brief is generic and not actionable | Members skip it after day 3 | Brief must reference specific active goals and upcoming deadlines. "Your weekly goal 'Ship landing page' is at 0/1 -- today's the day?" beats "Good morning! What are you working on today?" |
+| Proactive message arrives at bad times | 8 AM brief arrives while member is sleeping (timezone misconfiguration), 9 PM nudge arrives during dinner | Use member's configured timezone (already in `MemberSchedule`). Allow time window preferences. Never send proactive messages between 10 PM and 7 AM local time |
+| Jarvis responds to every single message | Short messages like "ok" or "thanks" get full AI responses, feels excessive | Detect low-effort messages and either skip response or send a brief acknowledgment without an AI call. Save the budget for real conversations |
 
-**Why it happens:**
-Encryption was designed for a single-process architecture. The crypto module is in `src/shared/crypto.ts` -- after monorepo migration, it moves to `packages/shared/`. Both `apps/bot` and `apps/api` need to import it. But the encryption key (likely `ENCRYPTION_KEY` in `.env`) must be available to both processes. This is straightforward in development (same `.env` file) but requires careful secrets management in production (two PM2 processes, possibly different env files).
+## "Looks Done But Isn't" Checklist
 
-**Consequences:**
-- Desktop app shows encrypted text instead of readable content
-- API can decrypt data but uses a different key format, corrupting data
-- Encryption key is duplicated in multiple `.env` files, increasing leak risk
-- If the key is rotated, both processes must be restarted simultaneously
+- [ ] **Conversational check-in:** Often missing category extraction from natural language -- verify AI extracts categories consistent with `/checkin` format and the XP engine scores correctly
+- [ ] **Goal update via chat:** Often missing validation (negative values, exceeding target, wrong goal ID) -- verify same validation rules as `/goals update` apply to conversational updates
+- [ ] **Morning brief delivery:** Often missing timezone handling -- verify brief sends at member's local morning, not server time. Current nudge system handles this but new brief system must too
+- [ ] **Natural language opt-out:** Often missing persistence -- verify "stop morning briefs" is stored and respected across bot restarts (PM2 restart recovery)
+- [ ] **DM conversation history:** Often missing multi-account handling -- verify conversation is tied to memberId not discordId, so linked accounts share conversation history
+- [ ] **Proactive message scheduling:** Often missing bot restart recovery -- verify scheduled messages resume after PM2 restart. Current cron jobs may not survive restarts cleanly
+- [ ] **Cost tracking for proactive messages:** Often missing proactive calls in token tracking -- verify morning briefs, nudges, and reflections all route through `callAI` with correct feature tags
+- [ ] **Action confirmation flow:** Often missing timeout handling -- if member never responds to "Want me to log that?", the pending action should expire after 5 minutes, not hang forever
+- [ ] **Conversation context after actions:** Often missing context update after action execution -- if Jarvis just logged a check-in, the next message's context assembly should reflect the new check-in in recent activity
 
-**Prevention:**
-1. **Move crypto module to `packages/shared/`.** Both apps import the same encryption/decryption functions. This is already the natural location.
-2. **Single `.env` source for secrets.** Use a root-level `.env` file for `ENCRYPTION_KEY` and `DATABASE_URL`, referenced by both apps. Turborepo's `globalEnv` in `turbo.json` makes this explicit.
-3. **API returns decrypted data.** The desktop app should NEVER have the encryption key or perform decryption. The API decrypts data server-side and returns plaintext over HTTPS. The desktop app is a "dumb client" for encrypted fields.
-4. **Consider whether the desktop app actually needs encrypted fields.** Goals, timers, and dashboard data may not need decryption at all (goal titles are cleartext, timer state is cleartext). Only conversation messages and reflection responses are encrypted. The desktop MVP may not display these at all.
+## Recovery Strategies
 
-**Detection:**
-- Desktop app shows base64-encoded strings where readable text should be
-- API crashes with `ERR_OSSL_EVP_WRONG_FINAL_BLOCK_LENGTH` (wrong decryption key)
-- Same data decrypts differently in bot vs API (encoding mismatch)
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Intent misclassification shipped | LOW | Add confirmation step for state-changing intents. No data loss, just UX friction increase |
+| Notification fatigue (members muted bot) | MEDIUM | Cannot detect mute via Discord API. Send a server announcement about new quiet settings. Members who muted must manually unmute -- you need to give them a reason to |
+| Stale context hallucination | LOW | Inject correction messages into conversation history. Update summary compression to cross-reference live data. Add system prompt guardrail |
+| Action execution without verification | HIGH | Audit all action logs against database state. Revert incorrect mutations. Members lose trust -- requires personal outreach to affected members |
+| Cost explosion | LOW | Immediately enable DeepSeek as primary for chat, keep Grok for coaching-heavy calls only. Reduce context assembly size. Budget enforcement already exists |
+| Tone inconsistency | LOW | Update CHARACTER_PROMPT once, all features inherit via `buildSystemPrompt`. Test with 10 sample outputs across features |
+| DM discoverability failure | LOW | Send a one-time server announcement + Jarvis-initiated DMs to all members. Retroactive fix is easy |
+| Settings explosion | MEDIUM | Migrate individual columns back to JSON blob or tier bundles. Requires schema migration but no data loss |
 
-**Phase to address:**
-Phase 1 (Monorepo Restructure) for moving the module; Phase 2 (API Server) for implementing decryption in API endpoints.
+## Pitfall-to-Phase Mapping
 
----
-
-## Minor Pitfalls
-
-Mistakes that cost hours, not days. Annoying but manageable.
-
----
-
-### Pitfall 11: Tauri Dev Mode vs Production -- Deep Link and Protocol Handler Differences
-
-**What goes wrong:**
-Deep links (custom URL schemes like `28khq://callback`) only work when the app is installed as a proper `.app` bundle (macOS) or registered via the Windows registry. During development with `tauri dev` or `cargo tauri dev`, the app runs unbundled -- deep links don't reach it. Developers test OAuth with a localhost redirect, ship with deep link redirect, and it breaks in production because they never tested the deep link path.
-
-**Prevention:**
-1. Use localhost redirect (`http://127.0.0.1:{port}/callback`) for OAuth in BOTH dev and production. Deep links add complexity without clear benefit for a desktop OAuth flow.
-2. If deep links are needed for other features (opening the app from Discord), test with `tauri build` artifacts, not `tauri dev`.
-
-**Phase to address:** Phase 2 (Desktop App + Auth).
-
----
-
-### Pitfall 12: Tauri System Tray -- Multiple Icons and macOS Submenu Quirks
-
-**What goes wrong:**
-Several known Tauri v2 bugs affect system tray behavior: (a) Creating a tray icon can produce TWO icons -- one transparent with click events, one visible with no events ([tauri-apps/tauri#8982](https://github.com/tauri-apps/tauri/issues/8982)). (b) On macOS, the first submenu in a tray menu is forcibly placed under the application's "About" menu regardless of its label. (c) Showing a window from a tray menu item on macOS requires an extra click to focus ([tauri-apps/tauri#7884](https://github.com/tauri-apps/tauri/issues/7884)).
-
-**Prevention:**
-1. Create the tray icon in the Tauri `setup()` function, not lazily. Test on both macOS and Windows.
-2. On macOS, make the first submenu item an "About" entry to satisfy the forced placement.
-3. After showing a window from tray click, explicitly call `window.set_focus()`.
-4. Pin to a specific Tauri version and test tray behavior before upgrading.
-
-**Phase to address:** Phase 2 (Desktop App MVP).
-
----
-
-### Pitfall 13: Turborepo Cache Invalidation with Environment Variables
-
-**What goes wrong:**
-Turborepo caches task outputs aggressively. If `DATABASE_URL` changes but the source code doesn't, Turborepo may serve a cached `db:generate` output with the old database schema. Similarly, if `DISCORD_TOKEN` or `ENCRYPTION_KEY` changes, cached builds may embed stale values.
-
-**Prevention:**
-1. Add ALL environment variables that affect builds to `globalEnv` in `turbo.json`:
-   ```json
-   { "globalEnv": ["DATABASE_URL", "ENCRYPTION_KEY", "DISCORD_TOKEN"] }
-   ```
-2. Set `"cache": false` for `db:generate` task -- Prisma generation is fast enough that caching saves little and risks stale types.
-3. For secrets, use `globalPassThroughEnv` (not `globalEnv`) if you don't want them to affect cache hashing.
-
-**Phase to address:** Phase 1 (Monorepo Restructure).
-
----
-
-### Pitfall 14: Fastify + Bot Competing for the Same Discord Gateway Events
-
-**What goes wrong:**
-If the Fastify API also instantiates a `discord.js` Client (e.g., to send messages, update embeds, or verify member identity), it creates a second gateway connection. Discord rate-limits gateway connections per bot token. Two processes connecting with the same token can cause `DISALLOWED_INTENTS` errors or missed events if Discord load-balances shards differently.
-
-**Prevention:**
-1. The API should NEVER create a Discord gateway client. It should use the Discord REST API directly (via `@discordjs/rest` or raw HTTP) for any Discord operations (verifying tokens, fetching user info).
-2. For sending Discord messages from the API (e.g., "timer completed" notifications), use a message queue or internal HTTP call to the bot process, which holds the single gateway connection.
-3. Discord OAuth token validation doesn't require a bot client -- it's a REST API call to `GET /users/@me` with the user's bearer token.
-
-**Phase to address:** Phase 2 (API Server).
-
----
-
-### Pitfall 15: Desktop App Auto-Update Distribution
-
-**What goes wrong:**
-Tauri supports auto-updates via the `tauri-plugin-updater`, but it requires hosting update manifests (JSON files describing latest version + download URLs) on a server. For a 10-25 person friend group, setting up a full update server feels like overkill, but without it, every update requires manually redistributing `.dmg`/`.exe` files.
-
-**Prevention:**
-1. Use GitHub Releases as the update backend -- `tauri-action` automatically creates releases with artifacts. The updater plugin can check GitHub's API for new releases.
-2. Configure auto-update checking on app launch with a "Update available" notification, not forced auto-install.
-3. This is not MVP -- defer to a polish phase. For initial distribution, share `.dmg`/`.exe` files directly in the Discord server.
-
-**Phase to address:** Post-MVP polish phase.
-
----
-
-## Phase-Specific Warnings
-
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| Monorepo restructure | Import paths break everywhere (Pitfall 1) | Move one package at a time, test bot starts after each move |
-| Monorepo restructure | Prisma 7 + pnpm TypeScript errors (Pitfall 2) | Install `@prisma/client-runtime-utils` explicitly |
-| Monorepo restructure | Prisma generate runs from wrong directory (Pitfall 7) | Configure Turborepo `dependsOn` with `^db:generate` |
-| Monorepo restructure | Cache invalidation with env vars (Pitfall 13) | Add secrets to `globalEnv` in turbo.json |
-| Monorepo restructure | Encrypted data module sharing (Pitfall 10) | Move crypto to `packages/shared/`, single .env for secrets |
-| API server | Connection pool exhaustion (Pitfall 8) | Explicit `max: 5` pool size per process |
-| API server | Discord gateway conflict (Pitfall 14) | API uses REST only, never gateway |
-| API server + Auth | OAuth redirect URI misconfiguration (Pitfall 6) | Use PKCE + fixed localhost port, exchange tokens server-side |
-| Desktop app scaffold | CI matrix builds needed (Pitfall 9) | Set up `tauri-action` with platform matrix immediately |
-| Desktop timer | Menu bar countdown is Mac-only (Pitfall 3) | Design platform-specific UX from day one |
-| Desktop timer | Background throttling kills timers (Pitfall 4) | Set `backgroundThrottling: "disabled"`, use timestamp math |
-| Desktop timer | Bot and desktop timer race condition (Pitfall 5) | API is single authority for timer state |
-| Desktop timer | Tray icon bugs (Pitfall 12) | Pin Tauri version, test tray on both platforms |
-| Deep linking | Dev vs production behavior differs (Pitfall 11) | Use localhost redirect for OAuth, not deep links |
-| Distribution | Auto-update infrastructure (Pitfall 15) | Use GitHub Releases, defer to polish phase |
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Intent detection regression | Phase 1 (conversational core) | Test: send 20 ambiguous messages, verify correct intent classification rate >95% and all state-changing intents get confirmation prompts |
+| Proactive message fatigue | Phase 2 (proactive routines) | Verify: global daily outreach budget exists, no member receives >3 proactive messages/day across all features combined |
+| Stale context hallucination | Phase 1 (context management) | Test: complete a goal, then chat -- verify Jarvis does not reference it as active. Check that system prompt includes "CURRENT STATS is authoritative" instruction |
+| Action execution gap | Phase 1 (conversational core) | Test: request a goal update via conversation, verify database reflects the change AND response confirms actual result (not hallucinated confirmation) |
+| Cost explosion | Phase 1 (before launch) | Verify: cost model spreadsheet shows <$0.15/member/day at projected conversational volume. Lightweight routing exists for simple messages |
+| Coaching tone uncanny valley | Phase 1 (personality redesign) | Review: generate 10 sample outputs across all features (chat, brief, nudge, reflection), read in sequence -- they must sound like the same entity |
+| DM discoverability | Phase 2 (DM migration) | Verify: 100% of members receive an onboarding DM within 1 minute of setup. Track adoption: >80% of members should have >0 conversations within 7 days |
+| Settings explosion | Phase 2 (per-user settings) | Verify: settings use tier bundles (light/medium/heavy), individual overrides stored as JSON blob, total DB columns for settings stays under 5 |
 
 ## Sources
 
-- [Tauri v2 System Tray documentation](https://v2.tauri.app/learn/system-tray/)
-- [Tauri v2 Deep Linking plugin](https://v2.tauri.app/plugin/deep-linking/)
-- [Tauri v2 Configuration reference](https://v2.tauri.app/reference/config/)
-- [Tauri v2 GitHub Pipelines](https://v2.tauri.app/distribute/pipelines/github/)
-- [Tauri tray set_title feature (macOS only) -- Issue #3322](https://github.com/tauri-apps/tauri/issues/3322)
-- [Tauri duplicate tray icons -- Issue #8982](https://github.com/tauri-apps/tauri/issues/8982)
-- [Tauri tray focus issue -- Issue #7884](https://github.com/tauri-apps/tauri/issues/7884)
-- [Tauri background throttling/suspension -- wry Issue #1246](https://github.com/tauri-apps/wry/issues/1246)
-- [Tauri app stops in background -- Issue #5147](https://github.com/tauri-apps/tauri/issues/5147)
-- [Prisma 7 + pnpm TS2742 errors -- Issue #28581](https://github.com/prisma/prisma/issues/28581)
-- [Prisma + Turborepo official guide](https://www.prisma.io/docs/guides/turborepo)
-- [Prisma in pnpm workspaces guide](https://www.prisma.io/docs/guides/use-prisma-in-pnpm-workspaces)
-- [Prisma monorepo discussion #19444](https://github.com/prisma/prisma/discussions/19444)
-- [Prisma connection pool docs](https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections/connection-pool)
-- [Discord OAuth2 documentation](https://discord.com/developers/docs/topics/oauth2)
-- [tauri-plugin-oauth for desktop OAuth](https://github.com/FabianLars/tauri-plugin-oauth)
-- [Discord custom scheme redirect URIs -- Issue #450](https://github.com/discord/discord-api-docs/issues/450)
-- [Turborepo GitHub Actions guide](https://turborepo.dev/docs/guides/ci-vendors/github-actions)
-- [turbo-tauri combined workflow](https://github.com/LiRenTech/turbo-tauri)
-- [Nhost monorepo migration post-mortem](https://nhost.io/blog/how-we-configured-pnpm-and-turborepo-for-our-monorepo)
-- [pnpm import command docs](https://pnpm.io/cli/import)
+- Codebase analysis: `apps/bot/src/modules/ai-assistant/chat.ts` -- current chat pipeline architecture, per-member locking, daily message cap (50), context assembly flow
+- Codebase analysis: `apps/bot/src/modules/ai-assistant/memory.ts` -- tiered memory system (hot/warm/cold), token budgets (1.4M context, 50K system prompt reserve), summary compression logic
+- Codebase analysis: `apps/bot/src/modules/ai-assistant/personality.ts` -- CHARACTER_PROMPT definition, system prompt builder with 7 DB queries per call, tone definition
+- Codebase analysis: `apps/bot/src/modules/ai-assistant/nudge.ts` -- current proactive messaging (accountability levels, daily caps, silence detection, notification routing)
+- Codebase analysis: `apps/bot/src/modules/ai-assistant/commands.ts` -- current slash command interface (/ask, /wipe-history, /accountability), message splitting
+- Codebase analysis: `apps/bot/src/shared/ai-client.ts` -- centralized AI client with budget enforcement (500K daily tokens), model routing (Grok primary, DeepSeek fallback), cost tracking
+- Domain knowledge: conversational AI coaching patterns, Discord bot development constraints, LLM cost management, notification fatigue research
+- Note: web search was unavailable for this research session. Confidence is MEDIUM. Key areas to validate during implementation: (1) OpenRouter tool/function calling support for Grok 4.1 Fast, (2) actual per-call cost at projected conversational volume, (3) Discord DM rate limits for proactive messaging at scale
+
+---
+*Pitfalls research for: Discord Hustler v3.0 Jarvis Coach Evolution*
+*Researched: 2026-03-22*
