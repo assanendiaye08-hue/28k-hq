@@ -104,7 +104,7 @@ export async function handleLeaderboard(
     }
     case 'streaks': {
       entries = await getStreakLeaderboard(db);
-      embed = buildStreakLeaderboardEmbed(entries);
+      embed = await buildStreakLeaderboardEmbed(entries, db);
       break;
     }
   }

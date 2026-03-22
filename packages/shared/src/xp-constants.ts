@@ -76,9 +76,8 @@ export const XP_AWARDS = {
  * Designed to avoid "what-the-hell effect" from rigid streak systems.
  */
 export const STREAK_CONFIG = {
-  graceDaysPerWeek: 2, // Can miss 2 days per week without breaking streak
-  decayRate: 0.5, // Missing beyond grace days halves streak multiplier (not reset)
-  recoverBonus: 15, // XP bonus for "coming back" after missing days
+  missedDaysToBreak: 2, // Streak breaks after 2 consecutive missed days (3+ days since last check-in)
+  recoverBonus: 15, // XP bonus for "coming back" after a streak break
   maxMultiplier: 3.0, // Streak multiplier caps at 3x
   multiplierGrowth: 0.1, // +0.1x per consecutive day (1.0 -> 1.1 -> 1.2 ... -> 3.0)
 } as const;

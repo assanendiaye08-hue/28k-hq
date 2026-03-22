@@ -194,7 +194,7 @@ export async function initLeaderboardChannel(
   // Initial placeholder embeds
   const xpPlaceholder = buildXPLeaderboardEmbed([]);
   const voicePlaceholder = buildVoiceLeaderboardEmbed([]);
-  const streakPlaceholder = buildStreakLeaderboardEmbed([]);
+  const streakPlaceholder = await buildStreakLeaderboardEmbed([]);
 
   // Ensure XP message
   if (stored.xpMessageId) {
@@ -284,7 +284,7 @@ export async function refreshLeaderboardMessages(
   // Build embeds
   const xpEmbed = buildXPLeaderboardEmbed(xpEntries, seasonLabel);
   const voiceEmbed = buildVoiceLeaderboardEmbed(voiceEntries, seasonLabel);
-  const streakEmbed = buildStreakLeaderboardEmbed(streakEntries);
+  const streakEmbed = await buildStreakLeaderboardEmbed(streakEntries, db);
 
   // Fetch stored message IDs
   const stored: LeaderboardMessageIds = {
