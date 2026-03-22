@@ -1,9 +1,7 @@
-import { useEffect, Component, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { useEffect, useRef, Component, type ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen } from '@tauri-apps/api/event';
-import { moveWindow, Position } from '@tauri-apps/plugin-positioner';
 import { useAuthStore } from './stores/auth-store';
 import { useTimerStore } from './stores/timer-store';
 import { tryRestoreSession } from './api/auth';
@@ -12,7 +10,6 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { TimerPage } from './pages/TimerPage';
-import { TimerPopover } from './components/timer/TimerPopover';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 
@@ -45,6 +42,18 @@ function LoginGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Store navigate function globally so tray handler can use it
+let globalNavigate: ReturnType<typeof useNavigate> | null = null;
+
+function NavigateProvider() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    globalNavigate = navigate;
+    return () => { globalNavigate = null; };
+  }, [navigate]);
+  return null;
+}
+
 export function App() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const login = useAuthStore((s) => s.login);
@@ -56,16 +65,14 @@ export function App() {
       try {
         const member = await tryRestoreSession();
         if (member) {
-          // accessToken was already set in memory by tryRestoreSession
           login(member, getAccessToken() ?? '');
         }
       } catch {
-        // Session restore failed -- show login page
+        // Session restore failed
       } finally {
         setLoading(false);
       }
     };
-
     restore();
   }, [login, setLoading]);
 
@@ -73,82 +80,33 @@ export function App() {
   useEffect(() => {
     const setupCloseHandler = async () => {
       const mainWindow = getCurrentWindow();
-      const unlisten = await mainWindow.onCloseRequested(async (event) => {
+      return await mainWindow.onCloseRequested(async (event) => {
         event.preventDefault();
         await mainWindow.hide();
       });
-      return unlisten;
     };
-
     const unlistenPromise = setupCloseHandler();
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
+    return () => { unlistenPromise.then((fn) => fn()); };
   }, []);
 
-  // Tray icon left-click handler: popover if timer active, toggle main window if idle
+  // Tray icon left-click: toggle main window, navigate to timer if active
   useEffect(() => {
     const unlistenPromise = listen('tray-icon-clicked', async () => {
-      const phase = useTimerStore.getState().phase;
       const mainWindow = getCurrentWindow();
+      const visible = await mainWindow.isVisible();
 
-      if (phase === 'idle' || phase === undefined) {
-        // Toggle main window visibility
-        const visible = await mainWindow.isVisible();
-        if (visible) {
-          await mainWindow.hide();
-        } else {
-          await mainWindow.show();
-          await mainWindow.setFocus();
+      if (visible) {
+        await mainWindow.hide();
+      } else {
+        const phase = useTimerStore.getState().phase;
+        if (phase && phase !== 'idle' && globalNavigate) {
+          globalNavigate('/timer');
         }
-        return;
+        await mainWindow.show();
+        await mainWindow.setFocus();
       }
-
-      // Timer is active -- show/create popover
-      const existing = await WebviewWindow.getByLabel('timer-popover');
-      if (existing) {
-        const visible = await existing.isVisible();
-        if (visible) {
-          await existing.hide();
-        } else {
-          await existing.show();
-          await existing.setFocus();
-          await moveWindow(Position.TrayCenter).catch(() => {});
-        }
-        return;
-      }
-
-      // Create new popover window
-      const popover = new WebviewWindow('timer-popover', {
-        url: '/timer-popover',
-        width: 320,
-        height: 420,
-        decorations: false,
-        alwaysOnTop: true,
-        resizable: false,
-        skipTaskbar: true,
-        focus: true,
-      });
-
-      popover.once('tauri://created', async () => {
-        await moveWindow(Position.TrayCenter).catch(() => {});
-      });
     });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
-  }, []);
-
-  // Listen for timer state changes from popover (cross-window sync)
-  useEffect(() => {
-    const unlistenPromise = listen('timer-state-changed', () => {
-      useTimerStore.getState().syncFromPersistence();
-    });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
+    return () => { unlistenPromise.then((fn) => fn()); };
   }, []);
 
   if (isLoading) {
@@ -162,6 +120,7 @@ export function App() {
   return (
     <ErrorBoundary>
     <BrowserRouter>
+      <NavigateProvider />
       <Routes>
         <Route
           path="/login"
@@ -201,7 +160,6 @@ export function App() {
             </AuthGate>
           }
         />
-        <Route path="/timer-popover" element={<TimerPopover />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

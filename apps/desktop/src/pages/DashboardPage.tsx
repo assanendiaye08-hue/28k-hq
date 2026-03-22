@@ -38,7 +38,7 @@ export function DashboardPage() {
         <p className="text-error text-sm">{error}</p>
         <button
           onClick={fetchDashboard}
-          className="px-4 py-2 bg-brand text-surface-base text-sm font-medium rounded-md hover:bg-brand-light transition-colors"
+          className="px-6 py-2.5 bg-brand text-surface-base text-sm font-semibold rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-light active:scale-[0.98] transition-all"
         >
           Retry
         </button>

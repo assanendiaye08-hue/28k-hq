@@ -34,11 +34,13 @@ export async function updateTrayTitle(remainingMs: number | null): Promise<void>
       return;
     }
 
-    const minutes = Math.floor(remainingMs / 60000);
+    const minutes = Math.floor(remainingMs / 60000)
+      .toString()
+      .padStart(2, '0');
     const seconds = Math.floor((remainingMs % 60000) / 1000)
       .toString()
       .padStart(2, '0');
-    const display = `${minutes}:${seconds}`;
+    const display = ` ${minutes}:${seconds}`;
 
     await tray.setTitle(display);
     await tray.setTooltip('28K HQ - ' + display);

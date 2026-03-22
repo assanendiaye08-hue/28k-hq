@@ -21,7 +21,7 @@ export function GoalsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text-primary mb-4">Goals</h1>
+      <h1 className="text-2xl font-bold text-text-primary mb-6">Goals</h1>
 
       {/* Timeframe filter pills */}
       <div className="flex gap-2 mb-4">

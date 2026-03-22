@@ -26,7 +26,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8 px-6">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 px-6 bg-[radial-gradient(ellipse_at_center,_var(--color-surface-1)_0%,_var(--color-surface-base)_70%)]">
       {/* Gold ouroboros placeholder */}
       <div className="w-24 h-24 rounded-full bg-brand/20 border-2 border-brand flex items-center justify-center">
         <div className="w-16 h-16 rounded-full border-4 border-brand bg-transparent" />
@@ -40,8 +40,8 @@ export function LoginPage() {
       <button
         onClick={handleLogin}
         disabled={isLoggingIn}
-        className="flex items-center gap-3 px-8 py-3 bg-brand text-surface-base font-semibold rounded-lg
-                   hover:bg-brand-light active:bg-brand-dim transition-colors
+        className="flex items-center gap-3 px-8 py-3 bg-brand text-surface-base font-semibold rounded-xl
+                   shadow-lg shadow-brand/20 hover:bg-brand-light active:scale-[0.98] transition-all
                    disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoggingIn ? (
