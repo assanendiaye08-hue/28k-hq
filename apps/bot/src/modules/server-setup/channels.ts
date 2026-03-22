@@ -2,15 +2,14 @@
  * Server channel and category setup.
  *
  * Creates the full channel structure for the Discord Hustler server:
- *   WELCOME        -- visible to @everyone, #welcome is read-only
- *   THE GRIND      -- gated behind Member role (general, wins, lessons, accountability)
- *   RESOURCES      -- gated behind Member role (resource sharing)
- *   VOICE          -- gated behind Member role (co-working rooms)
- *   PRIVATE SPACES -- hidden from everyone (individual overwrites per member)
- *   BOT OPS        -- hidden from everyone, owner-only (#bot-log)
+ *   WELCOME    -- visible to @everyone, #welcome is read-only
+ *   THE GRIND  -- gated behind Member role (general, wins, sessions)
+ *   VOICE      -- gated behind Member role (co-working rooms)
+ *   BOT OPS    -- hidden from everyone, owner-only (#bot-log)
  *
  * The function is idempotent: existing categories and channels are skipped.
  * Receives the role map from setupServerRoles() for permission overwrites.
+ * Note: orphaned channels from prior setups are NOT auto-deleted (safe approach).
  */
 
 import {
@@ -36,7 +35,7 @@ interface CategoryDef {
   name: string;
   /** If true, @everyone can view. If false, gated behind Member role. */
   public: boolean;
-  /** If true, @everyone DENY ViewChannel with no Member role override (for private spaces). */
+  /** If true, @everyone DENY ViewChannel with no Member role override (e.g., BOT OPS). */
   hidden: boolean;
   channels: ChannelDef[];
 }
@@ -57,20 +56,7 @@ const CATEGORIES: CategoryDef[] = [
     channels: [
       { name: 'general', type: ChannelType.GuildText },
       { name: 'wins', type: ChannelType.GuildText },
-      { name: 'lessons', type: ChannelType.GuildText },
-      { name: 'accountability', type: ChannelType.GuildText },
       { name: 'sessions', type: ChannelType.GuildText },
-    ],
-  },
-  {
-    name: 'RESOURCES',
-    public: false,
-    hidden: false,
-    channels: [
-      { name: 'tech-resources', type: ChannelType.GuildText },
-      { name: 'business-resources', type: ChannelType.GuildText },
-      { name: 'growth-resources', type: ChannelType.GuildText },
-      { name: 'auto-feed', type: ChannelType.GuildText },
     ],
   },
   {
@@ -81,12 +67,6 @@ const CATEGORIES: CategoryDef[] = [
       { name: 'The Lab', type: ChannelType.GuildVoice },
       { name: 'The Office', type: ChannelType.GuildVoice },
     ],
-  },
-  {
-    name: 'PRIVATE SPACES',
-    public: false,
-    hidden: true,
-    channels: [], // Individual channels created per member during onboarding
   },
   {
     name: 'BOT OPS',
