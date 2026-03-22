@@ -21,8 +21,9 @@ import { callAI } from '../../shared/ai-client.js';
 import { BRAND_COLORS } from '@28k/shared';
 import { deliverNotification } from '../notification-router/router.js';
 import { getRankForXP, getNextRankInfo, calculateStreakMultiplier } from '@28k/shared';
-import { getRecentMessages, getSummary } from '../ai-assistant/memory.js';
+import { getRecentMessages, getSummary, storeMessage } from '../ai-assistant/memory.js';
 import { buildSystemPrompt, AI_NAME } from '../ai-assistant/personality.js';
+import { checkAndIncrementOutreach, isQuietHours } from '../../shared/delivery.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -352,6 +353,22 @@ export async function sendBrief(
       return;
     }
 
+    // Coaching config gates: check enableBrief, quiet hours, and outreach budget
+    if (!schedule.enableBrief) {
+      logger.debug(`Brief disabled for ${memberId}, skipping`);
+      return;
+    }
+
+    if (await isQuietHours(db, memberId)) {
+      logger.debug(`Quiet hours active for ${memberId}, skipping brief`);
+      return;
+    }
+
+    if (!(await checkAndIncrementOutreach(db, memberId))) {
+      logger.debug(`Outreach budget exhausted for ${memberId}, skipping brief`);
+      return;
+    }
+
     // Load recent reflections with insights for brief enrichment
     const recentReflections = await db.reflection.findMany({
       where: { memberId, insights: { not: null } },
@@ -426,7 +443,7 @@ export async function sendBrief(
       .setTitle('Morning Brief')
       .setDescription(briefText)
       .addFields(...embedFields)
-      .setFooter({ text: `${currentRank.name} | Use /settings to customize` })
+      .setFooter({ text: `${currentRank.name} | Reply to this message to adjust your day` })
       .setTimestamp();
 
     // Deliver to private space
@@ -435,6 +452,8 @@ export async function sendBrief(
     });
 
     if (delivered) {
+      // Store brief as a conversation message so Jarvis can respond to replies
+      await storeMessage(db, memberId, 'assistant', briefText, 'brief');
       logger.info(`Morning brief delivered to ${memberId}`);
     } else {
       logger.warn(`Could not deliver morning brief to ${memberId}`);

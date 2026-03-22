@@ -28,6 +28,7 @@ import { cleanupUnusedTags } from '../server-setup/interest-tags.js';
 import { sendNudge } from '../ai-assistant/nudge.js';
 import { runReflectionFlow } from '../reflection/flow.js';
 import { sendRecap } from '../recap/generator.js';
+import { checkAndIncrementOutreach, isQuietHours } from '../../shared/delivery.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -62,6 +63,10 @@ function makeReminderFn(client: Client, db: ExtendedPrismaClient) {
  */
 function makePlanningFn(client: Client, db: ExtendedPrismaClient, ctx: ModuleContext) {
   return (memberId: string) => async () => {
+    // Check quiet hours and outreach budget before planning
+    if (await isQuietHours(db, memberId)) return;
+    if (!(await checkAndIncrementOutreach(db, memberId))) return;
+
     // Run weekly reflection first (if enabled)
     const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
     if (schedule && schedule.reflectionIntensity !== 'off') {
@@ -76,7 +81,15 @@ function makePlanningFn(client: Client, db: ExtendedPrismaClient, ctx: ModuleCon
  * Create nudge callback factory.
  */
 function makeNudgeFn(client: Client, db: ExtendedPrismaClient) {
-  return (memberId: string) => () => sendNudge(client, db, memberId);
+  return (memberId: string) => async () => {
+    // Check enableNudge, quiet hours, and outreach budget before nudging
+    const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
+    if (schedule && !schedule.enableNudge) return;
+    if (await isQuietHours(db, memberId)) return;
+    if (!(await checkAndIncrementOutreach(db, memberId))) return;
+
+    await sendNudge(client, db, memberId);
+  };
 }
 
 /**
@@ -93,6 +106,9 @@ function makeReflectionFn(client: Client, db: ExtendedPrismaClient) {
     const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
     if (!schedule) return;
 
+    // Check enableReflection toggle (separate from reflectionIntensity)
+    if (!schedule.enableReflection) return;
+
     const intensity = schedule.reflectionIntensity;
     if (intensity === 'off' || intensity === 'light') return; // light = weekly only, handled by planning
 
@@ -102,6 +118,10 @@ function makeReflectionFn(client: Client, db: ExtendedPrismaClient) {
       if (![1, 3, 5].includes(dayOfWeek)) return;
     }
     // heavy = every day
+
+    // Check quiet hours and outreach budget before reflecting
+    if (await isQuietHours(db, memberId)) return;
+    if (!(await checkAndIncrementOutreach(db, memberId))) return;
 
     await runReflectionFlow(client, db, memberId, 'DAILY');
   };
@@ -241,6 +261,11 @@ const schedulerModule: Module = {
         let nudgesSent = 0;
         for (const schedule of schedules) {
           try {
+            // Check per-member gates before sending nudge
+            if (!schedule.enableNudge) continue;
+            if (await isQuietHours(db, schedule.memberId)) continue;
+            if (!(await checkAndIncrementOutreach(db, schedule.memberId))) continue;
+
             await sendNudge(client, db, schedule.memberId);
             nudgesSent++;
           } catch (error) {
