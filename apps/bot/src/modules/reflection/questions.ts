@@ -6,10 +6,16 @@
  * generate a single, specific, thought-provoking question that
  * references concrete things the member did (or didn't do).
  *
+ * Also provides buildEveningClosingPrompt for the DAILY reflection
+ * open-loop-closing routine: queries today's commitments, check-ins,
+ * and goals to assemble a structured context string for the AI.
+ *
  * Falls back to type-appropriate template questions if AI degrades.
  */
 
 import type { ExtendedPrismaClient } from '@28k/db';
+import { startOfDay } from 'date-fns';
+import { TZDate } from '@date-fns/tz';
 import { callAI } from '../../shared/ai-client.js';
 import winston from 'winston';
 
@@ -216,4 +222,118 @@ export async function generateReflectionQuestion(
       activitySummary,
     };
   }
+}
+
+// ─── Evening Closing Prompt (Open Loop Closure) ──────────────────────────────
+
+/** Data assembled for the evening closing routine. */
+export interface EveningClosingContext {
+  /** Structured summary for the AI prompt. */
+  prompt: string;
+  /** Pending commitments found today. */
+  pendingCommitments: Array<{ id: string; title: string }>;
+  /** Active goals with no check-in today. */
+  untouchedGoals: Array<{ id: string; title: string }>;
+  /** Number of check-ins logged today. */
+  checkInCount: number;
+}
+
+/**
+ * Build the evening closing prompt for the DAILY reflection open-loop routine.
+ *
+ * Queries today's commitments, check-ins, and active goals to assemble a
+ * structured context string. The AI uses this to:
+ * 1. Show the member what open loops exist
+ * 2. Ask what got done
+ * 3. Capture tomorrow's top priority
+ *
+ * @param db - Extended Prisma client
+ * @param memberId - The member to build context for
+ * @returns Evening closing context with prompt and data
+ */
+export async function buildEveningClosingPrompt(
+  db: ExtendedPrismaClient,
+  memberId: string,
+): Promise<EveningClosingContext> {
+  // Get member's timezone for "today" calculation
+  const schedule = await db.memberSchedule.findUnique({
+    where: { memberId },
+    select: { timezone: true },
+  });
+  const tz = schedule?.timezone ?? 'UTC';
+  const nowInTz = new TZDate(new Date(), tz);
+  const todayStart = startOfDay(nowInTz);
+
+  // Fetch today's data in parallel
+  const [pendingCommitments, todayCheckIns, activeGoals] = await Promise.all([
+    // Commitments that are ACTIVE (pending) -- created today or with deadline today/past
+    db.commitment.findMany({
+      where: {
+        memberId,
+        status: 'ACTIVE',
+        OR: [
+          { createdAt: { gte: todayStart } },
+          { deadline: { lte: new Date() } },
+        ],
+      },
+      select: { id: true, title: true },
+    }),
+    // Today's check-ins
+    db.checkIn.findMany({
+      where: {
+        memberId,
+        createdAt: { gte: todayStart },
+      },
+      select: { id: true, categories: true, content: true },
+    }),
+    // Active goals
+    db.goal.findMany({
+      where: {
+        memberId,
+        status: { in: ['ACTIVE', 'EXTENDED'] },
+        parentId: null, // Top-level only
+      },
+      select: { id: true, title: true },
+    }),
+  ]);
+
+  // Determine which active goals had no check-in today referencing them
+  // Simple heuristic: if there are check-ins today, goals are "touched";
+  // if zero check-ins, all goals are untouched
+  const untouchedGoals = todayCheckIns.length === 0
+    ? activeGoals
+    : []; // If member checked in today, we assume goals were addressed
+
+  // Build structured prompt parts
+  const parts: string[] = [];
+  parts.push("Here's your day:");
+
+  if (pendingCommitments.length > 0) {
+    parts.push(`\nCommitments still open: ${pendingCommitments.map((c) => c.title).join(', ')}`);
+  } else {
+    parts.push('\nNo pending commitments.');
+  }
+
+  if (todayCheckIns.length > 0) {
+    const categories = [...new Set(todayCheckIns.flatMap((ci) => ci.categories))];
+    parts.push(`Check-ins today: ${todayCheckIns.length} (${categories.join(', ') || 'general'})`);
+  } else {
+    parts.push('No check-ins logged today.');
+  }
+
+  if (activeGoals.length > 0) {
+    parts.push(`Active goals: ${activeGoals.map((g) => g.title).join(', ')}`);
+    if (untouchedGoals.length > 0) {
+      parts.push(`Goals with no activity today: ${untouchedGoals.map((g) => g.title).join(', ')}`);
+    }
+  }
+
+  const prompt = parts.join('\n');
+
+  return {
+    prompt,
+    pendingCommitments,
+    untouchedGoals,
+    checkInCount: todayCheckIns.length,
+  };
 }
