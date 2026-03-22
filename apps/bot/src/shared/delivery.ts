@@ -1,8 +1,12 @@
 /**
- * Private Space Delivery Utility
+ * DM Delivery Utility
  *
- * Low-level function to deliver messages to a member's private space.
- * Handles both space types (DM and private channel) transparently.
+ * Delivers messages to a member via DM. All private interactions happen via DMs --
+ * no per-member private channels.
+ *
+ * Supports focus session gating: when a member is in a focus session (set by the
+ * desktop app), non-critical messages are held (returns false). Callers can bypass
+ * the gate for time-critical messages by passing { respectFocusSession: false }.
  *
  * NOTE: For typed notifications (briefs, nudges, level-ups, session alerts),
  * callers should prefer `deliverNotification` from the notification-router
@@ -13,11 +17,12 @@
  * directly by non-recurring deliveries (e.g., /mydata file export).
  */
 
-import { Client, TextChannel, type EmbedBuilder } from 'discord.js';
+import { Client } from 'discord.js';
+import type { EmbedBuilder } from 'discord.js';
 import type { ExtendedPrismaClient } from '@28k/db';
 
 /**
- * Content payload for private space delivery.
+ * Content payload for DM delivery.
  * At least one of embeds or content must be provided.
  */
 export interface DeliveryContent {
@@ -26,40 +31,33 @@ export interface DeliveryContent {
 }
 
 /**
- * Deliver a message to a member's private space.
+ * Deliver a message to a member via DM.
  *
- * Lookup order:
- * 1. If member has a CHANNEL private space with a valid channelId, send there.
- * 2. Otherwise (DM preference or channel unavailable), DM via first linked Discord account.
+ * 1. If respectFocusSession is true (default), check if member is in a focus session.
+ *    If so, return false (message held -- not delivered).
+ * 2. Look up the member's first linked Discord account.
+ * 3. Send the message via DM.
  *
- * @returns true if delivery succeeded, false if no delivery target found
+ * @returns true if delivery succeeded, false if held (focus) or no delivery target found
  */
-export async function deliverToPrivateSpace(
+export async function deliverDM(
   client: Client,
   db: ExtendedPrismaClient,
   memberId: string,
   content: DeliveryContent,
+  options?: { respectFocusSession?: boolean },
 ): Promise<boolean> {
   try {
-    // Look up the member's private space preference
-    const space = await db.privateSpace.findUnique({
-      where: { memberId },
-    });
-
-    // Try channel delivery first if member prefers it
-    if (space?.type === 'CHANNEL' && space.channelId) {
-      try {
-        const channel = await client.channels.fetch(space.channelId);
-        if (channel?.isTextBased()) {
-          await (channel as TextChannel).send(content);
-          return true;
-        }
-      } catch {
-        // Channel fetch/send failed -- fall through to DM
-      }
+    // Check focus session (skip if respectFocusSession is false)
+    if (options?.respectFocusSession !== false) {
+      const member = await db.member.findUnique({
+        where: { id: memberId },
+        select: { inFocusSession: true },
+      });
+      if (member?.inFocusSession) return false;
     }
 
-    // DM fallback (or DM is the preference)
+    // DM delivery via first linked account
     const account = await db.discordAccount.findFirst({
       where: { memberId },
     });
@@ -73,3 +71,6 @@ export async function deliverToPrivateSpace(
     return false;
   }
 }
+
+/** Backward-compatible alias for existing callers. */
+export const deliverToPrivateSpace = deliverDM;

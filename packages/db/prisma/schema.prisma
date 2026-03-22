@@ -29,6 +29,9 @@ model Member {
   longestStreak Int       @default(0)
   lastCheckInAt DateTime?
 
+  // Focus session state (set by desktop app via API, checked by bot before DM delivery)
+  inFocusSession Boolean @default(false)
+
   // Relations
   accounts              DiscordAccount[]
   profile               MemberProfile?

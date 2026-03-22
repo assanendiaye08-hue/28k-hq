@@ -14,6 +14,7 @@ import timerRoutes from './routes/timer.js';
 import goalsRoutes from './routes/goals.js';
 import dashboardRoutes from './routes/dashboard.js';
 import quoteRoutes from './routes/quote.js';
+import focusRoutes from './routes/focus.js';
 
 const app = Fastify({
   logger: config.NODE_ENV === 'development'
@@ -34,6 +35,7 @@ await app.register(timerRoutes, { prefix: '/timer' });
 await app.register(goalsRoutes, { prefix: '/goals' });
 await app.register(dashboardRoutes, { prefix: '/dashboard' });
 await app.register(quoteRoutes, { prefix: '/quote' });
+await app.register(focusRoutes, { prefix: '/focus' });
 
 // Start server
 const start = async () => {
