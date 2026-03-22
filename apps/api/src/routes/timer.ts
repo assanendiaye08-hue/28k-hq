@@ -79,7 +79,11 @@ export default async function timerRoutes(fastify: FastifyInstance) {
     });
 
     if (existing) {
-      return reply.status(409).send({ error: 'Timer already active', activeSession: existing });
+      // Auto-cancel stale session instead of rejecting
+      await fastify.db.timerSession.update({
+        where: { id: existing.id },
+        data: { status: 'COMPLETED', endedAt: new Date() },
+      });
     }
 
     // If goalId provided, verify it belongs to this member and is ACTIVE
