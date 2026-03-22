@@ -336,9 +336,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const { phase, phaseStartedAt, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount, timerMode, breakRatio } = state;
 
     // Flowmodoro work: stop triggers break calculation transition instead of going idle
-    if (timerMode === 'flowmodoro' && phase === 'working') {
-      const elapsed = phaseStartedAt ? Date.now() - phaseStartedAt : 0;
-      const newTotalWorkedMs = totalWorkedMs + elapsed;
+    const isFlowWork = timerMode === 'flowmodoro' && (phase === 'working' || (phase === 'paused' && state.prePausePhase === 'working'));
+    if (isFlowWork) {
+      const elapsed = phase === 'paused' ? state.pauseRemainingMs : (phaseStartedAt ? Date.now() - phaseStartedAt : 0);
+      const newTotalWorkedMs = phase === 'paused' ? totalWorkedMs : totalWorkedMs + elapsed;
       const breakDurationMs = Math.round(newTotalWorkedMs / breakRatio);
 
       set({

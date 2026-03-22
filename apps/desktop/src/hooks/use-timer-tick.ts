@@ -60,6 +60,9 @@ export function useTimerTick(): TimerTick {
   };
 
   useEffect(() => {
+    // Always clear any existing interval before setting up a new one
+    clearTick();
+
     const isFlowWork = timerMode === 'flowmodoro' && phase === 'working';
 
     if (phase === 'working' || phase === 'on_break') {
