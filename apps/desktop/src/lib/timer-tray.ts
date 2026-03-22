@@ -34,10 +34,11 @@ export async function updateTrayTitle(remainingMs: number | null): Promise<void>
       return;
     }
 
-    const minutes = Math.floor(remainingMs / 60000)
+    const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60)
       .toString()
       .padStart(2, '0');
-    const seconds = Math.floor((remainingMs % 60000) / 1000)
+    const seconds = (totalSeconds % 60)
       .toString()
       .padStart(2, '0');
     const display = ` ${minutes}:${seconds}`;
