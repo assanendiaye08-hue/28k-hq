@@ -126,8 +126,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 23-01-PLAN.md -- Streak two-day rule, consistency rate, never-zero reset + server channel consolidation
-- [ ] 23-02-PLAN.md -- Voice co-working promotion in briefs/embeds + bot accountability tone refinement
+- [x] 23-01-PLAN.md -- Streak two-day rule, consistency rate, never-zero reset + server channel consolidation
+- [x] 23-02-PLAN.md -- Voice co-working promotion in briefs/embeds + bot accountability tone refinement
 
 ### Phase 24: Desktop App Enhancement
 **Goal**: The desktop app gains a focused Today view for execution mode, session history for review, and a community presence indicator so members can see who is working without opening Discord
@@ -137,11 +137,11 @@ Plans:
   1. Member opens the desktop app and sees a Today view showing their current priority, active timer status, and today's goals -- stripped to essentials, glanceable in 2 seconds
   2. Member can view their past work sessions with goal labels and duration -- a simple history, not an analytics dashboard
   3. Member can see which community members are currently in a voice channel or running a timer session, without opening Discord -- the "library effect" indicator
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 24-01: TBD
-- [ ] 24-02: TBD
+- [ ] 24-01-PLAN.md -- Today view cockpit with inline timer widget and session history
+- [ ] 24-02-PLAN.md -- Who's grinding indicator with activity API endpoint
 
 ## Progress
 
