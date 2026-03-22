@@ -109,6 +109,11 @@ Plans:
 **Goal**: Bot-desktop timer/goal sync, one-timer enforcement, real-time dashboard, auto-updater, autostart
 **Depends on**: Phase 18
 **Requirements**: SYNC-01, SYNC-02, SYNC-03, SYNC-04, GOAL-06, DASH-06, APP-06, APP-07
+**Plans:** 2 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Plugin infrastructure (updater, autostart, process) + dashboard auto-refresh wiring
+- [ ] 19-02-PLAN.md — Settings page with auto-updater and autostart toggles
 
 Full details: .planning/milestones/v2.0-ROADMAP.md
 
