@@ -26,6 +26,9 @@ const envSchema = z.object({
     .length(64, 'MASTER_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)')
     .regex(/^[0-9a-fA-F]+$/, 'MASTER_ENCRYPTION_KEY must be valid hexadecimal'),
 
+  // Owner
+  OWNER_DISCORD_ID: z.string().min(1, 'OWNER_DISCORD_ID is required'),
+
   // Optional
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

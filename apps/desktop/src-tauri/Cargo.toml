@@ -17,7 +17,6 @@ tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 tauri-plugin-oauth = "2"
 tauri-plugin-notification = "2"
-tauri-plugin-updater = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }

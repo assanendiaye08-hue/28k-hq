@@ -8,12 +8,10 @@
 import { load } from '@tauri-apps/plugin-store';
 
 export interface AppSettings {
-  autoUpdateEnabled: boolean;
   autoStartEnabled: boolean;
 }
 
 const DEFAULTS: AppSettings = {
-  autoUpdateEnabled: false,
   autoStartEnabled: false,
 };
 

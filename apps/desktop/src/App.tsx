@@ -81,15 +81,9 @@ export function App() {
     restore();
   }, [login, setLoading]);
 
-  // Load settings and check for updates on startup
+  // Load settings on startup
   useEffect(() => {
-    const init = async () => {
-      await useSettingsStore.getState().loadFromDisk();
-      if (useSettingsStore.getState().autoUpdateEnabled) {
-        useSettingsStore.getState().checkUpdate();
-      }
-    };
-    init();
+    useSettingsStore.getState().loadFromDisk();
   }, []);
 
   // Hide window instead of closing (tray app behavior)
