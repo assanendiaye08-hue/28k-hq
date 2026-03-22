@@ -68,9 +68,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       if (!account) {
         // Auto-register: create Member + DiscordAccount
+        const { randomBytes } = await import('node:crypto');
         const member = await fastify.db.member.create({
           data: {
             displayName: discordUser.global_name || discordUser.username,
+            encryptionSalt: randomBytes(16).toString('hex'),
             discordAccounts: {
               create: {
                 discordId: discordUser.id,
