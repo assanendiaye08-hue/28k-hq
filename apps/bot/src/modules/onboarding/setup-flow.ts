@@ -2,13 +2,14 @@
  * The core onboarding DM conversation flow.
  *
  * When a member runs /setup, this module opens a DM channel and asks
- * 5 natural questions + 1 space preference question. Each question waits
- * up to 5 minutes for a response with a brief acknowledgment after each answer.
+ * 5 natural questions. Each question waits up to 5 minutes for a response
+ * with a brief acknowledgment after each answer.
  *
  * The flow is conversational, not form-like. Acknowledgments vary to feel natural.
+ * All private interactions happen via DMs -- no space preference question needed.
  *
- * Returns a structured result with answers and space preference, or an error
- * if DMs are closed or the member times out.
+ * Returns a structured result with answers, or an error if DMs are closed
+ * or the member times out.
  */
 
 import {
@@ -36,7 +37,6 @@ interface SetupQuestion {
  */
 export interface SetupFlowResult {
   answers: Record<string, string>;
-  spaceType: 'DM' | 'CHANNEL';
   displayName: string;
 }
 
@@ -118,8 +118,8 @@ async function awaitResponse(
 /**
  * Run the onboarding DM conversation with a member.
  *
- * Asks 5 natural questions about who they are and what they're building,
- * then asks for their private space preference (DM or server channel).
+ * Asks 5 natural questions about who they are and what they're building.
+ * All private interactions happen via DMs.
  *
  * @param member - The guild member running /setup
  * @param logger - Logger for tracking progress
@@ -177,45 +177,18 @@ export async function runSetupFlow(
 
       answers[q.key] = response;
 
-      // Send varied acknowledgment (not after the last question -- go straight to space preference)
+      // Send varied acknowledgment (not after the last question)
       if (i < QUESTIONS.length - 1) {
         await dm.send(ACKNOWLEDGMENTS[i % ACKNOWLEDGMENTS.length]);
       }
     }
 
-    // Step 4: Ask about private space preference
-    await dm.send(
-      "Last thing -- where do you want your private space? This is where I'll send you " +
-      "briefs, track your stuff, and where you can talk to the AI assistant.\n\n" +
-      "**1.** Right here in DMs (fully private, just you and me)\n" +
-      "**2.** A private channel in the server (more integrated, still only visible to you)\n\n" +
-      "Reply **1** or **2**",
-    );
-
-    const spaceResponse = await awaitResponse(dm, member.id);
-
-    if (spaceResponse === null) {
-      await dm.send(
-        "No worries, you can run /setup again whenever you're ready.",
-      ).catch(() => {});
-      logger.info(`Setup flow timed out for ${member.user.tag} on space preference`);
-      return { error: 'timeout' };
-    }
-
-    // Parse space preference -- default to DM if unclear
-    const trimmed = spaceResponse.trim();
-    const spaceType: 'DM' | 'CHANNEL' =
-      trimmed === '2' || trimmed.toLowerCase().includes('channel') || trimmed.toLowerCase().includes('server')
-        ? 'CHANNEL'
-        : 'DM';
-
     logger.info(
-      `Setup flow complete for ${member.user.tag}: space=${spaceType}, answers=${Object.keys(answers).length}`,
+      `Setup flow complete for ${member.user.tag}: answers=${Object.keys(answers).length}`,
     );
 
     return {
       answers,
-      spaceType,
       displayName: member.displayName,
     };
   } finally {

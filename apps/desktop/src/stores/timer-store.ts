@@ -248,6 +248,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     })
       .then((res) => set({ sessionId: res.id }))
       .catch(() => {});
+
+    // Signal focus session start to bot (best-effort, fire-and-forget)
+    apiFetch('/focus/start', { method: 'POST' }).catch(() => {});
   },
 
   pause: () => {
@@ -420,6 +423,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           useDashboardStore.getState().fetchDashboard();
         }).catch(() => {});
     }
+
+    // Signal focus session end to bot (best-effort, fire-and-forget)
+    apiFetch('/focus/end', { method: 'POST' }).catch(() => {});
   },
 
   completePhase: () => {
@@ -481,6 +487,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
       }
 
+      // Signal focus session end to bot (best-effort, fire-and-forget)
+      apiFetch('/focus/end', { method: 'POST' }).catch(() => {});
+
       saveTimerState(buildSaveState(get())).catch(() => {});
       return;
     }
@@ -534,6 +543,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         } else {
           set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
         }
+
+        // Signal focus session end to bot (best-effort, fire-and-forget)
+        apiFetch('/focus/end', { method: 'POST' }).catch(() => {});
 
         saveTimerState(buildSaveState(get())).catch(() => {});
         return;
@@ -677,6 +689,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           useDashboardStore.getState().fetchDashboard();
         }).catch(() => {});
     }
+
+    // Signal focus session end to bot (best-effort, fire-and-forget)
+    apiFetch('/focus/end', { method: 'POST' }).catch(() => {});
   },
 
   restore: (saved) => {
@@ -765,6 +780,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
     clearTimerState().catch(() => {});
     updateTrayTitle(null).catch(() => {});
+    // Signal focus session end to bot as safety cleanup (best-effort, fire-and-forget)
+    apiFetch('/focus/end', { method: 'POST' }).catch(() => {});
     // Show window so user can see setup form
     getCurrentWindow().show().catch(() => {});
     getCurrentWindow().setFocus().catch(() => {});
