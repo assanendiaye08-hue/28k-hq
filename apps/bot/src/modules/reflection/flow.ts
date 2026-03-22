@@ -3,13 +3,15 @@
  *
  * Jarvis-initiated flow that:
  * 1. Opens DM channel with the member
- * 2. For WEEKLY: sends a transition message before planning
- * 3. Generates a personalized question from activity data
- * 4. Awaits member response (5 min timeout)
- * 5. Acknowledges with optional follow-up (AI-generated, Jarvis personality)
- * 6. Extracts insights from the exchange via AI
- * 7. Stores reflection record in DB
- * 8. Awards XP based on reflection type
+ * 2. For DAILY: runs an open-loop-closing routine (show commitments/goals,
+ *    ask what got done, capture tomorrow's priority)
+ * 3. For WEEKLY: sends a transition message before planning
+ * 4. Generates a personalized question from activity data
+ * 5. Awaits member response (5 min timeout)
+ * 6. Acknowledges with optional follow-up (AI-generated, Jarvis personality)
+ * 7. Extracts insights from the exchange via AI
+ * 8. Stores reflection record in DB
+ * 9. Awards XP based on reflection type
  *
  * A failed reflection must never crash the process.
  */
@@ -23,7 +25,8 @@ import {
 import type { ExtendedPrismaClient } from '@28k/db';
 import { callAI } from '../../shared/ai-client.js';
 import { awardXP } from '@28k/shared';
-import { generateReflectionQuestion } from './questions.js';
+import { generateReflectionQuestion, buildEveningClosingPrompt } from './questions.js';
+import { storeMessage } from '../ai-assistant/memory.js';
 import { REFLECTION_CONFIG, REFLECTION_XP } from './constants.js';
 import winston from 'winston';
 
@@ -107,7 +110,15 @@ export async function runReflectionFlow(
       return;
     }
 
-    // c. For WEEKLY type: send a transition message
+    // c. Branch: DAILY uses open-loop-closing routine, WEEKLY/MONTHLY use existing flow
+    if (reflectionType === 'DAILY') {
+      await runDailyClosingFlow(db, dm, memberId, discordId);
+      return;
+    }
+
+    // ─── WEEKLY / MONTHLY Flow (existing behavior) ─────────────────────────
+
+    // c2. For WEEKLY type: send a transition message
     if (reflectionType === 'WEEKLY') {
       try {
         await dm.send("Before we plan next week, let's reflect on how this week went.");
@@ -270,6 +281,10 @@ export async function runReflectionFlow(
       },
     });
 
+    // Store exchange as conversation messages for context continuity
+    await storeMessage(db, memberId, 'assistant', generatedQuestion, 'reflection');
+    await storeMessage(db, memberId, 'user', memberResponse, 'reflection');
+
     // k. Award XP
     const xpKey = reflectionType.toLowerCase() as keyof typeof REFLECTION_XP;
     const xpAmount = REFLECTION_XP[xpKey] ?? REFLECTION_XP.daily;
@@ -290,5 +305,184 @@ export async function runReflectionFlow(
     );
   } catch (error) {
     logger.error(`Reflection flow failed for ${memberId}: ${String(error)}`);
+  }
+}
+
+// ─── Daily Open-Loop-Closing Flow ─────────────────────────────────────────────
+
+/**
+ * Run the DAILY evening reflection as an open-loop-closing routine.
+ *
+ * Steps:
+ * 1. Build context: show today's commitments, check-ins, goals
+ * 2. Ask a closing question based on open loops
+ * 3. Acknowledge the response
+ * 4. Ask "What's the ONE thing for tomorrow?"
+ * 5. Store everything: reflection record, conversation messages (for morning brief)
+ * 6. Award XP
+ */
+async function runDailyClosingFlow(
+  db: ExtendedPrismaClient,
+  dm: DMChannel,
+  memberId: string,
+  discordId: string,
+): Promise<void> {
+  try {
+    // 1. Build open-loop context
+    const closingCtx = await buildEveningClosingPrompt(db, memberId);
+
+    // 2. Send the day summary and closing question via AI
+    let closingQuestion: string;
+
+    try {
+      const closingResult = await callAI(db, {
+        memberId,
+        feature: 'reflection',
+        messages: [
+          {
+            role: 'system',
+            content: `${JARVIS_CHARACTER}\n\nYou're closing out the day with this member. Review their day summary and ask ONE specific closing question. If they have pending commitments, ask whether those got done. If they have untouched goals, ask about progress. If nothing is pending, ask what they got done today. Keep it conversational and under 3 sentences. Include the day summary naturally in your message. Return JSON with 'message' (string).`,
+          },
+          {
+            role: 'user',
+            content: `Day summary:\n${closingCtx.prompt}`,
+          },
+        ],
+        responseFormat: {
+          type: 'json_schema' as const,
+          jsonSchema: {
+            name: 'evening_closing',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                message: { type: 'string' },
+              },
+              required: ['message'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      if (!closingResult.degraded && closingResult.content) {
+        const parsed = JSON.parse(closingResult.content) as { message: string };
+        closingQuestion = parsed.message;
+      } else {
+        // Fallback based on context
+        if (closingCtx.pendingCommitments.length > 0) {
+          closingQuestion = `End of day. You committed to: ${closingCtx.pendingCommitments.map((c) => c.title).join(', ')}. Did that happen?`;
+        } else if (closingCtx.untouchedGoals.length > 0) {
+          closingQuestion = `Closing out the day. Any progress on ${closingCtx.untouchedGoals.map((g) => g.title).join(', ')} today?`;
+        } else {
+          closingQuestion = "Day's wrapping up. What did you get done today?";
+        }
+      }
+    } catch {
+      closingQuestion = "Day's wrapping up. What did you get done today?";
+    }
+
+    // Send closing question
+    try {
+      await dm.send(closingQuestion);
+    } catch {
+      logger.warn(`Could not send daily closing DM to ${discordId}`);
+      return;
+    }
+
+    // Store the closing question as conversation message
+    await storeMessage(db, memberId, 'assistant', closingQuestion, 'reflection');
+
+    // 3. Await member response about what got done
+    const whatGotDone = await awaitResponse(dm, discordId);
+    if (whatGotDone === null) {
+      await dm.send('No worries, we can reflect later.').catch(() => {});
+      return;
+    }
+
+    // Store member response
+    await storeMessage(db, memberId, 'user', whatGotDone, 'reflection');
+
+    // 4. Acknowledge and ask for tomorrow's priority
+    let ackMessage: string;
+    try {
+      const ackResult = await callAI(db, {
+        memberId,
+        feature: 'reflection',
+        messages: [
+          {
+            role: 'system',
+            content: `${JARVIS_CHARACTER}\n\nBriefly acknowledge what they said about their day (1 sentence). Then ask: "What's the ONE thing for tomorrow?" Keep it tight.`,
+          },
+          {
+            role: 'user',
+            content: `Day context:\n${closingCtx.prompt}\n\nWhat they said: "${whatGotDone}"`,
+          },
+        ],
+      });
+
+      if (!ackResult.degraded && ackResult.content) {
+        ackMessage = ackResult.content;
+      } else {
+        ackMessage = "Got it. What's the ONE thing for tomorrow?";
+      }
+    } catch {
+      ackMessage = "Got it. What's the ONE thing for tomorrow?";
+    }
+
+    await dm.send(ackMessage).catch(() => {});
+    await storeMessage(db, memberId, 'assistant', ackMessage, 'reflection');
+
+    // 5. Await tomorrow's priority
+    const tomorrowPriority = await awaitResponse(dm, discordId);
+    if (tomorrowPriority === null) {
+      // Still save what we have
+      await dm.send("No problem. We'll figure it out in the morning.").catch(() => {});
+    } else {
+      // Store tomorrow's priority as a planning-topic message so morning brief can reference it
+      await storeMessage(db, memberId, 'user', tomorrowPriority, 'planning');
+      await storeMessage(
+        db,
+        memberId,
+        'assistant',
+        `Tomorrow's priority: ${tomorrowPriority}`,
+        'planning',
+      );
+      await dm.send("Locked in. I'll remind you in the morning.").catch(() => {});
+    }
+
+    // 6. Build insight string including tomorrow's priority
+    const insightParts = [`Day closing: ${whatGotDone}`];
+    if (tomorrowPriority) {
+      insightParts.push(`Tomorrow's priority: ${tomorrowPriority}`);
+    }
+    const insightString = insightParts.join(' | ');
+
+    // 7. Store the reflection record
+    await db.reflection.create({
+      data: {
+        memberId,
+        type: 'DAILY',
+        question: closingQuestion,
+        response: whatGotDone + (tomorrowPriority ? `\n\nTomorrow: ${tomorrowPriority}` : ''),
+        insights: insightString,
+      },
+    });
+
+    // 8. Award XP
+    const xpAmount = REFLECTION_XP.daily;
+    await awardXP(
+      db,
+      memberId,
+      xpAmount,
+      'REFLECTION',
+      'Completed daily evening reflection',
+    );
+
+    await dm.send(`Reflection logged. +${xpAmount} XP.`).catch(() => {});
+
+    logger.info(`DAILY closing reflection completed for ${memberId}: +${xpAmount} XP`);
+  } catch (error) {
+    logger.error(`Daily closing flow failed for ${memberId}: ${String(error)}`);
   }
 }
