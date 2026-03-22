@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The desktop app extends this to their entire workstation.
-**Current focus:** v2.0 Phase 17 - Pomodoro Timer
+**Current focus:** v2.0 Phase 18 - Flowmodoro Goals Editing
 
 ## Current Position
 
-Phase: 17 of 19 (Pomodoro Timer)
-Plan: 2 of 3 in current phase
-Status: In Progress
-Last activity: 2026-03-22 -- Completed 17-02 (Timer UI with popover)
+Phase: 18 of 19 (Flowmodoro Goals Editing)
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-03-22 -- Completed 18-02 (Goal CRUD operations)
 
-Progress: [###########░░░░░░░░░] 55% (v2.0) -- Phase 17 in progress, Plan 02 complete (4 of 6 v2.0 phases)
+Progress: [##############░░░░░░] 70% (v2.0) -- Phase 18 complete (5 of 6 v2.0 phases)
 
 ## Performance Metrics
 
@@ -43,10 +43,12 @@ Progress: [###########░░░░░░░░░] 55% (v2.0) -- Phase 17 in pro
 | 15-rest-api-authentication | 2/2 | 7 min | 4 min |
 | 16-desktop-shell-dashboard-goals | 3/3 | 10 min | 3 min |
 | 17-pomodoro-timer | 2/3 | 8 min | 4 min |
+| 18-flowmodoro-goals-editing | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 16-01 (6 min), 16-02 (2 min), 16-03 (2 min), 17-01 (3 min), 17-02 (5 min)
-- Trend: stable (timer UI is component creation with established patterns)
+- Last 5 plans: 16-02 (2 min), 16-03 (2 min), 17-01 (3 min), 17-02 (5 min), 18-02 (3 min)
+- Trend: stable (goal CRUD follows established store/component patterns)
+| Phase 18 P02 | 3 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -92,6 +94,9 @@ Recent decisions affecting current work:
 - [17-02]: Rust emits tray-icon-clicked event to JS for state-based routing (popover vs main window)
 - [17-02]: Popover uses persistence for state recovery since Tauri WebviewWindows have separate JS contexts
 - [17-02]: Cross-window sync via Tauri event bus: popover emits timer-state-changed, main syncs from persistence
+- [Phase 18]: [18-02]: Slide-down panel for goal creation instead of modal, matching timer setup UX
+- [Phase 18]: [18-02]: Group-hover opacity for action buttons to keep goal tree clean until interaction
+- [Phase 18]: [18-02]: 2-second inline XP feedback fade rather than toast notification for goal completion
 
 ### Pending Todos
 
@@ -114,5 +119,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 17-02-PLAN.md (Timer UI with setup form, display, popover, and tray routing)
+Stopped at: Completed 18-02-PLAN.md (Goal CRUD operations)
 Resume file: None
