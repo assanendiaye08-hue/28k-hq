@@ -187,7 +187,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
    * otherwise delete all refresh tokens for the authenticated member.
    */
   fastify.post('/logout', {
-    preHandler: [authenticate],
     handler: async (request, reply) => {
       const parsed = logoutBodySchema.safeParse(request.body);
       if (!parsed.success) {
