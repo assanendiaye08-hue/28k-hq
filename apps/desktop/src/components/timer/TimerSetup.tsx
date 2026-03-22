@@ -91,6 +91,11 @@ export function TimerSetup() {
               onChange={(e) => setWorkDuration(Math.max(1, Math.min(180, Number(e.target.value))))}
               className={inputClass}
             />
+            {workDuration >= 60 && (
+              <p className="text-text-tertiary text-xs mt-1">
+                = {Math.floor(workDuration / 60)}h {workDuration % 60 > 0 ? `${workDuration % 60}m` : ''}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-text-secondary text-sm mb-1">Break (min)</label>
