@@ -52,8 +52,8 @@ export async function handleAnnounceUpdateCommand(
   interaction: ChatInputCommandInteraction,
   ctx: ModuleContext,
 ): Promise<void> {
-  // Owner-only gate
-  if (!isOwner(interaction.user.id)) {
+  // Owner-only gate (supports linked multi-accounts)
+  if (!(await isOwner(interaction.user.id, ctx.db))) {
     await interaction.reply({
       content: 'Only the owner can use this command.',
       flags: MessageFlags.Ephemeral,
