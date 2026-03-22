@@ -102,42 +102,63 @@ export function TimerSetup() {
           {modeBtn('flowmodoro', 'Flowmodoro')}
         </div>
 
-        {/* Focus */}
+        {/* What are you working on — goal picker OR free text */}
         <div>
-          <label className="block text-text-secondary text-sm mb-1">Focus</label>
-          <input
-            type="text"
-            value={focus}
-            onChange={(e) => {
-              setFocus(e.target.value);
-              if (focusError) setFocusError(false);
-            }}
-            placeholder="What are you working on?"
-            className={`${inputClass} ${focusError ? 'border-error' : ''}`}
-          />
+          <label className="block text-text-secondary text-sm mb-1">Working on</label>
+          {goals.filter(g => g.status === 'ACTIVE').length > 0 ? (
+            <>
+              <select
+                value={goalId ?? '_custom'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '_custom') {
+                    setGoalId(null);
+                    setFocus('');
+                  } else {
+                    setGoalId(val);
+                    const goal = goals.find(g => g.id === val);
+                    if (goal) setFocus(goal.title);
+                    if (focusError) setFocusError(false);
+                  }
+                }}
+                className={`${inputClass} ${focusError && !goalId ? 'border-error' : ''}`}
+              >
+                <option value="_custom">Something else...</option>
+                {goals
+                  .filter(g => g.status === 'ACTIVE')
+                  .map(g => (
+                    <option key={g.id} value={g.id}>{g.title}</option>
+                  ))}
+              </select>
+              {!goalId && (
+                <input
+                  type="text"
+                  value={focus}
+                  onChange={(e) => {
+                    setFocus(e.target.value);
+                    if (focusError) setFocusError(false);
+                  }}
+                  placeholder="What are you working on?"
+                  className={`${inputClass} mt-2 ${focusError ? 'border-error' : ''}`}
+                />
+              )}
+            </>
+          ) : (
+            <input
+              type="text"
+              value={focus}
+              onChange={(e) => {
+                setFocus(e.target.value);
+                if (focusError) setFocusError(false);
+              }}
+              placeholder="What are you working on?"
+              className={`${inputClass} ${focusError ? 'border-error' : ''}`}
+            />
+          )}
           {focusError && (
             <p className="text-error text-xs mt-1">Focus is required</p>
           )}
         </div>
-
-        {/* Goal (optional) */}
-        {goals.filter(g => g.status === 'ACTIVE').length > 0 && (
-          <div>
-            <label className="block text-text-secondary text-sm mb-1">Goal (optional)</label>
-            <select
-              value={goalId ?? ''}
-              onChange={(e) => setGoalId(e.target.value || null)}
-              className={inputClass}
-            >
-              <option value="">No goal</option>
-              {goals
-                .filter(g => g.status === 'ACTIVE')
-                .map(g => (
-                  <option key={g.id} value={g.id}>{g.title}</option>
-                ))}
-            </select>
-          </div>
-        )}
 
         {timerMode === 'pomodoro' ? (
           <>
