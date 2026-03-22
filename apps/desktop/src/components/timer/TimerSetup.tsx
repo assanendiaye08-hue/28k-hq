@@ -25,21 +25,19 @@ export function TimerSetup() {
   const [autoStartBreak, setAutoStartBreak] = useState(false);
   const [autoStartWork, setAutoStartWork] = useState(false);
   const [focusError, setFocusError] = useState(false);
-  const [apiError, setApiError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
-  const handleStart = async () => {
+  const handleStart = () => {
     if (!focus.trim()) {
       setFocusError(true);
       return;
     }
     setFocusError(false);
-    setApiError('');
-    setIsSubmitting(true);
+    setValidationError('');
 
     try {
       preloadAlarm();
-      await start({
+      start({
         focus: focus.trim(),
         workDuration,
         breakDuration,
@@ -53,13 +51,7 @@ export function TimerSetup() {
       getCurrentWindow().hide().catch(() => {});
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to start timer';
-      if (message.includes('409') || message.includes('active')) {
-        setApiError('A timer is already active. Stop it first.');
-      } else {
-        setApiError(message);
-      }
-    } finally {
-      setIsSubmitting(false);
+      setValidationError(message);
     }
   };
 
@@ -221,17 +213,16 @@ export function TimerSetup() {
         </div>
 
         {/* Error message */}
-        {apiError && (
-          <p className="text-error text-sm">{apiError}</p>
+        {validationError && (
+          <p className="text-error text-sm">{validationError}</p>
         )}
 
         {/* Start button */}
         <button
           onClick={handleStart}
-          disabled={isSubmitting}
-          className="w-full bg-brand hover:bg-brand/90 text-surface-base font-semibold py-3 px-8 rounded-xl shadow-lg shadow-brand/20 transition-all active:scale-[0.98] disabled:opacity-50"
+          className="w-full bg-brand hover:bg-brand/90 text-surface-base font-semibold py-3 px-8 rounded-xl shadow-lg shadow-brand/20 transition-all active:scale-[0.98]"
         >
-          {isSubmitting ? 'Starting...' : 'Start Timer'}
+          Start Timer
         </button>
       </div>
     </Card>

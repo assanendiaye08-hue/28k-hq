@@ -83,10 +83,10 @@ interface TimerState {
   isLongBreak: () => boolean;
 
   // Actions
-  start: (config: StartConfig) => Promise<void>;
-  pause: () => Promise<void>;
-  resume: () => Promise<void>;
-  stop: () => Promise<StopResponse>;
+  start: (config: StartConfig) => void;
+  pause: () => void;
+  resume: () => void;
+  stop: () => void;
   completePhase: () => void;
   transitionToBreak: () => void;
   transitionToWork: () => void;
@@ -167,7 +167,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   // ── Actions ──
 
-  start: async (config) => {
+  start: (config) => {
     if (get().phase !== 'idle') {
       throw new Error('A timer is already active. Stop it first.');
     }
@@ -180,28 +180,12 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const longBreakDuration = config.longBreakDuration ?? 15;
     const longBreakInterval = config.longBreakInterval ?? 4;
     const targetSessions = config.targetSessions ?? null;
+    const localSessionId = crypto.randomUUID();
 
-    const timerBody = {
-      mode: 'POMODORO',
-      workDuration,
-      breakDuration,
-      focus: config.focus,
-      goalId: config.goalId || undefined,
-      targetSessions: targetSessions ?? undefined,
-      longBreakDuration: longBreakDuration ?? undefined,
-      longBreakInterval: longBreakInterval ?? undefined,
-    };
-
-    // Server auto-cancels any stale active session on POST
-    const response = await apiFetch<{ id: string }>('/timer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(timerBody),
-    });
-
+    // Set state IMMEDIATELY — no awaiting API
     set({
       phase: 'working',
-      sessionId: response.id,
+      sessionId: localSessionId,
       phaseStartedAt: Date.now(),
       phaseDurationMs: workDuration * 60000,
       totalWorkedMs: 0,
@@ -221,9 +205,27 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
 
     saveTimerState(buildSaveState(get())).catch(() => {});
+
+    // Fire API in background — timer works even if server is down
+    apiFetch<{ id: string }>('/timer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'POMODORO',
+        workDuration,
+        breakDuration,
+        focus: config.focus,
+        goalId: config.goalId || undefined,
+        targetSessions: targetSessions ?? undefined,
+        longBreakDuration: longBreakDuration ?? undefined,
+        longBreakInterval: longBreakInterval ?? undefined,
+      }),
+    })
+      .then((res) => set({ sessionId: res.id }))
+      .catch(() => {});
   },
 
-  pause: async () => {
+  pause: () => {
     const state = get();
     const { phase, phaseStartedAt, phaseDurationMs, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount } = state;
 
@@ -234,6 +236,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const newTotalBreakMs = phase === 'on_break' ? totalBreakMs + elapsed : totalBreakMs;
     const remaining = Math.max(0, phaseDurationMs - elapsed);
 
+    // Update state immediately
     set({
       phase: 'paused',
       prePausePhase: phase,
@@ -243,7 +246,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
 
     updateTrayTitle(null).catch(() => {});
+    saveTimerState(buildSaveState(get())).catch(() => {});
 
+    // Fire API in background
     if (sessionId) {
       apiFetch(`/timer/${sessionId}`, {
         method: 'PATCH',
@@ -258,14 +263,13 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         }),
       }).catch(() => {});
     }
-
-    saveTimerState(buildSaveState(get())).catch(() => {});
   },
 
-  resume: async () => {
+  resume: () => {
     const { prePausePhase, pauseRemainingMs, sessionId } = get();
     if (!prePausePhase) return;
 
+    // Update state immediately
     set({
       phase: prePausePhase,
       phaseStartedAt: Date.now(),
@@ -274,6 +278,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       pauseRemainingMs: 0,
     });
 
+    saveTimerState(buildSaveState(get())).catch(() => {});
+
+    // Fire API in background
     if (sessionId) {
       apiFetch(`/timer/${sessionId}`, {
         method: 'PATCH',
@@ -281,15 +288,13 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         body: JSON.stringify({ action: 'resume' }),
       }).catch(() => {});
     }
-
-    saveTimerState(buildSaveState(get())).catch(() => {});
   },
 
-  stop: async () => {
+  stop: () => {
     const state = get();
     const { phase, phaseStartedAt, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount } = state;
 
-    // Calculate final totals including any running phase
+    // Capture final totals BEFORE resetting
     let finalWorkedMs = totalWorkedMs;
     let finalBreakMs = totalBreakMs;
 
@@ -299,26 +304,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       if (phase === 'on_break') finalBreakMs += elapsed;
     }
 
-    let stopResponse: StopResponse = { xpAwarded: 0, leveledUp: false, newRank: null };
+    const capturedSessionId = sessionId;
 
-    if (sessionId) {
-      try {
-        stopResponse = await apiFetch<StopResponse>(`/timer/${sessionId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'stop',
-            totalWorkedMs: finalWorkedMs,
-            totalBreakMs: finalBreakMs,
-            pomodoroCount,
-          }),
-        });
-      } catch {
-        // API error -- still reset locally
-      }
-    }
-
-    // Reset state first so UI updates immediately
+    // Reset state IMMEDIATELY
     set({
       phase: 'idle',
       sessionId: null,
@@ -335,18 +323,30 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       lastStopResult: null,
     });
 
-    // Await cleanup so persistence + tray are guaranteed cleared
-    await clearTimerState().catch(() => {});
-    await updateTrayTitle(null).catch(() => {});
+    // Local cleanup
+    clearTimerState().catch(() => {});
+    updateTrayTitle(null).catch(() => {});
 
     // Show window so user can see setup form
     try {
       const win = getCurrentWindow();
-      await win.show();
-      await win.setFocus();
+      win.show().catch(() => {});
+      win.setFocus().catch(() => {});
     } catch { /* ignore if window API unavailable */ }
 
-    return stopResponse;
+    // Fire API PATCH in background
+    if (capturedSessionId) {
+      apiFetch(`/timer/${capturedSessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'stop',
+          totalWorkedMs: finalWorkedMs,
+          totalBreakMs: finalBreakMs,
+          pomodoroCount,
+        }),
+      }).catch(() => {});
+    }
   },
 
   completePhase: () => {
