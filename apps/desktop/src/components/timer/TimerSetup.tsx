@@ -79,35 +79,54 @@ export function TimerSetup() {
           )}
         </div>
 
-        {/* Work / Break durations */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-text-secondary text-sm mb-1">Work (min)</label>
-            <input
-              type="number"
-              min={1}
-              max={180}
-              value={workDuration}
-              onChange={(e) => setWorkDuration(Math.max(1, Math.min(180, Number(e.target.value))))}
-              className={inputClass}
-            />
-            {workDuration >= 60 && (
-              <p className="text-text-tertiary text-xs mt-1">
-                = {Math.floor(workDuration / 60)}h {workDuration % 60 > 0 ? `${workDuration % 60}m` : ''}
-              </p>
-            )}
+        {/* Work duration — hours + minutes */}
+        <div>
+          <label className="block text-text-secondary text-sm mb-1">Work duration</label>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={3}
+                value={Math.floor(workDuration / 60)}
+                onChange={(e) => {
+                  const h = Math.max(0, Math.min(3, Number(e.target.value)));
+                  const m = workDuration % 60;
+                  setWorkDuration(Math.max(1, Math.min(180, h * 60 + m)));
+                }}
+                className={`${inputClass} w-16 text-center`}
+              />
+              <span className="text-text-tertiary text-sm">h</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={workDuration % 60}
+                onChange={(e) => {
+                  const h = Math.floor(workDuration / 60);
+                  const m = Math.max(0, Math.min(59, Number(e.target.value)));
+                  setWorkDuration(Math.max(1, Math.min(180, h * 60 + m)));
+                }}
+                className={`${inputClass} w-16 text-center`}
+              />
+              <span className="text-text-tertiary text-sm">m</span>
+            </div>
           </div>
-          <div>
-            <label className="block text-text-secondary text-sm mb-1">Break (min)</label>
-            <input
-              type="number"
-              min={1}
-              max={60}
-              value={breakDuration}
-              onChange={(e) => setBreakDuration(Math.max(1, Math.min(60, Number(e.target.value))))}
-              className={inputClass}
-            />
-          </div>
+        </div>
+
+        {/* Break duration */}
+        <div>
+          <label className="block text-text-secondary text-sm mb-1">Break (min)</label>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={breakDuration}
+            onChange={(e) => setBreakDuration(Math.max(1, Math.min(60, Number(e.target.value))))}
+            className={inputClass}
+          />
         </div>
 
         {/* Long break */}
