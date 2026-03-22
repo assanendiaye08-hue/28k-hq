@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming.
-**Current focus:** v3.0 Phase 21 - Conversational Jarvis
+**Current focus:** v3.0 Phase 22 - Daily Rhythm
 
 ## Current Position
 
 Phase: 22 of 24 (Daily Rhythm)
-Plan: 0 of 3 in current phase
-Status: Phase 21 complete, Phase 22 ready
-Last activity: 2026-03-22 -- Completed 21-03: Topic-aware context and brainstorming mode
+Plan: 1 of 3 in current phase
+Status: Phase 22 in progress
+Last activity: 2026-03-22 -- Completed 22-01: Outreach budget, coaching config, conversational briefs
 
-Progress: [████░░░░░░] 42% (v3.0 -- 5/12 plans)
+Progress: [█████░░░░░] 50% (v3.0 -- 6/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 54 (18 v1.0 + 17 v1.1 + 14 v2.0 + 5 v3.0)
+- Total plans completed: 55 (18 v1.0 + 17 v1.1 + 14 v2.0 + 6 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.57 hours
+- Total execution time: 3.62 hours
 
 **By Phase (v3.0):**
 
@@ -29,13 +29,13 @@ Progress: [████░░░░░░] 42% (v3.0 -- 5/12 plans)
 |-------|-------|-------|----------|
 | 20-clean-slate | 2/2 | 9 min | 4.5 min |
 | 21-conversational-jarvis | 3/3 | 10 min | 3.3 min |
-| 22-daily-rhythm | 0/3 | - | - |
+| 22-daily-rhythm | 1/3 | 3 min | 3 min |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 20-01 (4 min), 20-02 (5 min), 21-01 (3 min), 21-02 (4 min), 21-03 (3 min)
-- Trend: Phase 21 complete, Phase 22 next
+- Last 5 plans: 20-02 (5 min), 21-01 (3 min), 21-02 (4 min), 21-03 (3 min), 22-01 (3 min)
+- Trend: Phase 22 in progress (1/3 plans)
 
 *Updated after each plan completion*
 
@@ -68,6 +68,9 @@ Recent decisions affecting current work:
 - [21-03]: Topic filtering keeps last 5 messages regardless of topic for continuity
 - [21-03]: Brainstorm sessions in-memory with 30-min TTL -- no DB persistence for ephemeral sessions
 - [21-03]: Brainstorm check before pending action check -- active sessions take priority
+- [22-01]: Gate functions (checkAndIncrementOutreach, isQuietHours) are standalone exports -- user-initiated replies never consume budget
+- [22-01]: Brief stored as ConversationMessage with topic 'brief' -- reply support via existing assembleContext pipeline
+- [22-01]: enableReflection checked independently from reflectionIntensity -- toggle vs frequency are separate concerns
 
 ### Pending Todos
 
@@ -91,5 +94,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 21-03-PLAN.md -- Topic-aware context and brainstorming mode, Phase 21 complete
+Stopped at: Completed 22-01-PLAN.md -- Outreach budget, coaching config, conversational briefs
 Resume file: None
