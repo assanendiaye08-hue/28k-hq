@@ -43,7 +43,7 @@
 
 - [ ] **CLEAN-01**: Remove bot timer module *(includes merged FOCUS-02)*
 - [ ] **CLEAN-02**: DMs only -- remove private channel per-member system
-- [ ] **CLEAN-03**: Strip most slash commands -- keep /goals, /reminders, /leaderboard
+- [ ] **CLEAN-03**: Strip most slash commands -- keep /goals, /reminders, /leaderboard, /announce-update
 - [ ] **CLEAN-04**: Remove auto-feed module
 
 ### Coaching Settings

@@ -71,7 +71,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 **Success Criteria** (what must be TRUE):
   1. Bot starts and runs without the timer module -- no timer commands exist, no timer-related code remains in the bot codebase
   2. Bot starts and runs without the auto-feed module -- no RSS/YouTube/Reddit feed commands or scheduled fetches remain
-  3. Only /goals, /reminders, and /leaderboard slash commands remain -- all others are removed
+  3. Only /goals, /reminders, /leaderboard, and /announce-update slash commands remain -- all others are removed
   4. No per-member private channels exist in the server -- all private interaction happens via DMs
   5. When a member starts a timer session in the desktop app, the bot receives a signal and holds non-critical messages until the session ends
 **Plans**: 2 plans
