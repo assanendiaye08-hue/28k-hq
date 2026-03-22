@@ -48,6 +48,7 @@ import { buildCostCommand, buildAdminSetModelCommand } from './modules/ai-admin/
 import { buildInspirationCommand } from './modules/inspiration/commands.js';
 import { buildTimerCommand } from './modules/timer/commands.js';
 import { buildRemindCommand, buildRemindersCommand } from './modules/reminders/commands.js';
+import { buildAnnounceUpdateCommand } from './modules/announce-update/commands.js';
 
 // --- Phase 1 Slash Commands ---
 
@@ -140,6 +141,10 @@ const commands = [
 
   buildRemindCommand(),
   buildRemindersCommand(),
+
+  // --- Announce-Update Command ---
+
+  buildAnnounceUpdateCommand(),
 ];
 
 // --- Deploy ---

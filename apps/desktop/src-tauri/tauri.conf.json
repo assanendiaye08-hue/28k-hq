@@ -33,14 +33,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": true
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "REPLACE_WITH_GENERATED_PUBKEY",
-      "endpoints": [
-        "https://github.com/OWNER/REPO/releases/latest/download/latest.json"
-      ]
-    }
   }
 }
