@@ -9,33 +9,33 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 
 ## Current Position
 
-Phase: 21 of 24 (Conversational Jarvis)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-03-22 -- Completed 21-02: NL intent detection and action pipeline
+Phase: 22 of 24 (Daily Rhythm)
+Plan: 0 of 3 in current phase
+Status: Phase 21 complete, Phase 22 ready
+Last activity: 2026-03-22 -- Completed 21-03: Topic-aware context and brainstorming mode
 
-Progress: [███░░░░░░░] 33% (v3.0 -- 4/12 plans)
+Progress: [████░░░░░░] 42% (v3.0 -- 5/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 53 (18 v1.0 + 17 v1.1 + 14 v2.0 + 4 v3.0)
+- Total plans completed: 54 (18 v1.0 + 17 v1.1 + 14 v2.0 + 5 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.52 hours
+- Total execution time: 3.57 hours
 
 **By Phase (v3.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 20-clean-slate | 2/2 | 9 min | 4.5 min |
-| 21-conversational-jarvis | 2/3 | 7 min | 3.5 min |
+| 21-conversational-jarvis | 3/3 | 10 min | 3.3 min |
 | 22-daily-rhythm | 0/3 | - | - |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 19-02 (2 min), 20-01 (4 min), 20-02 (5 min), 21-01 (3 min), 21-02 (4 min)
-- Trend: Phase 21 in progress
+- Last 5 plans: 20-01 (4 min), 20-02 (5 min), 21-01 (3 min), 21-02 (4 min), 21-03 (3 min)
+- Trend: Phase 21 complete, Phase 22 next
 
 *Updated after each plan completion*
 
@@ -64,6 +64,10 @@ Recent decisions affecting current work:
 - [21-02]: Brainstorm tool defined but defers to Plan 03 -- no confirmation needed
 - [21-02]: Private channel check removed from DM handler -- DM-only after Phase 20
 - [21-02]: Tool descriptions include negative examples to minimize false positives
+- [21-03]: Keyword heuristic topic classification over LLM-based -- avoids API cost per message
+- [21-03]: Topic filtering keeps last 5 messages regardless of topic for continuity
+- [21-03]: Brainstorm sessions in-memory with 30-min TTL -- no DB persistence for ephemeral sessions
+- [21-03]: Brainstorm check before pending action check -- active sessions take priority
 
 ### Pending Todos
 
@@ -87,5 +91,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 21-02-PLAN.md -- NL intent detection, confirmation executor, DM handler refactored
+Stopped at: Completed 21-03-PLAN.md -- Topic-aware context and brainstorming mode, Phase 21 complete
 Resume file: None
