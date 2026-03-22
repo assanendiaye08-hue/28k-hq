@@ -28,10 +28,10 @@
 
 ### Social Layer
 
-- [ ] **SOCIAL-01**: Voice co-working (lock-in) promoted as flagship feature
+- [x] **SOCIAL-01**: Voice co-working (lock-in) promoted as flagship feature
 - [x] **SOCIAL-02**: Streak graceful failure -- two-day rule, consistency rate, no hard-reset to zero
 - [x] **SOCIAL-03**: Server channel consolidation -- fewer channels that matter more
-- [ ] **SOCIAL-04**: Bot absorbs accountability friction -- delivers hard truths so friends focus on support
+- [x] **SOCIAL-04**: Bot absorbs accountability friction -- delivers hard truths so friends focus on support
 
 ### Desktop App
 
@@ -86,10 +86,10 @@
 | RHYTHM-03 | Phase 22 | Complete |
 | RHYTHM-04 | Phase 22 | Complete |
 | RHYTHM-05 | Phase 22 | Complete |
-| SOCIAL-01 | Phase 23 | Pending |
+| SOCIAL-01 | Phase 23 | Complete |
 | SOCIAL-02 | Phase 23 | Complete |
 | SOCIAL-03 | Phase 23 | Complete |
-| SOCIAL-04 | Phase 23 | Pending |
+| SOCIAL-04 | Phase 23 | Complete |
 | APP-01 | Phase 24 | Pending |
 | APP-02 | Phase 24 | Pending |
 | APP-03 | Phase 24 | Pending |
