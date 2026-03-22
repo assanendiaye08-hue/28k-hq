@@ -61,7 +61,15 @@ When a member opens Discord, the environment pulls them into productive action �
 
 ### Active
 
-(Next milestone — TBD)
+#### v3.0 Jarvis Coach Evolution
+- [ ] Pure conversational AI — no slash commands for core interactions, natural language in DMs
+- [ ] Proactive coaching routines — morning briefs, end-of-day reflections, weekly recaps, goal nudges
+- [ ] Per-user coaching settings — members configure frequency, intensity, which features are active
+- [ ] Smart context management — topic-aware responses, no irrelevant context bleeding
+- [ ] Remove bot timer module — desktop app handles timers now
+- [ ] DMs only — remove private channel per-member system
+- [ ] Keep minimal slash commands — only /reminders, /goals, /leaderboard for quick lookups
+- [ ] Ruthlessly objective coaching tone — not a persona, purely focused on helping members level up
 
 ### Out of Scope
 
@@ -112,4 +120,4 @@ When a member opens Discord, the environment pulls them into productive action �
 | Server auto-cancel stale sessions | POST /timer auto-completes any existing ACTIVE session | ✓ Good — foolproof timer restart |
 
 ---
-*Last updated: 2026-03-22 after v2.0 milestone completion*
+*Last updated: 2026-03-22 after v3.0 milestone definition*
