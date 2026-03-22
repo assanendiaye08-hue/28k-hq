@@ -35,13 +35,16 @@ export async function updateTrayTitle(remainingMs: number | null): Promise<void>
     }
 
     const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
-    const minutes = Math.floor(totalSeconds / 60)
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
       .toString()
       .padStart(2, '0');
     const seconds = (totalSeconds % 60)
       .toString()
       .padStart(2, '0');
-    const display = ` ${minutes}:${seconds}`;
+    const display = hours > 0
+      ? ` ${hours}:${minutes}:${seconds}`
+      : ` ${minutes}:${seconds}`;
 
     await tray.setTitle(display);
     await tray.setTooltip('28K HQ - ' + display);
