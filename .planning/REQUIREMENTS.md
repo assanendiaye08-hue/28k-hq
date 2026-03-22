@@ -37,7 +37,7 @@
 
 - [x] **APP-01**: Today view -- focused cockpit: current priority, active timer, today's goals
 - [x] **APP-02**: Session history -- past work sessions with goal labels
-- [ ] **APP-03**: "Who's grinding" indicator -- see who's working without opening Discord
+- [x] **APP-03**: "Who's grinding" indicator -- see who's working without opening Discord
 
 ### Cleanup
 
@@ -92,7 +92,7 @@
 | SOCIAL-04 | Phase 23 | Complete |
 | APP-01 | Phase 24 | Complete |
 | APP-02 | Phase 24 | Complete |
-| APP-03 | Phase 24 | Pending |
+| APP-03 | Phase 24 | Complete |
 | CLEAN-01 | Phase 20 | Complete |
 | CLEAN-02 | Phase 20 | Complete |
 | CLEAN-03 | Phase 20 | Complete |

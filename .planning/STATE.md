@@ -89,6 +89,9 @@ Recent decisions affecting current work:
 - [24-01]: Stripped WeeklyGoals, RankProgress, DailyQuote from dashboard -- only streak remains in sidebar
 - [24-01]: Timer widget shows elapsed for flowmodoro, countdown for pomodoro -- mode-aware display
 - [24-01]: Session history limited to 10 most recent -- no pagination for glanceability
+- [24-02]: Merged inFocusSession + active timer sessions with Map deduplication for comprehensive grinder detection
+- [24-02]: 60-second polling for ambient awareness -- no real-time push needed for "library effect"
+- [24-02]: Silent failure to empty state -- no error UI for non-critical ambient data
 
 ### Pending Todos
 
@@ -112,5 +115,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 24-01-PLAN.md -- Today view cockpit and session history
+Stopped at: Completed 24-02-PLAN.md -- Who's grinding indicator (Phase 24 complete, v3.0 complete)
 Resume file: None
