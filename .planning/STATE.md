@@ -2,56 +2,42 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-21)
+See: .planning/PROJECT.md (updated 2026-03-22)
 
-**Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The desktop app extends this to their entire workstation.
-**Current focus:** v2.0 Phase 19 - Cross-Platform Sync Polish
+**Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming.
+**Current focus:** v3.0 Phase 20 - Clean Slate
 
 ## Current Position
 
-Phase: 19 of 19 (Cross-Platform Sync Polish)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-03-22 -- Completed 19-02 (Settings page with auto-updater and autostart toggles)
+Phase: 20 of 24 (Clean Slate)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-03-22 -- v3.0 roadmap revised (5 phases, 25 requirements mapped across 24 unique deliverables)
 
-Progress: [####################] 100% (v2.0) -- All 6 v2.0 phases complete
+Progress: [░░░░░░░░░░] 0% (v3.0)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 43 (18 v1.0 + 17 v1.1 + 8 v2.0)
+- Total plans completed: 49 (18 v1.0 + 17 v1.1 + 14 v2.0)
 - Average duration: 5 min
 - Total execution time: 3.2 hours
 
-**By Phase (v1.1):**
+**By Phase (v3.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 07-ai-infrastructure | 3/3 | 20 min | 7 min |
-| 08-inspiration-system | 2/2 | 5 min | 3 min |
-| 09-productivity-timer | 3/3 | 16 min | 5 min |
-| 10-smart-reminders | 2/2 | 8 min | 4 min |
-| 11-goal-hierarchy | 3/3 | 10 min | 3 min |
-| 12-self-evaluation-and-reflection | 3/3 | 10 min | 3 min |
-| 13-monthly-progress-recap | 1/1 | 4 min | 4 min |
-
-**By Phase (v2.0):**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 14-monorepo-restructure | 2/2 | 14 min | 7 min |
-| 15-rest-api-authentication | 2/2 | 7 min | 4 min |
-| 16-desktop-shell-dashboard-goals | 3/3 | 10 min | 3 min |
-| 17-pomodoro-timer | 2/3 | 8 min | 4 min |
-| 18-flowmodoro-goals-editing | 1/2 | 3 min | 3 min |
+| 20-clean-slate | 0/2 | - | - |
+| 21-conversational-jarvis | 0/3 | - | - |
+| 22-daily-rhythm | 0/3 | - | - |
+| 23-social-layer | 0/2 | - | - |
+| 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 16-02 (2 min), 16-03 (2 min), 17-01 (3 min), 17-02 (5 min), 18-02 (3 min)
-- Trend: stable (goal CRUD follows established store/component patterns)
-| Phase 18 P02 | 3 | 2 tasks | 5 files |
-| Phase 18 P01 | 6 min | 2 tasks | 8 files |
-| Phase 19 P01 | 3 | 2 tasks | 6 files |
-| Phase 19 P02 | 2 | 2 tasks | 6 files |
+- Last 5 plans: 18-01 (6 min), 18-02 (3 min), 19-01 (3 min), 19-02 (2 min), (new milestone)
+- Trend: Starting v3.0
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
@@ -60,53 +46,11 @@ Progress: [####################] 100% (v2.0) -- All 6 v2.0 phases complete
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [v2.0 Roadmap]: Monorepo restructure must be Phase 14 -- everything depends on shared packages existing
-- [v2.0 Roadmap]: API + Auth before desktop app -- desktop is a thin client that consumes the API
-- [v2.0 Roadmap]: Desktop shell + dashboard before timer -- timer is most complex, validate stack with simpler features first
-- [v2.0 Roadmap]: Timer sync is last phase -- hardest integration point, two processes writing same tables
-- [v2.0 Roadmap]: Prisma 7 + pnpm TS2742 bug must be flushed out in Phase 14 (install @prisma/client-runtime-utils or hoist)
-- [14-01]: Used Turborepo internal packages pattern (raw .ts exports, no build step for packages)
-- [14-01]: Decoupled encryption from bot config -- reads process.env.MASTER_ENCRYPTION_KEY directly
-- [14-01]: Prisma 7.5.0 + pnpm strict mode works without TS2742 workarounds (no hoisting needed)
-- [14-01]: Prisma generates into packages/db/generated/prisma/client/ via custom output
-- [14-02]: Deleted redundant bot copies of extracted files rather than keeping re-export shims
-- [14-02]: Added crypto functions to @28k/db barrel export for onboarding module
-- [14-02]: All bot imports use @28k/db and @28k/shared -- no relative db/shared paths remain
-- [v2.0 Roadmap]: Windows has no menu bar text -- needs mini-window fallback for timer countdown display
-- [15-01]: Fastify plugin pattern: fp() for infrastructure, plain async for routes (encapsulation)
-- [15-01]: JWT payload: sub=memberId, did=discordId (minimal claims for identity)
-- [15-01]: Refresh token rotation: delete old, create new on each refresh (prevents reuse)
-- [15-01]: Per-route rate limits on auth (5/min discord, 10/min refresh) + global 100/min
-- [15-02]: Timer XP uses same formula as bot: 1 XP per 5 min worked, min 5 min, daily cap 200
-- [15-02]: Goal hierarchy loaded 4 levels deep using nested Prisma includes (matches bot pattern)
-- [15-02]: Dashboard returns goals split into today (weekly + 7-day deadline) and weekly categories
-- [15-02]: Quote rotation uses day-of-year modulo for consistent daily quote (UTC-based)
-- [16-01]: Used openUrl (not open) from @tauri-apps/plugin-opener v2 -- API renamed in v2
-- [16-01]: tauri-plugin-oauth start() returns port, callback URL comes via onUrl() listener
-- [16-01]: @tauri-apps/plugin-store load() requires defaults:{} in v2 StoreOptions
-- [16-01]: Placeholder gold circle PNGs for tray/app icons until real ouroboros assets provided
-- [16-02]: Inline SVG icons for sidebar nav (2 icons, no icon library needed)
-- [16-02]: Fire emoji (unicode) for streak visual instead of custom SVG
-- [16-02]: Rank color from API hex integer converted to CSS hex string via toString(16).padStart(6,'0')
-- [16-03]: Auto-expand depth 0 and 1 after goal fetch for immediate visibility of top-level structure
-- [16-03]: Inline SVG icons for all goal status indicators (chevron, checkmark, X, clock)
-- [16-03]: GoalTree groups top-level goals by timeframe with section headers when mixed
-- [17-01]: Timestamp-based countdown (Date.now() - phaseStartedAt) instead of tick counting for drift-free accuracy
-- [17-01]: Notification plugin added to Rust builder for phase completion alerts in Plan 02
-- [17-01]: Timer persistence uses same plugin-store v2 load() with defaults:{} pattern from Phase 16
-- [17-02]: Rust emits tray-icon-clicked event to JS for state-based routing (popover vs main window)
-- [17-02]: Popover uses persistence for state recovery since Tauri WebviewWindows have separate JS contexts
-- [17-02]: Cross-window sync via Tauri event bus: popover emits timer-state-changed, main syncs from persistence
-- [18-01]: Flowmodoro pause repurposes pauseRemainingMs to store elapsed (not remaining); resume reconstructs phaseStartedAt
-- [18-01]: Flowmodoro break completion goes directly to session_complete (no multi-session concept)
-- [18-01]: All timer logic branches on timerMode discriminant ('pomodoro' | 'flowmodoro')
-- [Phase 18]: [18-02]: Slide-down panel for goal creation instead of modal, matching timer setup UX
-- [Phase 18]: [18-02]: Group-hover opacity for action buttons to keep goal tree clean until interaction
-- [Phase 18]: [18-02]: 2-second inline XP feedback fade rather than toast notification for goal completion
-- [19-01]: Updater pubkey and endpoint URL are placeholders -- actual key generation is pre-release
-- [19-01]: Dashboard refresh is event-driven via cross-store getState().fetchDashboard(), not polling
-- [Phase 19]: [19-02]: OS autostart isEnabled() as source of truth to avoid drift with persisted setting
-- [Phase 19]: [19-02]: Both auto-update and autostart toggles OFF by default (opt-in only)
+- [v3.0 Roadmap]: 5-phase structure -- clean slate, conversational AI, daily rhythm, social layer, desktop enhancement
+- [v3.0 Roadmap]: CLEAN-01 and FOCUS-02 merged (both "remove bot timer module") -- FOCUS-02 retired
+- [v3.0 Roadmap]: Coaching settings (SET-01..03) placed in Phase 22 alongside daily rhythm -- settings must exist when proactive features ship
+- [v3.0 Roadmap]: Phase 23 (social) and Phase 24 (desktop) are relatively independent -- could run in either order
+- [v3.0 Roadmap]: No new npm dependencies -- everything builds on existing stack
 
 ### Pending Todos
 
@@ -114,9 +58,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- Prisma 7 + pnpm TS2742 bug: RESOLVED -- no workaround needed, 7.5.0 works cleanly with pnpm strict mode
-- Windows timer UX: mini-window approach has no Tauri ecosystem precedent, needs prototyping in Phase 17
-- macOS code signing: $99/year Apple Developer certificate needed before distribution
+- Phase 21: Verify whether Grok 4.1 Fast supports function/tool calling via OpenRouter before designing action execution pipeline
+- Phase 21: Validate cost model at conversational volume (20-30 msgs/member/day) against $0.10/day budget
+- Phase 22: Verify Discord DM rate limits for staggered proactive outreach to 25 members
+- macOS code signing: $99/year Apple Developer certificate needed before distribution (carried from v2.0)
 
 ### Quick Tasks Completed
 
@@ -129,5 +74,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 19-02-PLAN.md (Settings page with auto-updater and autostart toggles)
+Stopped at: v3.0 roadmap revised with 5 phases (20-24), ready to plan Phase 20
 Resume file: None

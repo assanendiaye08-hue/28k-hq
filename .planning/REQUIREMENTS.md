@@ -1,76 +1,111 @@
 # Requirements: Discord Hustler
 
 **Defined:** 2026-03-22
-**Core Value:** When a member opens Discord, the environment pulls them into productive action — not gaming.
+**Core Value:** A controlled environment that accelerates ambitious people already on their path -- reducing overhead, enabling focus, and leveraging positive social mechanics.
 
 ## v3.0 Requirements
 
-Requirements for Jarvis Coach Evolution. Each maps to roadmap phases.
+### Focus Engine
 
-### Conversational AI
+- [ ] **FOCUS-01**: App signals bot "in session" / "session ended" -- bot holds messages except time-critical reminders
+- [ ] **~~FOCUS-02~~**: *(Merged into CLEAN-01 -- identical requirement: remove bot timer module)*
 
-- [ ] **CONV-01**: Jarvis understands natural language in DMs for all core actions (goals, check-ins, reminders, tasks)
-- [ ] **CONV-02**: Action confirmation loop — Jarvis confirms before mutating data ("Set goal 'Launch funnel by March'? yes/no")
-- [ ] **CONV-03**: Topic-aware context — Jarvis only references relevant goals/history per conversation topic (no context bleeding)
-- [ ] **CONV-04**: Brainstorming mode — Jarvis can do structured creative thinking sessions on request
+### Conversational Jarvis
 
-### Proactive Coaching
+- [ ] **JARV-01**: Natural language in DMs replaces slash commands for core actions (goals, check-ins, tasks, reminders)
+- [ ] **JARV-02**: Commitment extraction -- detects "I'll do X by Y" and confirms before tracking
+- [ ] **JARV-03**: Topic-aware context -- no irrelevant bleeding between conversation topics
+- [ ] **JARV-04**: Situationally smart -- direct when it has info, questions when user needs to think. Never fakes emotions or gives unsolicited advice.
+- [ ] **JARV-05**: Brainstorming mode -- structured creative thinking on request
 
-- [ ] **COACH-01**: Morning brief DM — recap today's plan, remind of goals/deadlines, ask focus
-- [ ] **COACH-02**: End-of-day reflection DM — what was done, log progress, set up tomorrow
-- [ ] **COACH-03**: Weekly review DM — week summary, goal progress, plan next week
-- [ ] **COACH-04**: Smart nudges — stale goals, broken streaks, quiet periods trigger outreach
-- [ ] **COACH-05**: Global daily outreach budget — max proactive DMs per day per member (prevent fatigue)
+### Daily Rhythm
 
-### Coaching Settings
+- [ ] **RHYTHM-01**: Morning brief DM -- today's commitments, deadlines, focus prompt
+- [ ] **RHYTHM-02**: Evening reflection DM -- close open loops, log what was done, set tomorrow's priority
+- [ ] **RHYTHM-03**: Weekly planning DM (Sunday) -- week review, goal progress, next week priorities
+- [ ] **RHYTHM-04**: Smart nudges -- stale goals, declining patterns. Less contact when disengaged, not more.
+- [ ] **RHYTHM-05**: 2-3 bot-initiated touchpoints/day max across all features
 
-- [ ] **SET-01**: Per-user coaching config — enable/disable each proactive feature individually
-- [ ] **SET-02**: Frequency settings — daily/weekly/none for each routine
-- [ ] **SET-03**: Quiet hours — time window where bot won't send proactive DMs
-- [ ] **SET-04**: Coaching onboarding — setup flow asks for timezone and coaching preferences if not configured
+### Social Layer
 
-### Task Management
+- [ ] **SOCIAL-01**: Voice co-working (lock-in) promoted as flagship feature
+- [ ] **SOCIAL-02**: Streak graceful failure -- two-day rule, consistency rate, no hard-reset to zero
+- [ ] **SOCIAL-03**: Server channel consolidation -- fewer channels that matter more
+- [ ] **SOCIAL-04**: Bot absorbs accountability friction -- delivers hard truths so friends focus on support
 
-- [ ] **TASK-01**: Quick tasks via conversation ("add to my to-do: fix landing page")
-- [ ] **TASK-02**: Task reminders ("remind me to call supplier tomorrow at 3pm")
-- [ ] **TASK-03**: Task list viewable via /tasks or asking Jarvis
+### Desktop App
+
+- [ ] **APP-01**: Today view -- focused cockpit: current priority, active timer, today's goals
+- [ ] **APP-02**: Session history -- past work sessions with goal labels
+- [ ] **APP-03**: "Who's grinding" indicator -- see who's working without opening Discord
 
 ### Cleanup
 
-- [ ] **CLEAN-01**: Remove bot timer module (desktop handles timers)
-- [ ] **CLEAN-02**: DMs only — remove private channel per-member system
-- [ ] **CLEAN-03**: Strip most slash commands — keep only /goals, /reminders, /leaderboard, /tasks, /announce-update
-- [ ] **CLEAN-04**: Resolve tone — ruthlessly objective coaching, not forced personality
+- [ ] **CLEAN-01**: Remove bot timer module *(includes merged FOCUS-02)*
+- [ ] **CLEAN-02**: DMs only -- remove private channel per-member system
+- [ ] **CLEAN-03**: Strip most slash commands -- keep /goals, /reminders, /leaderboard
+- [ ] **CLEAN-04**: Remove auto-feed module
 
-## Future Requirements
+### Coaching Settings
 
-### v3.1
+- [ ] **SET-01**: Per-user config -- enable/disable each proactive feature
+- [ ] **SET-02**: Quiet hours -- no bot messages during set window
+- [ ] **SET-03**: Coaching onboarding -- timezone + preferences on first interaction
 
-- **CYCLE-01**: Session summaries — after desktop timer sessions, Jarvis DMs insights about work patterns
-- **CYCLE-02**: Monthly narrative recap — AI-written story of the month's progress
-- **CYCLE-03**: Goal decomposition via conversation — Jarvis helps break down big goals into sub-goals
+## Future Requirements (v3.1+)
+
+- **INT-01**: Google Calendar read-only integration (surface today's events in morning brief)
+- **INT-02**: Browser focus extension (block distracting sites during timer sessions)
+- **INT-03**: Apple Push Notifications for morning brief on mobile
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Automated goal creation | Coach suggests, never auto-creates. Trust requires confirmation. |
-| Named member comparisons | "You're behind X" creates toxicity. Use anonymous leaderboards instead. |
-| Activity/window tracking | Privacy violation. Timer data is enough. |
-| Calendar integrations | Complexity too high for this milestone. Defer. |
-| Mobile app | Desktop + Discord covers the use case. |
+| Automated goal creation | Coach helps plan, never auto-creates. Trust requires confirmation. |
+| Named member comparisons | "You're behind X" creates toxicity. Leaderboards are anonymous rank. |
+| Activity/window tracking | Privacy violation. Timer data is sufficient. |
+| Calendar sync (write) | Read-only is useful, write creates SSOT conflicts. |
+| Notion/Todoist sync | SSOT violation -- the system IS the source of truth. |
+| Mobile app | Desktop + Discord + push notifications covers the use case. |
+| Complex badge/achievement system | Overjustification effect -- XP/streaks/ranks are sufficient gamification. |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (Populated during roadmap creation) | | |
+| FOCUS-01 | Phase 20 | Pending |
+| FOCUS-02 | Phase 20 | Merged into CLEAN-01 |
+| JARV-01 | Phase 21 | Pending |
+| JARV-02 | Phase 21 | Pending |
+| JARV-03 | Phase 21 | Pending |
+| JARV-04 | Phase 21 | Pending |
+| JARV-05 | Phase 21 | Pending |
+| RHYTHM-01 | Phase 22 | Pending |
+| RHYTHM-02 | Phase 22 | Pending |
+| RHYTHM-03 | Phase 22 | Pending |
+| RHYTHM-04 | Phase 22 | Pending |
+| RHYTHM-05 | Phase 22 | Pending |
+| SOCIAL-01 | Phase 23 | Pending |
+| SOCIAL-02 | Phase 23 | Pending |
+| SOCIAL-03 | Phase 23 | Pending |
+| SOCIAL-04 | Phase 23 | Pending |
+| APP-01 | Phase 24 | Pending |
+| APP-02 | Phase 24 | Pending |
+| APP-03 | Phase 24 | Pending |
+| CLEAN-01 | Phase 20 | Pending |
+| CLEAN-02 | Phase 20 | Pending |
+| CLEAN-03 | Phase 20 | Pending |
+| CLEAN-04 | Phase 20 | Pending |
+| SET-01 | Phase 22 | Pending |
+| SET-02 | Phase 22 | Pending |
+| SET-03 | Phase 22 | Pending |
 
 **Coverage:**
-- v3.0 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- v3.0 requirements: 25 line items (24 unique -- FOCUS-02 merged into CLEAN-01)
+- Mapped to phases: 24/24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-22*
-*Last updated: 2026-03-22 after initial definition*
+*Last updated: 2026-03-22 after roadmap creation*
