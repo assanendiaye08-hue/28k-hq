@@ -19,23 +19,23 @@ Progress: [██░░░░░░░░] 17% (v3.0 -- 2/12 plans)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 50 (18 v1.0 + 17 v1.1 + 14 v2.0 + 1 v3.0)
+- Total plans completed: 51 (18 v1.0 + 17 v1.1 + 14 v2.0 + 2 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.3 hours
+- Total execution time: 3.4 hours
 
 **By Phase (v3.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 20-clean-slate | 1/2 | 4 min | 4 min |
+| 20-clean-slate | 2/2 | 9 min | 4.5 min |
 | 21-conversational-jarvis | 0/3 | - | - |
 | 22-daily-rhythm | 0/3 | - | - |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 18-02 (3 min), 19-01 (3 min), 19-02 (2 min), 20-01 (4 min)
-- Trend: v3.0 underway
+- Last 5 plans: 18-02 (3 min), 19-01 (3 min), 19-02 (2 min), 20-01 (4 min), 20-02 (5 min)
+- Trend: Phase 20 complete
 
 *Updated after each plan completion*
 
@@ -53,6 +53,10 @@ Recent decisions affecting current work:
 - [v3.0 Roadmap]: No new npm dependencies -- everything builds on existing stack
 - [20-01]: Removed timer event types from core event bus -- no emitters/listeners remain after module deletion
 - [20-01]: Kept auto-feed channel name in server-setup template -- cosmetic, Phase 23 will consolidate channels
+- [20-02]: Reminders bypass focus session gate (user-set, time-critical)
+- [20-02]: deliverToPrivateSpace kept as backward-compatible alias for deliverDM
+- [20-02]: PrivateSpace record still created during onboarding (type DM) for existing code references
+- [20-02]: All focus API calls are fire-and-forget -- timer works offline
 
 ### Pending Todos
 
@@ -76,5 +80,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 20-01-PLAN.md -- timer + auto-feed removed, slash commands stripped
+Stopped at: Completed 20-02-PLAN.md -- Phase 20 complete (DM-only delivery, focus signaling, onboarding simplified)
 Resume file: None

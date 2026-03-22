@@ -56,7 +56,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 
 **Milestone Goal:** Transform Jarvis from a slash-command assistant into a proactive conversational coach. Remove legacy modules (timer, auto-feed, private channels), shift to natural language DM interactions, add daily coaching routines with per-user settings, refine social mechanics, and enhance the desktop app with a focused Today view.
 
-- [ ] **Phase 20: Clean Slate** - Remove legacy modules, establish focus session signaling between desktop and bot
+- [x] **Phase 20: Clean Slate** - Remove legacy modules, establish focus session signaling between desktop and bot (completed 2026-03-22)
 - [ ] **Phase 21: Conversational Jarvis** - Natural language actions, commitment extraction, topic-aware context, coaching tone, brainstorming
 - [ ] **Phase 22: Daily Rhythm** - Morning briefs, evening reflections, weekly planning, smart nudges, outreach budget, coaching settings
 - [ ] **Phase 23: Social Layer Refinement** - Voice co-working promotion, streak redesign, channel consolidation, accountability tone
@@ -153,7 +153,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 1-6 | v1.0 | 18/18 | Complete | 2026-03-20 |
 | 7-13 | v1.1 | 17/17 | Complete | 2026-03-21 |
 | 14-19 | v2.0 | 14/14 | Complete | 2026-03-22 |
-| 20. Clean Slate | v3.0 | 1/2 | In Progress | - |
+| 20. Clean Slate | 2/2 | Complete   | 2026-03-22 | - |
 | 21. Conversational Jarvis | v3.0 | 0/3 | Not started | - |
 | 22. Daily Rhythm | v3.0 | 0/3 | Not started | - |
 | 23. Social Layer Refinement | v3.0 | 0/2 | Not started | - |

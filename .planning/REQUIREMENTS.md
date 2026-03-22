@@ -7,7 +7,7 @@
 
 ### Focus Engine
 
-- [ ] **FOCUS-01**: App signals bot "in session" / "session ended" -- bot holds messages except time-critical reminders
+- [x] **FOCUS-01**: App signals bot "in session" / "session ended" -- bot holds messages except time-critical reminders
 - [ ] **~~FOCUS-02~~**: *(Merged into CLEAN-01 -- identical requirement: remove bot timer module)*
 
 ### Conversational Jarvis
@@ -42,7 +42,7 @@
 ### Cleanup
 
 - [x] **CLEAN-01**: Remove bot timer module *(includes merged FOCUS-02)*
-- [ ] **CLEAN-02**: DMs only -- remove private channel per-member system
+- [x] **CLEAN-02**: DMs only -- remove private channel per-member system
 - [x] **CLEAN-03**: Strip most slash commands -- keep /goals, /reminders, /leaderboard, /announce-update
 - [x] **CLEAN-04**: Remove auto-feed module
 
@@ -74,7 +74,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOCUS-01 | Phase 20 | Pending |
+| FOCUS-01 | Phase 20 | Complete |
 | FOCUS-02 | Phase 20 | Merged into CLEAN-01 |
 | JARV-01 | Phase 21 | Pending |
 | JARV-02 | Phase 21 | Pending |
@@ -94,7 +94,7 @@
 | APP-02 | Phase 24 | Pending |
 | APP-03 | Phase 24 | Pending |
 | CLEAN-01 | Phase 20 | Complete |
-| CLEAN-02 | Phase 20 | Pending |
+| CLEAN-02 | Phase 20 | Complete |
 | CLEAN-03 | Phase 20 | Complete |
 | CLEAN-04 | Phase 20 | Complete |
 | SET-01 | Phase 22 | Pending |
