@@ -52,3 +52,31 @@ export async function updateTrayTitle(remainingMs: number | null): Promise<void>
     // Windows will silently no-op setTitle
   }
 }
+
+/**
+ * Update the tray icon title with elapsed time (for flowmodoro count-up).
+ * Always shows time, even when 0 (flow just started).
+ */
+export async function updateTrayTitleElapsed(elapsedMs: number): Promise<void> {
+  try {
+    const tray = await getTray();
+    if (!tray) return;
+
+    const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+      .toString()
+      .padStart(2, '0');
+    const seconds = (totalSeconds % 60)
+      .toString()
+      .padStart(2, '0');
+    const display = hours > 0
+      ? ` ${hours}:${minutes}:${seconds}`
+      : ` ${minutes}:${seconds}`;
+
+    await tray.setTitle(display);
+    await tray.setTooltip(`28K HQ - Flow: ${display.trim()}`);
+  } catch {
+    // Windows will silently no-op setTitle
+  }
+}

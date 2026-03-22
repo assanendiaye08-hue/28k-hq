@@ -28,6 +28,8 @@ export interface SavedTimerState {
   focus: string;
   goalId: string | null;
   transitionType?: string | null;
+  timerMode?: string;
+  breakRatio?: number;
 }
 
 export async function saveTimerState(state: SavedTimerState): Promise<void> {

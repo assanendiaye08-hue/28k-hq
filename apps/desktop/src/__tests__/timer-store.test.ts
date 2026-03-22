@@ -13,6 +13,7 @@ vi.mock('../lib/timer-persistence', () => ({
 
 vi.mock('../lib/timer-tray', () => ({
   updateTrayTitle: vi.fn(() => Promise.resolve()),
+  updateTrayTitleElapsed: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../lib/timer-notifications', () => ({
@@ -31,6 +32,7 @@ vi.mock('@28k/shared', () => ({
   TIMER_DEFAULTS: {
     defaultWorkMinutes: 25,
     defaultBreakMinutes: 5,
+    defaultBreakRatio: 5,
   },
 }));
 
@@ -59,6 +61,8 @@ describe('timer-store', () => {
       goalId: null,
       transitionType: null,
       lastStopResult: null,
+      timerMode: 'pomodoro',
+      breakRatio: 5,
     });
   });
 
@@ -137,5 +141,124 @@ describe('timer-store', () => {
     const remaining = useTimerStore.getState().getRemainingMs();
     expect(remaining).toBeGreaterThan(0);
     expect(Number.isNaN(remaining)).toBe(false);
+  });
+
+  // ── Flowmodoro Tests ──
+
+  it('start() in flowmodoro mode sets timerMode and breakRatio', () => {
+    useTimerStore.getState().start({
+      focus: 'flow session',
+      timerMode: 'flowmodoro',
+      breakRatio: 3,
+    });
+
+    const state = useTimerStore.getState();
+    expect(state.phase).toBe('working');
+    expect(state.timerMode).toBe('flowmodoro');
+    expect(state.breakRatio).toBe(3);
+    expect(state.phaseDurationMs).toBe(0); // count-up, no fixed duration
+    expect(state.focus).toBe('flow session');
+  });
+
+  it('stop() during flowmodoro work triggers transition with calculated break', () => {
+    useTimerStore.getState().start({
+      focus: 'flow work',
+      timerMode: 'flowmodoro',
+      breakRatio: 5,
+    });
+
+    // Simulate 50 minutes of work (3,000,000 ms)
+    const workMs = 50 * 60 * 1000;
+    useTimerStore.setState({ phaseStartedAt: Date.now() - workMs });
+
+    useTimerStore.getState().stop();
+
+    const state = useTimerStore.getState();
+    expect(state.phase).toBe('transition');
+    expect(state.transitionType).toBe('work_done');
+    // Break should be ~10 minutes (50 min / 5 ratio = 10 min = 600,000 ms)
+    // Allow some tolerance for test execution time
+    expect(state.phaseDurationMs).toBeGreaterThan(590000);
+    expect(state.phaseDurationMs).toBeLessThan(610000);
+    expect(state.totalWorkedMs).toBeGreaterThan(workMs - 1000);
+  });
+
+  it('transitionToFlowBreak() starts countdown break', () => {
+    useTimerStore.getState().start({
+      focus: 'flow work',
+      timerMode: 'flowmodoro',
+      breakRatio: 5,
+    });
+
+    // Simulate work and stop
+    useTimerStore.setState({ phaseStartedAt: Date.now() - 300000 }); // 5 min
+    useTimerStore.getState().stop(); // triggers transition
+
+    // Now transition to break
+    useTimerStore.getState().transitionToFlowBreak();
+
+    const state = useTimerStore.getState();
+    expect(state.phase).toBe('on_break');
+    expect(typeof state.phaseStartedAt).toBe('number');
+    expect(state.phaseDurationMs).toBeGreaterThan(0); // calculated break duration
+    expect(state.transitionType).toBeNull();
+  });
+
+  it('skipFlowBreak() goes to idle', () => {
+    useTimerStore.getState().start({
+      focus: 'flow work',
+      timerMode: 'flowmodoro',
+      breakRatio: 5,
+    });
+
+    // Simulate work and stop
+    useTimerStore.setState({ phaseStartedAt: Date.now() - 300000 });
+    useTimerStore.getState().stop();
+
+    // Skip break
+    useTimerStore.getState().skipFlowBreak();
+
+    const state = useTimerStore.getState();
+    expect(state.phase).toBe('idle');
+    expect(state.timerMode).toBe('pomodoro'); // reset to default
+    expect(state.focus).toBe('');
+  });
+
+  it('getElapsedMs() returns elapsed time from phaseStartedAt', () => {
+    // idle: returns 0
+    expect(useTimerStore.getState().getElapsedMs()).toBe(0);
+
+    // after flowmodoro start: returns elapsed
+    useTimerStore.getState().start({
+      focus: 'flow test',
+      timerMode: 'flowmodoro',
+    });
+
+    const elapsed = useTimerStore.getState().getElapsedMs();
+    expect(elapsed).toBeGreaterThanOrEqual(0);
+    expect(elapsed).toBeLessThan(1000); // just started
+  });
+
+  it('flowmodoro break completePhase() triggers session_complete', () => {
+    useTimerStore.getState().start({
+      focus: 'flow work',
+      timerMode: 'flowmodoro',
+      breakRatio: 5,
+    });
+
+    // Simulate: work -> stop -> transition -> start break -> break completes
+    useTimerStore.setState({
+      phase: 'on_break',
+      phaseStartedAt: Date.now() - 100,
+      phaseDurationMs: 60000,
+      totalWorkedMs: 300000,
+      timerMode: 'flowmodoro',
+    });
+
+    useTimerStore.getState().completePhase();
+
+    const state = useTimerStore.getState();
+    expect(state.phase).toBe('transition');
+    expect(state.transitionType).toBe('session_complete');
   });
 });
