@@ -7,6 +7,7 @@
  * filling out a form.
  *
  * Flow:
+ * 0. Weekly review summary (goals completed/stalled, commitments, activity stats)
  * 1. How did last week go? (1-5 or free text)
  * 2. What are your goals for this week? (AI extracts structured goals)
  * 3. When should I remind you to check in? (parse reminder times)
@@ -25,12 +26,12 @@ import {
   startOfWeek,
   endOfWeek,
   subWeeks,
-  startOfDay,
 } from 'date-fns';
 import type { ExtendedPrismaClient } from '@28k/db';
 import { callAI } from '../../shared/ai-client.js';
 import { BRAND_COLORS } from '@28k/shared';
 import type { IEventBus } from '../../shared/types.js';
+import { storeMessage } from '../ai-assistant/memory.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -52,6 +53,201 @@ interface ExtractedGoal {
   type: 'measurable' | 'freetext';
   target?: number;
   unit?: string;
+}
+
+/** Data collected for the weekly review summary. */
+interface WeekReviewData {
+  goalsCompleted: Array<{ title: string }>;
+  goalsStalled: Array<{ title: string }>;
+  goalsActive: number;
+  commitmentsFulfilled: number;
+  commitmentsMissed: number;
+  commitmentsPending: number;
+  totalCommitments: number;
+  checkInCount: number;
+  focusMinutes: number;
+  streakDays: number;
+  streakDirection: 'up' | 'down' | 'same';
+}
+
+/**
+ * Build week review data by querying goals, commitments, check-ins, and
+ * voice/timer sessions for the past Mon-Sun week.
+ */
+async function buildWeekReview(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  timezone: string,
+): Promise<WeekReviewData> {
+  const now = new TZDate(new Date(), timezone);
+  const weekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+
+  const [
+    completedGoals,
+    activeGoalsWithProgress,
+    commitments,
+    checkInCount,
+    voiceSessions,
+    member,
+  ] = await Promise.all([
+    // Goals completed this week
+    db.goal.findMany({
+      where: {
+        memberId,
+        status: 'COMPLETED',
+        completedAt: { gte: weekStart, lte: weekEnd },
+      },
+      select: { title: true },
+    }),
+    // Active goals (for stalled detection: created before this week with no progress)
+    db.goal.findMany({
+      where: {
+        memberId,
+        status: { in: ['ACTIVE', 'EXTENDED'] },
+      },
+      select: { title: true, currentValue: true, targetValue: true, type: true, createdAt: true },
+    }),
+    // Commitments made this week
+    db.commitment.findMany({
+      where: {
+        memberId,
+        createdAt: { gte: weekStart, lte: weekEnd },
+      },
+      select: { status: true },
+    }),
+    // Check-in count
+    db.checkIn.count({
+      where: {
+        memberId,
+        createdAt: { gte: weekStart, lte: weekEnd },
+      },
+    }),
+    // Voice sessions (focus time)
+    db.voiceSession.findMany({
+      where: {
+        memberId,
+        startedAt: { gte: weekStart, lte: weekEnd },
+      },
+      select: { durationMinutes: true },
+    }),
+    // Member for streak
+    db.member.findUniqueOrThrow({
+      where: { id: memberId },
+      select: { currentStreak: true, longestStreak: true },
+    }),
+  ]);
+
+  // Stalled goals: active goals created before this week with no progress
+  // Measurable: currentValue still 0. Freetext: created before week and still active.
+  const stalledGoals = activeGoalsWithProgress.filter((g) => {
+    if (g.createdAt >= weekStart) return false; // Created this week -- too new to be stalled
+    if (g.type === 'MEASURABLE') return g.currentValue === 0;
+    return true; // Freetext goals older than this week and not completed
+  });
+
+  // Commitment status breakdown
+  const fulfilled = commitments.filter((c) => c.status === 'COMPLETED').length;
+  const missed = commitments.filter((c) => c.status === 'MISSED').length;
+  const pending = commitments.filter((c) => c.status === 'ACTIVE').length;
+
+  // Total focus minutes from voice sessions
+  const focusMinutes = voiceSessions.reduce(
+    (sum, s) => sum + (s.durationMinutes ?? 0),
+    0,
+  );
+
+  // Streak direction heuristic: if current equals longest, it's growing
+  const streakDirection: 'up' | 'down' | 'same' =
+    member.currentStreak >= member.longestStreak && member.currentStreak > 0
+      ? 'up'
+      : member.currentStreak === 0
+        ? 'down'
+        : 'same';
+
+  return {
+    goalsCompleted: completedGoals,
+    goalsStalled: stalledGoals.map((g) => ({ title: g.title })),
+    goalsActive: activeGoalsWithProgress.length,
+    commitmentsFulfilled: fulfilled,
+    commitmentsMissed: missed,
+    commitmentsPending: pending,
+    totalCommitments: commitments.length,
+    checkInCount,
+    focusMinutes,
+    streakDays: member.currentStreak,
+    streakDirection,
+  };
+}
+
+/**
+ * Generate a week review text using AI, with template fallback.
+ */
+async function generateReviewText(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  review: WeekReviewData,
+): Promise<string> {
+  // Build context string for AI
+  const completedList = review.goalsCompleted.length > 0
+    ? review.goalsCompleted.map((g) => g.title).join(', ')
+    : 'none';
+  const stalledList = review.goalsStalled.length > 0
+    ? review.goalsStalled.map((g) => g.title).join(', ')
+    : 'none';
+
+  const reviewContext = [
+    `Goals completed: ${review.goalsCompleted.length} (${completedList})`,
+    `Goals stalled (no progress): ${review.goalsStalled.length} (${stalledList})`,
+    `Active goals: ${review.goalsActive}`,
+    `Commitments: ${review.commitmentsFulfilled}/${review.totalCommitments} kept, ${review.commitmentsMissed} missed, ${review.commitmentsPending} pending`,
+    `Check-ins: ${review.checkInCount}`,
+    `Focus time: ${review.focusMinutes} minutes`,
+    `Streak: ${review.streakDays} days (${review.streakDirection})`,
+  ].join('\n');
+
+  try {
+    const result = await callAI(db, {
+      memberId,
+      feature: 'planning',
+      messages: [
+        {
+          role: 'system',
+          content:
+            "Summarize this member's week in 4-6 sentences. Be factual and specific. " +
+            "Reference actual goal names and numbers. Forward-looking: end with what carries forward to next week. " +
+            "Keep a direct, concise coaching tone. No fluff.",
+        },
+        {
+          role: 'user',
+          content: reviewContext,
+        },
+      ],
+    });
+
+    if (!result.degraded && result.content) {
+      return result.content;
+    }
+  } catch (error) {
+    logger.warn(`AI review generation failed, using template: ${String(error)}`);
+  }
+
+  // Template fallback
+  const lines: string[] = [];
+  lines.push(`**Your Week in Review**`);
+  lines.push(`${review.goalsCompleted.length} goal(s) completed, ${review.goalsStalled.length} stalled.`);
+  if (review.totalCommitments > 0) {
+    lines.push(`${review.commitmentsFulfilled}/${review.totalCommitments} commitments kept.`);
+  }
+  lines.push(`${review.checkInCount} check-in(s), ${review.focusMinutes} focused minutes.`);
+  lines.push(`Streak: ${review.streakDays} days.`);
+
+  // Stalled goal details
+  for (const g of review.goalsStalled) {
+    lines.push(`- ${g.title} -- no movement this week.`);
+  }
+
+  return lines.join('\n');
 }
 
 /**
@@ -97,39 +293,27 @@ export async function runPlanningSession(
       return;
     }
 
-    // Fetch last week's data
+    // Build weekly review data
     const now = new TZDate(new Date(), timezone);
-    const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-    const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    const review = await buildWeekReview(db, memberId, timezone);
 
-    const [lastWeekCheckins, lastWeekGoalsCompleted, activeGoals] = await Promise.all([
-      db.checkIn.count({
-        where: {
-          memberId,
-          createdAt: { gte: lastWeekStart, lte: lastWeekEnd },
-        },
-      }),
-      db.goal.count({
-        where: {
-          memberId,
-          status: 'COMPLETED',
-          completedAt: { gte: lastWeekStart, lte: lastWeekEnd },
-        },
-      }),
-      db.goal.count({
-        where: {
-          memberId,
-          status: { in: ['ACTIVE', 'EXTENDED'] },
-        },
-      }),
-    ]);
+    // Step 0: Weekly review summary (opening act before asking for rating)
+    const reviewText = await generateReviewText(db, memberId, review);
 
-    // Step 1: How did last week go?
+    // Store review as conversation message for Jarvis context
+    await storeMessage(db, memberId, 'assistant', reviewText, 'planning');
+
+    try {
+      await dm.send(`Hey ${member.displayName}, it's planning time! Here's your week in review:\n\n${reviewText}`);
+    } catch {
+      logger.warn(`Could not send DM to ${discordId} -- DMs likely closed`);
+      return;
+    }
+
+    // Step 1: How did last week go? (member now has review context to rate accurately)
     try {
       await dm.send(
-        `Hey ${member.displayName}, it's planning time! Quick check -- how did last week go?\n\n` +
-        `Last week: ${lastWeekCheckins} check-in(s), ${lastWeekGoalsCompleted} goal(s) completed, ` +
-        `${member.currentStreak}-day streak.\n\n` +
+        `With all that in mind -- how did last week go?\n\n` +
         `Rate it 1-5, or just tell me how you feel about it.`,
       );
     } catch {
