@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 24 of 24 (Desktop Enhancement)
-Plan: 0 of 2 in current phase
-Status: Phase 23 complete, ready for Phase 24
-Last activity: 2026-03-22 -- Completed 23-02: Voice co-working and accountability tone
+Plan: 2 of 2 in current phase
+Status: Phase 24 complete -- v3.0 complete
+Last activity: 2026-03-22 -- Completed 24-02: Who's grinding indicator
 
-Progress: [████████░░] 83% (v3.0 -- 10/12 plans)
+Progress: [██████████] 100% (v3.0 -- 12/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 56 (18 v1.0 + 17 v1.1 + 14 v2.0 + 7 v3.0)
+- Total plans completed: 58 (18 v1.0 + 17 v1.1 + 14 v2.0 + 9 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.69 hours
+- Total execution time: 3.79 hours
 
 **By Phase (v3.0):**
 
@@ -31,11 +31,11 @@ Progress: [████████░░] 83% (v3.0 -- 10/12 plans)
 | 21-conversational-jarvis | 3/3 | 10 min | 3.3 min |
 | 22-daily-rhythm | 3/3 | 9 min | 3 min |
 | 23-social-layer | 2/2 | 7 min | 3.5 min |
-| 24-desktop-enhancement | 0/2 | - | - |
+| 24-desktop-enhancement | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 22-01 (3 min), 22-02 (7 min), 22-03 (6 min), 23-01 (3 min), 23-02 (4 min)
-- Trend: Phase 23 complete (2/2 plans), ready for Phase 24
+- Last 5 plans: 22-03 (6 min), 23-01 (3 min), 23-02 (4 min), 24-01 (3 min), 24-02 (3 min)
+- Trend: Phase 24 complete (2/2 plans) -- v3.0 finished
 
 *Updated after each plan completion*
 
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 - [23-02]: generateBrief accepts optional Client param -- backward compatible with existing callers
 - [23-02]: ACCOUNTABILITY DELEGATION appended as separate section to system prompt, not inlined into character prompt
 - [23-02]: Commitment queries limited to 3 ACTIVE commitments -- keeps nudge context focused
+- [24-01]: Stripped WeeklyGoals, RankProgress, DailyQuote from dashboard -- only streak remains in sidebar
+- [24-01]: Timer widget shows elapsed for flowmodoro, countdown for pomodoro -- mode-aware display
+- [24-01]: Session history limited to 10 most recent -- no pagination for glanceability
 
 ### Pending Todos
 
@@ -109,5 +112,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 23-02-PLAN.md -- Voice co-working and accountability tone
+Stopped at: Completed 24-01-PLAN.md -- Today view cockpit and session history
 Resume file: None

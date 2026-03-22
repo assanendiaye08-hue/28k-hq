@@ -60,7 +60,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 - [x] **Phase 21: Conversational Jarvis** - Natural language actions, commitment extraction, topic-aware context, coaching tone, brainstorming (completed 2026-03-22)
 - [x] **Phase 22: Daily Rhythm** - Morning briefs, evening reflections, weekly planning, smart nudges, outreach budget, coaching settings (completed 2026-03-22)
 - [x] **Phase 23: Social Layer Refinement** - Voice co-working promotion, streak redesign, channel consolidation, accountability tone (completed 2026-03-22)
-- [ ] **Phase 24: Desktop App Enhancement** - Today view, session history, who's grinding indicator
+- [x] **Phase 24: Desktop App Enhancement** - Today view, session history, who's grinding indicator (completed 2026-03-22)
 
 ## Phase Details
 
@@ -157,4 +157,4 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 21. Conversational Jarvis | 3/3 | Complete    | 2026-03-22 | - |
 | 22. Daily Rhythm | 3/3 | Complete    | 2026-03-22 | - |
 | 23. Social Layer Refinement | 2/2 | Complete    | 2026-03-22 | - |
-| 24. Desktop App Enhancement | v3.0 | 0/2 | Not started | - |
+| 24. Desktop App Enhancement | 2/2 | Complete   | 2026-03-22 | - |
