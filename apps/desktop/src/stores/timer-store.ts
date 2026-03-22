@@ -185,10 +185,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         workDuration,
         breakDuration,
         focus: config.focus,
-        goalId: config.goalId ?? null,
-        targetSessions,
-        longBreakDuration,
-        longBreakInterval,
+        goalId: config.goalId || undefined,
+        targetSessions: targetSessions ?? undefined,
+        longBreakDuration: longBreakDuration ?? undefined,
+        longBreakInterval: longBreakInterval ?? undefined,
       }),
     });
 

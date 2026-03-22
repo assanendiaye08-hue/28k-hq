@@ -34,21 +34,24 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 }
 
 export async function loginWithDiscord(): Promise<AuthResult> {
-  // 1. Set up URL listener to capture the OAuth redirect callback
+  // 1. Start localhost server
+  const port = await start({ ports: [28457, 28458, 28459] });
+  const redirectUri = `http://127.0.0.1:${port}`;
+
+  // 2. Set up URL listener before opening browser
+  const unlisten = await onUrl(() => {});
+  unlisten();
+
   const callbackPromise = new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('OAuth login timed out'));
-    }, 120_000); // 2 minute timeout
+    }, 120_000);
 
     onUrl((url) => {
       clearTimeout(timeout);
       resolve(url);
     });
   });
-
-  // 2. Start localhost server to capture OAuth redirect
-  const port = await start({ ports: [28457, 28458, 28459] });
-  const redirectUri = `http://127.0.0.1:${port}`;
 
   // 3. Generate PKCE pair
   const codeVerifier = generateCodeVerifier();
@@ -69,17 +72,18 @@ export async function loginWithDiscord(): Promise<AuthResult> {
   let callbackUrl: string;
   try {
     callbackUrl = await callbackPromise;
-  } finally {
-    // 6. Cancel the localhost server regardless of outcome
-    await cancel(port);
+  } catch (err) {
+    try { await cancel(port); } catch { /* ignore */ }
+    throw err;
   }
+  try { await cancel(port); } catch { /* ignore */ }
 
-  // 7. Extract code from callback URL
+  // 6. Extract code from callback URL
   const url = new URL(callbackUrl.startsWith('http') ? callbackUrl : `http://127.0.0.1:${port}${callbackUrl}`);
   const code = url.searchParams.get('code');
   if (!code) throw new Error('No authorization code received');
 
-  // 8. Exchange code via our API (server-side token exchange)
+  // 7. Exchange code via our API
   const response = await fetch(`${API_BASE}/auth/discord`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -93,7 +97,7 @@ export async function loginWithDiscord(): Promise<AuthResult> {
 
   const result: AuthResult = await response.json();
 
-  // 9. Store refresh token persistently
+  // 8. Store refresh token persistently
   const store = await load('auth.json', { defaults: {}, autoSave: true });
   await store.set('refreshToken', result.refreshToken);
   await store.save();
@@ -114,7 +118,6 @@ export async function tryRestoreSession(): Promise<AuthResult['member'] | null> 
     });
 
     if (!res.ok) {
-      // Refresh token expired -- clear stored token
       await store.delete('refreshToken');
       await store.save();
       return null;
@@ -122,11 +125,9 @@ export async function tryRestoreSession(): Promise<AuthResult['member'] | null> 
 
     const data = await res.json();
 
-    // Store rotated refresh token
     await store.set('refreshToken', data.refreshToken);
     await store.save();
 
-    // Set access token in memory
     setAccessToken(data.accessToken);
 
     return data.member ?? null;
@@ -140,7 +141,6 @@ export async function logoutSession(): Promise<void> {
     const store = await load('auth.json', { defaults: {} });
     const refreshToken = await store.get<string>('refreshToken');
 
-    // Try to invalidate on server (best-effort)
     if (refreshToken) {
       await fetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
@@ -149,13 +149,11 @@ export async function logoutSession(): Promise<void> {
       }).catch(() => {});
     }
 
-    // Clear stored token
     await store.delete('refreshToken');
     await store.save();
   } catch {
     // Best-effort cleanup
   }
 
-  // Clear in-memory token
   setAccessToken(null);
 }
