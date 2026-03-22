@@ -6,8 +6,8 @@
  * - On guildMemberAdd: sends a DM prompting them to run /setup,
  *   with a fallback @mention in #welcome if DMs are closed
  *
- * The actual setup logic lives in commands.ts (command handler),
- * setup-flow.ts (DM conversation), and channel-setup.ts (private channel creation).
+ * The actual setup logic lives in commands.ts (command handler)
+ * and setup-flow.ts (DM conversation).
  */
 
 import { ChannelType, type TextChannel, type ButtonInteraction, Events } from 'discord.js';

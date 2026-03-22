@@ -4,18 +4,17 @@
  * Flow:
  * 1. deferReply (ephemeral) -- must respond within 3 seconds
  * 2. Check if already set up (has Member role)
- * 3. Run DM conversation flow (5 questions + space preference)
+ * 3. Run DM conversation flow (5 questions)
  * 4. On success:
  *    a. Create Member record with encryption salt
  *    b. Create DiscordAccount linking Discord ID to Member
  *    c. Derive member encryption key, generate recovery key
  *    d. Store raw answers as encrypted JSON in MemberProfile
- *    e. Create PrivateSpace record
- *    f. If CHANNEL type: create private channel
- *    g. Send recovery key via DM
- *    h. Assign Member role (unlocks all gated channels)
- *    i. Edit reply with success message
- *    j. Emit memberSetupComplete event
+ *    e. Create PrivateSpace record (always DM type)
+ *    f. Send recovery key via DM
+ *    g. Assign Member role (unlocks all gated channels)
+ *    h. Edit reply with success message
+ *    i. Emit memberSetupComplete event
  */
 
 import {
@@ -27,7 +26,6 @@ import {
 import type { ModuleContext } from '../../shared/types.js';
 import type { ExtendedPrismaClient } from '@28k/db';
 import { runSetupFlow, type SetupFlowResult, type SetupFlowError } from './setup-flow.js';
-import { createPrivateChannel } from './channel-setup.js';
 import {
   deriveMemberKey,
   generateRecoveryKey,
@@ -86,7 +84,7 @@ async function runSetup(
   const { logger, events } = ctx;
   const db = ctx.db as ExtendedPrismaClient;
 
-  // Step 1: Defer reply immediately (ephemeral) — skip if button already replied
+  // Step 1: Defer reply immediately (ephemeral) -- skip if button already replied
   if (!alreadyReplied) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   }
@@ -154,22 +152,9 @@ async function runSetup(
 
   // Step 4: Success -- create records in DB (atomic transaction)
   try {
-    const { answers, spaceType, displayName } = result;
+    const { answers, displayName } = result;
 
-    // 4a: Create Discord channel FIRST (outside transaction -- external API call)
-    let channelId: string | null = null;
-
-    if (spaceType === 'CHANNEL' && interaction.guild) {
-      const botId = interaction.client.user.id;
-      const privateChannel = await createPrivateChannel(
-        interaction.guild,
-        guildMember,
-        botId,
-      );
-      channelId = privateChannel.id;
-    }
-
-    // 4b: Wrap all DB writes in a transaction for atomicity
+    // All DB writes in a transaction for atomicity
     let memberRecord: { id: string };
     let recoveryKey: string;
 
@@ -226,12 +211,12 @@ async function runSetup(
           },
         });
 
-        // Create PrivateSpace record
+        // Create PrivateSpace record (always DM -- no channel option)
         await tx.privateSpace.create({
           data: {
             memberId: member.id,
-            type: spaceType,
-            channelId,
+            type: 'DM',
+            channelId: null,
           },
         });
 
@@ -248,15 +233,6 @@ async function runSetup(
       memberRecord = txResult.memberRecord;
       recoveryKey = txResult.recoveryKey;
     } catch (txError) {
-      // Transaction failed -- clean up Discord channel if it was created
-      if (channelId) {
-        await interaction.client.channels
-          .fetch(channelId)
-          .then((ch) => {
-            if (ch && 'delete' in ch) return (ch as { delete: (reason?: string) => Promise<unknown> }).delete();
-          })
-          .catch(() => {});
-      }
       throw txError;
     }
 
@@ -313,23 +289,16 @@ async function runSetup(
     }
 
     // 4e: Edit reply with success message
-    if (spaceType === 'CHANNEL' && channelId) {
-      await interaction.editReply(
-        "You're all set! Check out the server -- everything is unlocked now. " +
-        `Your private space is <#${channelId}>.`,
-      );
-    } else {
-      await interaction.editReply(
-        "You're all set! Check out the server -- everything is unlocked now. " +
-        "Your private space is right here in DMs.",
-      );
-    }
+    await interaction.editReply(
+      "You're all set! Check out the server -- everything is unlocked now. " +
+      "Your private space is right here in DMs.",
+    );
 
     // 4f: Emit memberSetupComplete event
     events.emit('memberSetupComplete', memberRecord.id, interaction.user.id);
 
     logger.info(
-      `Setup complete for ${guildMember.user.tag}: member=${memberRecord.id}, space=${spaceType}`,
+      `Setup complete for ${guildMember.user.tag}: member=${memberRecord.id}`,
     );
   } catch (error) {
     logger.error(`Failed to complete setup for ${guildMember.user.tag}:`, error);
