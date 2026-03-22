@@ -21,6 +21,26 @@ import { buildSystemPrompt } from './personality.js';
 import { intentTools } from './intent-tools.js';
 import winston from 'winston';
 
+// ─── Topic Classification ────────────────────────────────────────────────────
+
+/**
+ * Classify a message into a topic using keyword heuristics.
+ *
+ * Lightweight -- no LLM call. Handles the 80% case. The LLM's own topic
+ * awareness (from TOOL_AWARENESS_PROMPT) naturally avoids bleeding for
+ * the remaining 20%.
+ */
+export function classifyTopic(message: string): string {
+  const lower = message.toLowerCase();
+  if (/\b(code|coding|programming|api|bug|deploy|git|pr|frontend|backend|database|app)\b/.test(lower)) return 'coding';
+  if (/\b(gym|workout|fitness|run|exercise|diet|weight|muscle|cardio)\b/.test(lower)) return 'fitness';
+  if (/\b(business|revenue|sales|marketing|launch|startup|customers|pricing)\b/.test(lower)) return 'business';
+  if (/\b(read|book|course|learn|study|tutorial)\b/.test(lower)) return 'learning';
+  if (/\b(design|figma|ui|ux|wireframe|mockup|layout)\b/.test(lower)) return 'design';
+  if (/\b(content|write|blog|newsletter|video|youtube|social media|twitter|post)\b/.test(lower)) return 'content';
+  return 'general';
+}
+
 const logger = winston.createLogger({
   level: 'debug',
   format: winston.format.combine(
@@ -119,16 +139,19 @@ export async function handleChat(
       return "You've hit the daily limit (50 messages). Resets at midnight your time. Use /checkin or /setgoal for those workflows.";
     }
 
-    // 2. Store the user message
-    await storeMessage(db, memberId, 'user', userMessage);
+    // 2. Classify topic from user message
+    const topic = classifyTopic(userMessage);
 
-    // 3. Assemble context
-    const context = await assembleContext(db, memberId);
+    // 3. Store the user message with topic
+    await storeMessage(db, memberId, 'user', userMessage, topic);
 
-    // 4. Build system prompt
+    // 4. Assemble context with topic filtering
+    const context = await assembleContext(db, memberId, topic);
+
+    // 5. Build system prompt
     const systemPrompt = await buildSystemPrompt(db, memberId);
 
-    // 5. Build messages array
+    // 6. Build messages array
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: systemPrompt },
     ];
@@ -157,7 +180,7 @@ export async function handleChat(
       });
     }
 
-    // 6. Call AI via centralized client
+    // 7. Call AI via centralized client
     const result = await callAI(db, {
       memberId,
       feature: 'chat',
@@ -171,8 +194,8 @@ export async function handleChat(
     const responseText = result.content;
     logger.debug(`AI response for ${memberId} (${responseText.length} chars, model: ${result.model})`);
 
-    // 7. Store the assistant response
-    await storeMessage(db, memberId, 'assistant', responseText);
+    // 8. Store the assistant response with same topic
+    await storeMessage(db, memberId, 'assistant', responseText, topic);
 
     return responseText;
   });
@@ -223,16 +246,19 @@ export async function handleChatWithTools(
       };
     }
 
-    // 2. Store the user message
-    await storeMessage(db, memberId, 'user', userMessage);
+    // 2. Classify topic from user message
+    const topic = classifyTopic(userMessage);
 
-    // 3. Assemble context
-    const context = await assembleContext(db, memberId);
+    // 3. Store the user message with topic
+    await storeMessage(db, memberId, 'user', userMessage, topic);
 
-    // 4. Build system prompt
+    // 4. Assemble context with topic filtering
+    const context = await assembleContext(db, memberId, topic);
+
+    // 5. Build system prompt
     const systemPrompt = await buildSystemPrompt(db, memberId);
 
-    // 5. Build messages array
+    // 6. Build messages array
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: systemPrompt },
     ];
@@ -261,7 +287,7 @@ export async function handleChatWithTools(
       });
     }
 
-    // 6. Call AI with tools
+    // 7. Call AI with tools
     const result = await callAI(db, {
       memberId,
       feature: 'intent',
@@ -276,7 +302,7 @@ export async function handleChatWithTools(
       };
     }
 
-    // 7. Check for tool calls
+    // 8. Check for tool calls
     if (result.toolCalls && result.toolCalls.length > 0) {
       const firstToolCall = result.toolCalls[0];
       let parsedParams: Record<string, unknown>;
@@ -289,7 +315,7 @@ export async function handleChatWithTools(
 
       // Store assistant response if it has content alongside the tool call
       if (result.content) {
-        await storeMessage(db, memberId, 'assistant', result.content);
+        await storeMessage(db, memberId, 'assistant', result.content, topic);
       }
 
       logger.debug(
@@ -305,11 +331,11 @@ export async function handleChatWithTools(
       };
     }
 
-    // 8. No tool call -- regular conversation
+    // 9. No tool call -- regular conversation
     const responseText = result.content ?? '';
     if (responseText) {
       logger.debug(`AI response for ${memberId} (${responseText.length} chars, model: ${result.model})`);
-      await storeMessage(db, memberId, 'assistant', responseText);
+      await storeMessage(db, memberId, 'assistant', responseText, topic);
     }
 
     return {
