@@ -36,16 +36,20 @@ do
     pnpm install --frozen-lockfile
 
     echo ""
-    echo "[4/6] Generating Prisma client + building bot..."
-    pnpm turbo build --filter @28k/bot
+    echo "[4/7] Generating Prisma client + building bot & API..."
+    pnpm turbo build --filter @28k/bot --filter @28k/api
 
     echo ""
-    echo "[5/6] Running database migrations..."
+    echo "[5/7] Running database migrations..."
     pnpm --filter @28k/db db:deploy
 
     echo ""
-    echo "[6/6] Restarting bot..."
-    pm2 restart 28k-bot 2>/dev/null || pm2 start ecosystem.config.cjs
+    echo "[6/7] Restarting bot..."
+    pm2 restart 28k-bot 2>/dev/null || pm2 start ecosystem.config.cjs --only 28k-bot
+
+    echo ""
+    echo "[7/7] Restarting API..."
+    pm2 restart 28k-api 2>/dev/null || pm2 start ecosystem.config.cjs --only 28k-api
 
     echo ""
     echo "========================================"

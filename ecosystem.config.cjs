@@ -17,7 +17,18 @@ module.exports = {
       },
       max_restarts: 10,
       restart_delay: 5000,
-      watch: false, // Deploy hook handles restarts, not file watching
+      watch: false,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+    },
+    {
+      name: '28k-api',
+      script: './apps/api/dist/index.js',
+      env: {
+        NODE_ENV: 'production',
+      },
+      max_restarts: 10,
+      restart_delay: 5000,
+      watch: false,
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
     },
   ],
