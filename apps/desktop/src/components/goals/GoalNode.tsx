@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGoalsStore, type Goal } from '../../stores/goals-store';
 import { ProgressBar } from '../common/ProgressBar';
 
@@ -91,18 +92,53 @@ interface GoalNodeProps {
 export function GoalNode({ goal, depth }: GoalNodeProps) {
   const toggleExpanded = useGoalsStore((s) => s.toggleExpanded);
   const expandedIds = useGoalsStore((s) => s.expandedIds);
+  const updateProgress = useGoalsStore((s) => s.updateProgress);
+  const completeGoal = useGoalsStore((s) => s.completeGoal);
   const expanded = expandedIds.has(goal.id);
   const hasChildren = goal.children && goal.children.length > 0;
 
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showProgressInput, setShowProgressInput] = useState(false);
+  const [progressValue, setProgressValue] = useState(goal.currentValue);
+  const [xpFeedback, setXpFeedback] = useState<number | null>(null);
+
+  const isActive = goal.status === 'ACTIVE';
+  const isMeasurable = goal.type === 'MEASURABLE';
+
   const progress =
-    goal.type === 'MEASURABLE' && goal.targetValue
+    isMeasurable && goal.targetValue
       ? Math.round((goal.currentValue / goal.targetValue) * 100)
       : 0;
+
+  async function handleProgressSave() {
+    setIsUpdating(true);
+    try {
+      await updateProgress(goal.id, progressValue);
+      setShowProgressInput(false);
+    } catch {
+      // Error handled by store
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleComplete() {
+    setIsUpdating(true);
+    try {
+      const result = await completeGoal(goal.id);
+      setXpFeedback(result.xpAwarded);
+      setTimeout(() => setXpFeedback(null), 2000);
+    } catch {
+      // Error handled by store
+    } finally {
+      setIsUpdating(false);
+    }
+  }
 
   return (
     <div>
       <div
-        className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-2 transition-colors cursor-default"
+        className="group flex items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-2 transition-colors cursor-default"
         style={{ marginLeft: `${depth * 20}px` }}
       >
         {/* Expand/collapse chevron */}
@@ -130,13 +166,56 @@ export function GoalNode({ goal, depth }: GoalNodeProps) {
         {/* Title */}
         <span className="text-text-primary text-sm truncate flex-1">{goal.title}</span>
 
+        {/* XP feedback */}
+        {xpFeedback !== null && (
+          <span className="text-brand text-xs font-bold animate-fade-in">+{xpFeedback} XP</span>
+        )}
+
         {/* Status indicator */}
         {goal.status !== 'ACTIVE' && (
           <StatusIndicator status={goal.status} />
         )}
 
+        {/* Action buttons (active goals only) */}
+        {isActive && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Progress update button for measurable goals */}
+            {isMeasurable && (
+              <button
+                onClick={() => {
+                  setProgressValue(goal.currentValue);
+                  setShowProgressInput(!showProgressInput);
+                }}
+                disabled={isUpdating}
+                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface-base transition-all text-text-secondary hover:text-brand disabled:opacity-50"
+                aria-label="Update progress"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Complete button */}
+            <button
+              onClick={handleComplete}
+              disabled={isUpdating}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface-base transition-all text-text-secondary hover:text-green-400 disabled:opacity-50"
+              aria-label="Mark complete"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Right side: progress or freetext indicator */}
-        {goal.type === 'MEASURABLE' ? (
+        {isMeasurable ? (
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs text-text-secondary whitespace-nowrap">
               {goal.currentValue}/{goal.targetValue} {goal.unit ?? ''}
@@ -151,6 +230,37 @@ export function GoalNode({ goal, depth }: GoalNodeProps) {
           </div>
         )}
       </div>
+
+      {/* Inline progress input */}
+      {showProgressInput && isActive && isMeasurable && (
+        <div
+          className="flex items-center gap-2 py-1.5 px-2 animate-fade-in"
+          style={{ marginLeft: `${(depth + 1) * 20}px` }}
+        >
+          <input
+            type="number"
+            value={progressValue}
+            onChange={(e) => setProgressValue(Number(e.target.value))}
+            min={0}
+            max={goal.targetValue ?? undefined}
+            className="w-20 bg-surface-base border border-white/5 rounded-lg px-2 py-1 text-sm text-text-primary focus:outline-none focus:border-brand"
+          />
+          <span className="text-xs text-text-tertiary">/ {goal.targetValue} {goal.unit ?? ''}</span>
+          <button
+            onClick={handleProgressSave}
+            disabled={isUpdating}
+            className="px-2 py-1 bg-brand text-surface-base rounded-lg text-xs font-medium hover:bg-brand/90 disabled:opacity-50"
+          >
+            {isUpdating ? '...' : 'Save'}
+          </button>
+          <button
+            onClick={() => setShowProgressInput(false)}
+            className="px-2 py-1 text-text-secondary text-xs hover:text-text-primary"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Children */}
       {expanded && hasChildren && (

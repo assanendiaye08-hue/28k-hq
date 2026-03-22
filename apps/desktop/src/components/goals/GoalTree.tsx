@@ -25,7 +25,7 @@ export function GoalTree({ goals }: GoalTreeProps) {
       <div className="flex flex-col items-center justify-center py-16 gap-2">
         <p className="text-text-secondary text-lg">No goals yet</p>
         <p className="text-text-tertiary text-sm">
-          Create goals in Discord using /goal or ask Jarvis
+          Click 'Add Goal' above to create your first goal
         </p>
       </div>
     );
