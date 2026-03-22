@@ -18,7 +18,7 @@ import {
   clearTimerState,
   type SavedTimerState,
 } from '../lib/timer-persistence';
-import { updateTrayTitle } from '../lib/timer-tray';
+import { updateTrayTitle, updateTrayTitleElapsed } from '../lib/timer-tray';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { onPhaseComplete, onSessionComplete } from '../lib/timer-notifications';
 
@@ -39,6 +39,8 @@ interface LastStopResult {
   newRank: string | null;
 }
 
+export type TimerMode = 'pomodoro' | 'flowmodoro';
+
 interface StartConfig {
   workDuration?: number;
   breakDuration?: number;
@@ -49,6 +51,8 @@ interface StartConfig {
   autoStartWork?: boolean;
   focus: string;
   goalId?: string | null;
+  timerMode?: TimerMode;
+  breakRatio?: number;
 }
 
 interface TimerState {
@@ -73,6 +77,8 @@ interface TimerState {
   autoStartWork: boolean;
   focus: string;
   goalId: string | null;
+  timerMode: TimerMode;
+  breakRatio: number;
 
   // Transition state
   transitionType: TransitionType;
@@ -80,6 +86,7 @@ interface TimerState {
 
   // Computed
   getRemainingMs: () => number;
+  getElapsedMs: () => number;
   isLongBreak: () => boolean;
 
   // Actions
@@ -90,6 +97,8 @@ interface TimerState {
   completePhase: () => void;
   transitionToBreak: () => void;
   transitionToWork: () => void;
+  transitionToFlowBreak: () => void;
+  skipFlowBreak: () => void;
   restore: (saved: SavedTimerState) => void;
   syncFromPersistence: () => Promise<void>;
   updateFocus: (newFocus: string) => void;
@@ -119,6 +128,8 @@ function buildSaveState(state: TimerState): SavedTimerState {
     focus: state.focus,
     goalId: state.goalId,
     transitionType: state.transitionType,
+    timerMode: state.timerMode,
+    breakRatio: state.breakRatio,
   };
 }
 
@@ -146,6 +157,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   autoStartWork: false,
   focus: '',
   goalId: null,
+  timerMode: 'pomodoro' as TimerMode,
+  breakRatio: TIMER_DEFAULTS.defaultBreakRatio,
 
   // Transition state
   transitionType: null,
@@ -158,6 +171,11 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     if (phase === 'paused') return pauseRemainingMs;
     if (phaseStartedAt === null) return 0;
     return Math.max(0, phaseDurationMs - (Date.now() - phaseStartedAt));
+  },
+
+  getElapsedMs: () => {
+    const { phaseStartedAt } = get();
+    return phaseStartedAt ? Date.now() - phaseStartedAt : 0;
   },
 
   isLongBreak: () => {
@@ -175,6 +193,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       throw new Error('Focus is required to start a timer');
     }
 
+    const timerMode = config.timerMode ?? 'pomodoro';
+    const breakRatio = config.breakRatio ?? TIMER_DEFAULTS.defaultBreakRatio;
     const workDuration = config.workDuration ?? TIMER_DEFAULTS.defaultWorkMinutes;
     const breakDuration = config.breakDuration ?? TIMER_DEFAULTS.defaultBreakMinutes;
     const longBreakDuration = config.longBreakDuration ?? 15;
@@ -187,7 +207,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       phase: 'working',
       sessionId: localSessionId,
       phaseStartedAt: Date.now(),
-      phaseDurationMs: workDuration * 60000,
+      phaseDurationMs: timerMode === 'flowmodoro' ? 0 : workDuration * 60000,
       totalWorkedMs: 0,
       totalBreakMs: 0,
       pomodoroCount: 0,
@@ -202,23 +222,27 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       autoStartWork: config.autoStartWork ?? false,
       focus: config.focus,
       goalId: config.goalId ?? null,
+      timerMode,
+      breakRatio,
     });
 
     saveTimerState(buildSaveState(get())).catch(() => {});
 
     // Fire API in background — timer works even if server is down
+    const apiMode = timerMode === 'flowmodoro' ? 'PROPORTIONAL' : 'POMODORO';
     apiFetch<{ id: string }>('/timer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        mode: 'POMODORO',
-        workDuration,
-        breakDuration,
+        mode: apiMode,
+        workDuration: timerMode === 'flowmodoro' ? undefined : workDuration,
+        breakDuration: timerMode === 'flowmodoro' ? undefined : breakDuration,
+        breakRatio: timerMode === 'flowmodoro' ? breakRatio : undefined,
         focus: config.focus,
         goalId: config.goalId || undefined,
-        targetSessions: targetSessions ?? undefined,
-        longBreakDuration: longBreakDuration ?? undefined,
-        longBreakInterval: longBreakInterval ?? undefined,
+        targetSessions: timerMode === 'flowmodoro' ? undefined : (targetSessions ?? undefined),
+        longBreakDuration: timerMode === 'flowmodoro' ? undefined : (longBreakDuration ?? undefined),
+        longBreakInterval: timerMode === 'flowmodoro' ? undefined : (longBreakInterval ?? undefined),
       }),
     })
       .then((res) => set({ sessionId: res.id }))
@@ -227,26 +251,33 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   pause: () => {
     const state = get();
-    const { phase, phaseStartedAt, phaseDurationMs, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount } = state;
+    const { phase, phaseStartedAt, phaseDurationMs, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount, timerMode } = state;
 
     if (phase !== 'working' && phase !== 'on_break') return;
 
     const elapsed = phaseStartedAt ? Date.now() - phaseStartedAt : 0;
     const newTotalWorkedMs = phase === 'working' ? totalWorkedMs + elapsed : totalWorkedMs;
     const newTotalBreakMs = phase === 'on_break' ? totalBreakMs + elapsed : totalBreakMs;
-    const remaining = Math.max(0, phaseDurationMs - elapsed);
+
+    // For flowmodoro work, remaining is meaningless (count-up) -- store elapsed instead
+    const isFlowWork = timerMode === 'flowmodoro' && phase === 'working';
+    const remaining = isFlowWork ? 0 : Math.max(0, phaseDurationMs - elapsed);
 
     // Update state immediately
     set({
       phase: 'paused',
       prePausePhase: phase,
-      pauseRemainingMs: remaining,
+      pauseRemainingMs: isFlowWork ? elapsed : remaining,
       totalWorkedMs: newTotalWorkedMs,
       totalBreakMs: newTotalBreakMs,
     });
 
-    // Show frozen remaining time in tray (not null)
-    updateTrayTitle(remaining).catch(() => {});
+    // Show frozen time in tray
+    if (isFlowWork) {
+      updateTrayTitleElapsed(elapsed).catch(() => {});
+    } else {
+      updateTrayTitle(remaining).catch(() => {});
+    }
     saveTimerState(buildSaveState(get())).catch(() => {});
 
     // Fire API in background
@@ -267,20 +298,27 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   resume: () => {
-    const { prePausePhase, pauseRemainingMs, sessionId } = get();
+    const { prePausePhase, pauseRemainingMs, sessionId, timerMode } = get();
     if (!prePausePhase) return;
 
-    // Update state immediately
+    const isFlowWork = timerMode === 'flowmodoro' && prePausePhase === 'working';
+
+    // For flowmodoro work resume: phaseStartedAt = now - pausedElapsed (so getElapsedMs continues)
+    // For countdown resume: phaseStartedAt = now, phaseDurationMs = pauseRemainingMs
     set({
       phase: prePausePhase,
-      phaseStartedAt: Date.now(),
-      phaseDurationMs: pauseRemainingMs,
+      phaseStartedAt: isFlowWork ? Date.now() - pauseRemainingMs : Date.now(),
+      phaseDurationMs: isFlowWork ? 0 : pauseRemainingMs,
       prePausePhase: null,
       pauseRemainingMs: 0,
     });
 
-    // Immediately sync tray with remaining time
-    updateTrayTitle(pauseRemainingMs).catch(() => {});
+    // Immediately sync tray
+    if (isFlowWork) {
+      updateTrayTitleElapsed(pauseRemainingMs).catch(() => {});
+    } else {
+      updateTrayTitle(pauseRemainingMs).catch(() => {});
+    }
     saveTimerState(buildSaveState(get())).catch(() => {});
 
     // Fire API in background
@@ -295,7 +333,33 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   stop: () => {
     const state = get();
-    const { phase, phaseStartedAt, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount } = state;
+    const { phase, phaseStartedAt, sessionId, totalWorkedMs, totalBreakMs, pomodoroCount, timerMode, breakRatio } = state;
+
+    // Flowmodoro work: stop triggers break calculation transition instead of going idle
+    if (timerMode === 'flowmodoro' && phase === 'working') {
+      const elapsed = phaseStartedAt ? Date.now() - phaseStartedAt : 0;
+      const newTotalWorkedMs = totalWorkedMs + elapsed;
+      const breakDurationMs = Math.round(newTotalWorkedMs / breakRatio);
+
+      set({
+        phase: 'transition',
+        transitionType: 'work_done',
+        phaseStartedAt: null,
+        phaseDurationMs: breakDurationMs,
+        totalWorkedMs: newTotalWorkedMs,
+      });
+
+      updateTrayTitle(null).catch(() => {});
+      saveTimerState(buildSaveState(get())).catch(() => {});
+
+      // Show window for transition
+      try {
+        const win = getCurrentWindow();
+        win.show().catch(() => {});
+        win.setFocus().catch(() => {});
+      } catch { /* ignore */ }
+      return;
+    }
 
     // Capture final totals BEFORE resetting
     let finalWorkedMs = totalWorkedMs;
@@ -324,6 +388,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       goalId: null,
       transitionType: null,
       lastStopResult: null,
+      timerMode: 'pomodoro',
+      breakRatio: TIMER_DEFAULTS.defaultBreakRatio,
     });
 
     // Local cleanup
@@ -364,6 +430,55 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       breakDuration, workDuration, autoStartBreak, autoStartWork,
       focus,
     } = state;
+
+    // Flowmodoro work never auto-completes (user stops manually)
+    // Flowmodoro break completion -> session complete
+    if (get().timerMode === 'flowmodoro' && phase === 'on_break') {
+      const elapsed = phaseStartedAt ? Date.now() - phaseStartedAt : phaseDurationMs;
+      const newTotalBreakMs = totalBreakMs + elapsed;
+
+      onPhaseComplete('on_break', focus).catch(() => {});
+
+      set({
+        totalBreakMs: newTotalBreakMs,
+        phase: 'transition',
+        transitionType: 'session_complete',
+        phaseStartedAt: null,
+      });
+
+      // Call stop API to get XP
+      const { sessionId } = get();
+      if (sessionId) {
+        apiFetch<StopResponse>(`/timer/${sessionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'stop',
+            totalWorkedMs,
+            totalBreakMs: newTotalBreakMs,
+            pomodoroCount: 1,
+          }),
+        })
+          .then((res) => {
+            set({
+              lastStopResult: {
+                xpAwarded: res.xpAwarded,
+                leveledUp: res.leveledUp,
+                newRank: res.newRank?.name ?? null,
+              },
+            });
+            onSessionComplete(focus, res.xpAwarded).catch(() => {});
+          })
+          .catch(() => {
+            set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
+          });
+      } else {
+        set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
+      }
+
+      saveTimerState(buildSaveState(get())).catch(() => {});
+      return;
+    }
 
     if (phase === 'working') {
       const elapsed = phaseStartedAt ? Date.now() - phaseStartedAt : phaseDurationMs;
@@ -498,6 +613,64 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     saveTimerState(buildSaveState(get())).catch(() => {});
   },
 
+  transitionToFlowBreak: () => {
+    const { phaseDurationMs } = get();
+    // phaseDurationMs was set to calculated break duration during stop -> transition
+    set({
+      phase: 'on_break',
+      phaseStartedAt: Date.now(),
+      phaseDurationMs,
+      transitionType: null,
+    });
+
+    saveTimerState(buildSaveState(get())).catch(() => {});
+  },
+
+  skipFlowBreak: () => {
+    const { sessionId, totalWorkedMs, totalBreakMs } = get();
+    const capturedSessionId = sessionId;
+
+    set({
+      phase: 'idle',
+      sessionId: null,
+      phaseStartedAt: null,
+      phaseDurationMs: 0,
+      totalWorkedMs: 0,
+      totalBreakMs: 0,
+      pomodoroCount: 0,
+      prePausePhase: null,
+      pauseRemainingMs: 0,
+      focus: '',
+      goalId: null,
+      transitionType: null,
+      lastStopResult: null,
+      timerMode: 'pomodoro',
+      breakRatio: TIMER_DEFAULTS.defaultBreakRatio,
+    });
+
+    clearTimerState().catch(() => {});
+    updateTrayTitle(null).catch(() => {});
+
+    try {
+      const win = getCurrentWindow();
+      win.show().catch(() => {});
+      win.setFocus().catch(() => {});
+    } catch { /* ignore */ }
+
+    if (capturedSessionId) {
+      apiFetch(`/timer/${capturedSessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'stop',
+          totalWorkedMs,
+          totalBreakMs,
+          pomodoroCount: 1,
+        }),
+      }).catch(() => {});
+    }
+  },
+
   restore: (saved) => {
     set({
       phase: saved.phase as TimerPhase,
@@ -519,11 +692,15 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       focus: saved.focus,
       goalId: saved.goalId,
       transitionType: (saved.transitionType as TransitionType) ?? null,
+      timerMode: (saved.timerMode as TimerMode) ?? 'pomodoro',
+      breakRatio: saved.breakRatio ?? TIMER_DEFAULTS.defaultBreakRatio,
     });
 
     // If timer was running, check if it should have already completed
-    const { phase, phaseStartedAt, phaseDurationMs } = get();
-    if ((phase === 'working' || phase === 'on_break') && phaseStartedAt) {
+    // (flowmodoro work never auto-completes -- user stops manually)
+    const { phase, phaseStartedAt, phaseDurationMs, timerMode } = get();
+    const isFlowWork = timerMode === 'flowmodoro' && phase === 'working';
+    if ((phase === 'working' || phase === 'on_break') && phaseStartedAt && !isFlowWork) {
       const remaining = phaseDurationMs - (Date.now() - phaseStartedAt);
       if (remaining <= 0) {
         get().completePhase();
@@ -575,6 +752,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       goalId: null,
       transitionType: null,
       lastStopResult: null,
+      timerMode: 'pomodoro',
+      breakRatio: TIMER_DEFAULTS.defaultBreakRatio,
     });
     clearTimerState().catch(() => {});
     updateTrayTitle(null).catch(() => {});
