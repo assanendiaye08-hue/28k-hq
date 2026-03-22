@@ -1,12 +1,12 @@
 /**
- * Flexible streak tracking with grace days and decay.
+ * Flexible streak tracking with two-day grace rule and consistency rate.
  *
  * Design philosophy: avoid the "what-the-hell effect" from rigid streak systems.
- * Missing a day does NOT reset the streak to zero. Instead:
- * - 2 grace days per Mon-Sun week maintain streak + multiplier
- * - Missing beyond grace days decays the multiplier (not reset)
- * - Only 7+ consecutive missed days resets the streak counter
- * - Comeback bonus XP for returning after missed days
+ * The two-day rule is simple and intuitive:
+ * - Miss 1 day: streak maintained (within grace)
+ * - Miss 2+ consecutive days: streak breaks to 1 (never zero)
+ * - Comeback bonus XP for returning after a break
+ * - Consistency rate (30-day window) provides a healthier metric than raw streak count
  *
  * All date math uses the member's local timezone via @date-fns/tz TZDate.
  */
@@ -14,9 +14,7 @@
 import { TZDate } from '@date-fns/tz';
 import {
   startOfDay,
-  startOfWeek,
   differenceInCalendarDays,
-  isEqual,
 } from 'date-fns';
 import type { ExtendedPrismaClient } from '@28k/db';
 import { STREAK_CONFIG, XP_AWARDS } from '@28k/shared';
@@ -30,18 +28,23 @@ export interface StreakUpdateResult {
   isComeback: boolean;
   milestoneBonus: number;
   milestoneDays?: number;
+  consistencyRate: number;
 }
 
 /**
  * Update a member's streak after a check-in.
  *
  * Computes "today" and "last check-in day" in the member's local timezone,
- * then applies flexible streak rules (grace days, decay, comeback bonus).
+ * then applies the two-day grace rule:
+ *   0 days since last check-in -> same day, no change
+ *   1 day  -> consecutive, increment streak
+ *   2 days -> 1 missed day, streak maintained (within two-day rule)
+ *   3+ days -> 2+ missed days, streak breaks to 1, comeback bonus
  *
  * @param db - Extended Prisma client
  * @param memberId - The member whose streak to update
  * @param timezone - IANA timezone string (e.g., "America/New_York")
- * @returns Streak update details including multiplier and bonuses
+ * @returns Streak update details including multiplier, bonuses, and consistency rate
  */
 export async function updateStreak(
   db: ExtendedPrismaClient,
@@ -70,41 +73,26 @@ export async function updateStreak(
     if (daysSinceLastCheckIn === 0) {
       // Same day -- no streak change (additional check-in same day)
       const multiplier = calculateStreakMultiplier(currentStreak);
+      const consistencyRate = await calculateConsistencyRate(db, memberId);
       return {
         currentStreak,
         multiplier,
         streakBonus: 0,
         isComeback: false,
         milestoneBonus: 0,
+        consistencyRate,
       };
     }
 
     if (daysSinceLastCheckIn === 1) {
       // Consecutive day -- increment streak
       currentStreak += 1;
-    } else if (daysSinceLastCheckIn >= 7) {
-      // 7+ days missed -- reset streak
-      currentStreak = 1;
-      isComeback = true;
-      streakBonus = STREAK_CONFIG.recoverBonus;
+    } else if (daysSinceLastCheckIn === 2) {
+      // 1 missed day -- streak maintained within two-day rule (no increment, no reset)
+      // Streak count stays the same
     } else {
-      // 2-6 days missed -- check grace days
-      const missedDays = daysSinceLastCheckIn - 1; // days with no check-in
-      const { remaining } = await calculateGraceDays(db, memberId, timezone);
-
-      if (missedDays <= remaining) {
-        // Within grace days -- streak maintained, multiplier doesn't increase
-        // Streak stays the same (no increment, no reset)
-      } else {
-        // Beyond grace days -- streak maintained but multiplier decays
-        // We don't modify currentStreak here, the multiplier handles the penalty
-        // The decay is applied in calculateStreakMultiplier via reduced streak count
-        const excessDays = missedDays - remaining;
-        // Reduce effective streak by excess days to simulate decay
-        currentStreak = Math.max(1, currentStreak - excessDays);
-      }
-
-      // Comeback bonus for returning after 2+ missed days
+      // 3+ days since last check-in (2+ consecutive missed days) -- streak breaks
+      currentStreak = 1;
       isComeback = true;
       streakBonus = STREAK_CONFIG.recoverBonus;
     }
@@ -132,6 +120,7 @@ export async function updateStreak(
   });
 
   const multiplier = calculateStreakMultiplier(currentStreak);
+  const consistencyRate = await calculateConsistencyRate(db, memberId);
 
   return {
     currentStreak,
@@ -140,56 +129,46 @@ export async function updateStreak(
     isComeback,
     milestoneBonus,
     milestoneDays,
+    consistencyRate,
   };
 }
 
 /**
- * Calculate how many grace days have been used this Mon-Sun week.
+ * Calculate a member's check-in consistency rate over a rolling window.
  *
- * Counts check-in-free days within the current Mon-Sun week that were
- * "covered" by grace days (i.e., days where the member didn't check in
- * but their streak was maintained).
+ * Counts distinct days with at least one check-in within the last `windowDays` days
+ * and returns a percentage (0-100) rounded to the nearest integer.
+ *
+ * Example: 26 check-in days out of 30 = 87%
  *
  * @param db - Extended Prisma client
- * @param memberId - The member to check
- * @param timezone - IANA timezone string
- * @returns Grace days used and remaining this week
+ * @param memberId - The member to calculate consistency for
+ * @param windowDays - Rolling window size in days (default 30)
+ * @returns Consistency percentage (0-100)
  */
-export async function calculateGraceDays(
+export async function calculateConsistencyRate(
   db: ExtendedPrismaClient,
   memberId: string,
-  timezone: string,
-): Promise<{ used: number; remaining: number }> {
-  const now = new TZDate(new Date(), timezone);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+  windowDays: number = 30,
+): Promise<number> {
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() - windowDays);
 
-  // Count distinct days with check-ins this week
   const checkIns = await db.checkIn.findMany({
     where: {
       memberId,
-      createdAt: { gte: weekStart },
+      createdAt: { gte: windowStart },
     },
     select: { createdAt: true },
   });
 
-  // Count unique check-in days this week (in member's timezone)
-  const checkInDays = new Set<string>();
+  // Count distinct days with at least one check-in (using UTC date strings)
+  const uniqueDays = new Set<string>();
   for (const ci of checkIns) {
-    const ciDate = new TZDate(ci.createdAt, timezone);
-    const dayStr = startOfDay(ciDate).toISOString();
-    checkInDays.add(dayStr);
+    const dateStr = ci.createdAt.toISOString().slice(0, 10);
+    uniqueDays.add(dateStr);
   }
 
-  // How many days have passed this week (up to today)
-  const today = startOfDay(now);
-  const daysPassed = differenceInCalendarDays(today, startOfDay(weekStart)) + 1;
-
-  // Days without check-ins = days passed - days with check-ins
-  const daysWithoutCheckin = Math.max(0, daysPassed - checkInDays.size);
-
-  // Grace days used = missed days (capped at graceDaysPerWeek)
-  const used = Math.min(daysWithoutCheckin, STREAK_CONFIG.graceDaysPerWeek);
-  const remaining = Math.max(0, STREAK_CONFIG.graceDaysPerWeek - used);
-
-  return { used, remaining };
+  const rate = (uniqueDays.size / windowDays) * 100;
+  return Math.round(rate);
 }

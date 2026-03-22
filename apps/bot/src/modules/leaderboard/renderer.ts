@@ -10,7 +10,9 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { BRAND_COLORS } from '@28k/shared';
+import type { ExtendedPrismaClient } from '@28k/db';
 import type { LeaderboardEntry } from './calculator.js';
+import { calculateConsistencyRate } from '../checkin/streak.js';
 
 /**
  * Get medal emoji for a leaderboard position.
@@ -104,18 +106,34 @@ export function buildVoiceLeaderboardEmbed(
  *
  * Color: green (success).
  * Shows streak in days with fire emoji for streaks >= 7.
+ * When db is provided, includes consistency rate per member.
+ *
+ * @param entries - Leaderboard entries sorted by streak
+ * @param db - Optional Prisma client to fetch consistency rates
  */
-export function buildStreakLeaderboardEmbed(
+export async function buildStreakLeaderboardEmbed(
   entries: LeaderboardEntry[],
-): EmbedBuilder {
-  const description = entries.length > 0
-    ? entries
-        .map((e) => {
-          const fire = e.value >= 7 ? ' \u{1F525}' : '';
-          return `${getMedalEmoji(e.position)} **${e.position}. ${e.displayName}** -- ${e.value} days${fire}`;
-        })
-        .join('\n')
-    : '*No active streaks yet. Check in daily to start yours!*';
+  db?: ExtendedPrismaClient,
+): Promise<EmbedBuilder> {
+  let description: string;
+
+  if (entries.length > 0) {
+    const lines: string[] = [];
+    for (const e of entries) {
+      const fire = e.value >= 7 ? ' \u{1F525}' : '';
+      let consistencyLabel = '';
+      if (db) {
+        const rate = await calculateConsistencyRate(db, e.memberId);
+        consistencyLabel = ` | ${rate}% (30d)`;
+      }
+      lines.push(
+        `${getMedalEmoji(e.position)} **${e.position}. ${e.displayName}** -- ${e.value}d streak${consistencyLabel}${fire}`,
+      );
+    }
+    description = lines.join('\n');
+  } else {
+    description = '*No active streaks yet. Check in daily to start yours!*';
+  }
 
   return new EmbedBuilder()
     .setColor(BRAND_COLORS.success)

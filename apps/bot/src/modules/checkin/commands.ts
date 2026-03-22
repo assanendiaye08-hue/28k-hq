@@ -211,6 +211,15 @@ async function handleCheckin(
       value: `${streakResult.currentStreak} days (${streakResult.multiplier.toFixed(1)}x)`,
       inline: true,
     },
+    {
+      name: 'Consistency',
+      value: streakResult.consistencyRate >= 90
+        ? `${streakResult.consistencyRate}% (30d) -- Excellent consistency`
+        : streakResult.consistencyRate >= 70
+          ? `${streakResult.consistencyRate}% (30d)`
+          : `${streakResult.consistencyRate}% (30d) -- Building momentum`,
+      inline: true,
+    },
   );
 
   if (effortRating) {
