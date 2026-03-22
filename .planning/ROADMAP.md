@@ -78,7 +78,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 
 Plans:
 - [x] 20-01-PLAN.md -- Remove timer + auto-feed modules, strip slash commands to 4 remaining
-- [ ] 20-02-PLAN.md -- DMs-only delivery refactor + focus session signaling between desktop and bot
+- [x] 20-02-PLAN.md -- DMs-only delivery refactor + focus session signaling between desktop and bot
 
 ### Phase 21: Conversational Jarvis
 **Goal**: Members interact with Jarvis through natural conversation in DMs -- managing goals, check-ins, and reminders without slash commands -- with topic-aware context and a direct, objective coaching tone
@@ -90,12 +90,12 @@ Plans:
   3. When discussing fitness goals, Jarvis does not bleed in context from coding projects or unrelated topics
   4. Jarvis responds with direct, factual brevity -- no pleasantries, no filler, no faked emotions, no unsolicited life advice -- and asks questions when the member needs to think rather than volunteering answers
   5. Member can say "let's brainstorm landing page ideas" and Jarvis runs a structured creative thinking session with distinct phases (diverge, cluster, evaluate)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 21-01: TBD
-- [ ] 21-02: TBD
-- [ ] 21-03: TBD
+- [ ] 21-01-PLAN.md -- Foundation: AI client tool calling support, Commitment model, topic field, coaching tone personality
+- [ ] 21-02-PLAN.md -- NL actions: intent tools, confirmation executor, tool-calling chat handler, DM handler refactor
+- [ ] 21-03-PLAN.md -- Topic-aware context filtering and brainstorming mode with diverge/cluster/evaluate phases
 
 ### Phase 22: Daily Rhythm
 **Goal**: Jarvis proactively coaches members through daily and weekly routines -- morning orientation, evening closure, weekly planning, smart nudges -- all respecting per-user settings and a hard cap on bot-initiated messages
