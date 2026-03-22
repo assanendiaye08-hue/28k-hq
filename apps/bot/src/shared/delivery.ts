@@ -20,6 +20,8 @@
 import { Client } from 'discord.js';
 import type { EmbedBuilder } from 'discord.js';
 import type { ExtendedPrismaClient } from '@28k/db';
+import { TZDate } from '@date-fns/tz';
+import { startOfDay } from 'date-fns';
 
 /**
  * Content payload for DM delivery.
@@ -69,6 +71,109 @@ export async function deliverDM(
   } catch {
     // All delivery attempts failed (DMs closed, user not found, etc.)
     return false;
+  }
+}
+
+// ─── Outreach Budget Gate ────────────────────────────────────────────────────
+
+/** Maximum bot-initiated DMs per member per day. */
+const MAX_DAILY_OUTREACH = 3;
+
+/**
+ * Check and increment the daily outreach budget for a member.
+ *
+ * Proactive senders (brief, nudge, reflection, planning) call this BEFORE
+ * calling deliverDM. It is NOT called inside deliverDM itself -- user-initiated
+ * replies should not consume budget.
+ *
+ * @returns true if budget allows another outreach, false if exhausted
+ */
+export async function checkAndIncrementOutreach(
+  db: ExtendedPrismaClient,
+  memberId: string,
+): Promise<boolean> {
+  const schedule = await db.memberSchedule.findUnique({
+    where: { memberId },
+    select: {
+      dailyOutreachCount: true,
+      lastOutreachDate: true,
+      timezone: true,
+    },
+  });
+
+  // No schedule = allow (defaults work without config)
+  if (!schedule) return true;
+
+  const tz = schedule.timezone || 'UTC';
+  const nowInTz = new TZDate(new Date(), tz);
+  const todayStart = startOfDay(nowInTz);
+
+  // Check if counter needs reset (new day in member's timezone)
+  const lastDate = schedule.lastOutreachDate;
+  const isNewDay = !lastDate || new TZDate(lastDate, tz) < todayStart;
+
+  if (isNewDay) {
+    // Reset counter and increment for this outreach
+    await db.memberSchedule.update({
+      where: { memberId },
+      data: { dailyOutreachCount: 1, lastOutreachDate: new Date() },
+    });
+    return true;
+  }
+
+  // Same day -- check budget
+  if (schedule.dailyOutreachCount >= MAX_DAILY_OUTREACH) {
+    return false; // Budget exhausted
+  }
+
+  // Increment counter
+  await db.memberSchedule.update({
+    where: { memberId },
+    data: {
+      dailyOutreachCount: { increment: 1 },
+      lastOutreachDate: new Date(),
+    },
+  });
+  return true;
+}
+
+// ─── Quiet Hours Gate ────────────────────────────────────────────────────────
+
+/**
+ * Check if the current time falls within a member's configured quiet hours.
+ *
+ * Handles overnight spans (e.g., 22:00-07:00 crosses midnight).
+ *
+ * @returns true if currently in quiet hours, false otherwise
+ */
+export async function isQuietHours(
+  db: ExtendedPrismaClient,
+  memberId: string,
+): Promise<boolean> {
+  const schedule = await db.memberSchedule.findUnique({
+    where: { memberId },
+    select: { quietStart: true, quietEnd: true, timezone: true },
+  });
+
+  if (!schedule || !schedule.quietStart || !schedule.quietEnd) {
+    return false; // No quiet hours configured
+  }
+
+  const tz = schedule.timezone || 'UTC';
+  const nowInTz = new TZDate(new Date(), tz);
+  const currentMinutes = nowInTz.getHours() * 60 + nowInTz.getMinutes();
+
+  const [startH, startM] = schedule.quietStart.split(':').map(Number);
+  const [endH, endM] = schedule.quietEnd.split(':').map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  if (startMinutes <= endMinutes) {
+    // Same-day span (e.g., 08:00-12:00)
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  } else {
+    // Overnight span (e.g., 22:00-07:00)
+    return currentMinutes >= startMinutes || currentMinutes < endMinutes;
   }
 }
 
