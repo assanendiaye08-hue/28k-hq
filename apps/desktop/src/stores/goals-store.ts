@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiFetch } from '../api/client';
+import { useDashboardStore } from './dashboard-store';
 
 export interface Goal {
   id: string;
@@ -106,6 +107,7 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
         body: JSON.stringify(input),
       });
       await get().fetchGoals();
+      useDashboardStore.getState().fetchDashboard();
     } finally {
       set({ isSubmitting: false });
     }
@@ -118,6 +120,7 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
       body: JSON.stringify({ currentValue }),
     });
     await get().fetchGoals();
+    useDashboardStore.getState().fetchDashboard();
     return { xpAwarded: res.xpResult?.xpAwarded };
   },
 
@@ -128,6 +131,7 @@ export const useGoalsStore = create<GoalsState>((set, get) => ({
       body: JSON.stringify({ status: 'COMPLETED' }),
     });
     await get().fetchGoals();
+    useDashboardStore.getState().fetchDashboard();
     return { xpAwarded: res.xpResult?.xpAwarded ?? 0 };
   },
 }));

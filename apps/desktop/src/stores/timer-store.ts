@@ -21,6 +21,7 @@ import {
 import { updateTrayTitle, updateTrayTitleElapsed } from '../lib/timer-tray';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { onPhaseComplete, onSessionComplete } from '../lib/timer-notifications';
+import { useDashboardStore } from './dashboard-store';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -415,7 +416,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           totalBreakMs: finalBreakMs,
           pomodoroCount,
         }),
-      }).catch(() => {});
+      }).then(() => {
+          useDashboardStore.getState().fetchDashboard();
+        }).catch(() => {});
     }
   },
 
@@ -469,6 +472,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
               },
             });
             onSessionComplete(focus, res.xpAwarded).catch(() => {});
+            useDashboardStore.getState().fetchDashboard();
           })
           .catch(() => {
             set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
@@ -522,6 +526,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
                 },
               });
               onSessionComplete(focus, res.xpAwarded).catch(() => {});
+              useDashboardStore.getState().fetchDashboard();
             })
             .catch(() => {
               set({ lastStopResult: { xpAwarded: 0, leveledUp: false, newRank: null } });
@@ -668,7 +673,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           totalBreakMs,
           pomodoroCount: 1,
         }),
-      }).catch(() => {});
+      }).then(() => {
+          useDashboardStore.getState().fetchDashboard();
+        }).catch(() => {});
     }
   },
 
