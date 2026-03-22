@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 19 of 19 (Cross-Platform Sync Polish)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-03-22 -- Completed 19-01 (Tauri plugins + dashboard auto-refresh)
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-03-22 -- Completed 19-02 (Settings page with auto-updater and autostart toggles)
 
-Progress: [################░░░░] 80% (v2.0) -- Phase 19 in progress, Plan 01 complete (5.5 of 6 v2.0 phases)
+Progress: [####################] 100% (v2.0) -- All 6 v2.0 phases complete
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [################░░░░] 80% (v2.0) -- Phase 19 in progress, Pla
 | Phase 18 P02 | 3 | 2 tasks | 5 files |
 | Phase 18 P01 | 6 min | 2 tasks | 8 files |
 | Phase 19 P01 | 3 | 2 tasks | 6 files |
+| Phase 19 P02 | 2 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase 18]: [18-02]: 2-second inline XP feedback fade rather than toast notification for goal completion
 - [19-01]: Updater pubkey and endpoint URL are placeholders -- actual key generation is pre-release
 - [19-01]: Dashboard refresh is event-driven via cross-store getState().fetchDashboard(), not polling
+- [Phase 19]: [19-02]: OS autostart isEnabled() as source of truth to avoid drift with persisted setting
+- [Phase 19]: [19-02]: Both auto-update and autostart toggles OFF by default (opt-in only)
 
 ### Pending Todos
 
@@ -126,5 +129,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 19-01-PLAN.md (Tauri plugins + dashboard auto-refresh wiring)
+Stopped at: Completed 19-02-PLAN.md (Settings page with auto-updater and autostart toggles)
 Resume file: None
