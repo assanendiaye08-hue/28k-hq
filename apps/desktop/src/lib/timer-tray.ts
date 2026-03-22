@@ -28,7 +28,7 @@ export async function updateTrayTitle(remainingMs: number | null): Promise<void>
     const tray = await getTray();
     if (!tray) return;
 
-    if (remainingMs === null || remainingMs <= 0) {
+    if (remainingMs === null || !Number.isFinite(remainingMs) || remainingMs <= 0) {
       await tray.setTitle(null);
       await tray.setTooltip('28K HQ');
       return;
