@@ -128,4 +128,4 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 | 16. Desktop Shell + Dashboard | 3/3 | Complete    | 2026-03-21 | - |
 | 17. Pomodoro Timer | 3/3 | Complete    | 2026-03-22 | - |
 | 18. Flowmodoro + Goals | 2/2 | Complete    | 2026-03-22 | - |
-| 19. Sync + Polish | 2/2 | Complete   | 2026-03-22 | - |
+| 19. Sync + Polish | 2/2 | Complete    | 2026-03-22 | - |
