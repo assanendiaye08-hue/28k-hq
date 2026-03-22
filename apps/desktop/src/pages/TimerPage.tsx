@@ -9,7 +9,6 @@
 import { useEffect } from 'react';
 import { useTimerStore } from '../stores/timer-store';
 import { loadTimerState } from '../lib/timer-persistence';
-import { apiFetch } from '../api/client';
 import { TimerSetup } from '../components/timer/TimerSetup';
 import { TimerDisplay } from '../components/timer/TimerDisplay';
 
@@ -27,48 +26,8 @@ export function TimerPage() {
         return;
       }
 
-      // Fallback: check API for active timer
-      try {
-        const active = await apiFetch<{
-          id: string;
-          focus: string;
-          workDuration: number;
-          breakDuration: number;
-          timerState: string;
-          remainingMs: number;
-          totalWorkedMs: number;
-          totalBreakMs: number;
-          pomodoroCount: number;
-          targetSessions: number | null;
-          longBreakDuration: number | null;
-          longBreakInterval: number | null;
-        } | null>('/timer/active');
-
-        if (active && active.timerState !== 'STOPPED' && active.remainingMs > 0) {
-          restore({
-            phase: active.timerState === 'PAUSED' ? 'paused' : 'working',
-            sessionId: active.id,
-            phaseStartedAt: active.timerState === 'PAUSED' ? null : Date.now(),
-            phaseDurationMs: active.remainingMs,
-            totalWorkedMs: active.totalWorkedMs ?? 0,
-            totalBreakMs: active.totalBreakMs ?? 0,
-            pomodoroCount: active.pomodoroCount ?? 0,
-            prePausePhase: active.timerState === 'PAUSED' ? 'working' : null,
-            pauseRemainingMs: active.timerState === 'PAUSED' ? active.remainingMs : 0,
-            workDuration: active.workDuration,
-            breakDuration: active.breakDuration,
-            longBreakDuration: active.longBreakDuration ?? 15,
-            longBreakInterval: active.longBreakInterval ?? 4,
-            targetSessions: active.targetSessions ?? null,
-            autoStartBreak: false,
-            autoStartWork: false,
-            focus: active.focus,
-            goalId: null,
-          });
-        }
-      } catch {
-        // API not available -- use local state only
-      }
+      // Note: API restore removed — local persistence is the source of truth.
+      // Stale API sessions caused ghost timers on reload.
     };
 
     restoreState();
