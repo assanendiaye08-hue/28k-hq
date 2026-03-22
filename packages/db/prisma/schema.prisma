@@ -51,6 +51,7 @@ model Member {
   reminders             Reminder[]
   reflections           Reflection[]
   refreshTokens         RefreshToken[]
+  commitments           Commitment[]
 }
 
 /// Discord accounts linked to a member identity.
@@ -262,6 +263,7 @@ model ConversationMessage {
   memberId  String
   role      String   // 'user', 'assistant', 'system'
   content   String   // Encrypted at rest
+  topic     String?  // Topic tag for topic-aware context filtering
   createdAt DateTime @default(now())
 
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -634,4 +636,32 @@ model RefreshToken {
 
   @@index([memberId])
   @@index([token, expiresAt])
+}
+
+// ─── Phase 21: Conversational Jarvis ────────────────────────────────────────
+
+/// Commitment status lifecycle.
+enum CommitmentStatus {
+  ACTIVE
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+/// A commitment tracked by Jarvis when a member says they'll do something by a deadline.
+/// Created via tool calling when the LLM detects commitment intent.
+model Commitment {
+  id              String           @id @default(cuid())
+  memberId        String
+  title           String           // What they committed to
+  deadline        DateTime         // When they said they'd do it by
+  status          CommitmentStatus @default(ACTIVE)
+  sourceMessageId String?          // ConversationMessage ID that triggered this commitment
+  createdAt       DateTime         @default(now())
+  completedAt     DateTime?
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, status])
+  @@index([deadline, status])
 }

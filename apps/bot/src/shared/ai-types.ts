@@ -21,7 +21,21 @@ export type AIFeature =
   | 'tagger'
   | 'timer'
   | 'reflection'
-  | 'recap';
+  | 'recap'
+  | 'intent';
+
+/**
+ * Tool definition for LLM function calling.
+ * Follows the OpenAI-compatible tool format used by OpenRouter.
+ */
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: object;
+  };
+}
 
 /**
  * Options for a single AI call through the centralized client.
@@ -35,6 +49,8 @@ export interface AICallOptions {
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
   /** Optional structured output format (json_schema). */
   responseFormat?: object;
+  /** Optional tool definitions for LLM function calling. */
+  tools?: ToolDefinition[];
 }
 
 /**
@@ -53,6 +69,8 @@ export interface AICallResult {
   model: string;
   /** True if budget was exceeded or both models failed -- caller should use template fallback. */
   degraded: boolean;
+  /** Tool calls returned by the LLM, if any. Present when tools were provided and the LLM chose to invoke one. */
+  toolCalls?: Array<{ id: string; function: { name: string; arguments: string } }>;
 }
 
 /**
