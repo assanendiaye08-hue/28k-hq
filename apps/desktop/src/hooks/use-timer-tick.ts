@@ -62,11 +62,14 @@ export function useTimerTick(): TimerTick {
       };
     }
 
-    // Not in active phase — clear tray
-    updateTrayTitle(null).catch(() => {});
     if (phase === 'paused') {
-      setRemainingMs(getRemainingMs());
+      // Show paused time in menu bar
+      const paused = getRemainingMs();
+      setRemainingMs(paused);
+      updateTrayTitle(paused).catch(() => {});
     } else {
+      // Not active — clear tray
+      updateTrayTitle(null).catch(() => {});
       setRemainingMs(0);
     }
 
