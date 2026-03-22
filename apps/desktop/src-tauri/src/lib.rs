@@ -19,9 +19,11 @@ pub fn run() {
                 MenuItem::with_id(app, "quit", "Quit 28K HQ", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
 
-            // Build tray icon
+            // Build tray icon from embedded RGBA data (22x22)
+            let tray_rgba = include_bytes!("../icons/tray-icon.rgba");
+            let tray_icon = tauri::image::Image::new_owned(tray_rgba.to_vec(), 22, 22);
             TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .icon_as_template(false)
                 .tooltip("28K HQ")
                 .menu(&menu)
