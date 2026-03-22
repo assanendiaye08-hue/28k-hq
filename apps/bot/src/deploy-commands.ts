@@ -8,142 +8,26 @@
  * This script is NOT part of the bot runtime. It runs independently to
  * register/update slash commands with Discord, then exits.
  *
- * Phase 1 commands: /setup, /profile, /link, /verify, /unlink
- * Phase 2 commands: /checkin, /setgoal, /goals, /progress, /completegoal, /settings
- * Phase 3 commands: /leaderboard, /season
- * Phase 4 commands: /ask, /wipe-history, /accountability
- * Phase 5: resources module (passive messageCreate handler) + /lockin, /schedule-session, /endsession, /invite-session
- * Phase 5 data privacy: /mydata, /deletedata
- * Phase 6 commands: /notifications
- * Phase 7 commands: /cost (today, month, set-budget), /admin (set-model)
- * Phase 8 commands: /inspiration (add, remove, list)
- * Phase 9 commands: /timer (start, pause, resume, stop, status)
+ * v3.0 command set (4 commands):
+ *   /goals        - View and manage goals
+ *   /reminders    - View and manage reminders
+ *   /leaderboard  - View the leaderboard
+ *   /announce-update - Announce a bot update to members
+ *
+ * All other interactions happen through DMs with Jarvis (conversational AI).
  */
 
-import { REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { REST, Routes } from 'discord.js';
 import { config } from './core/config.js';
-import { buildCheckinCommand } from './modules/checkin/commands.js';
-import {
-  buildSetgoalCommand,
-  buildGoalsCommand,
-  buildProgressCommand,
-  buildCompletegoalCommand,
-} from './modules/goals/commands.js';
-import { buildSettingsCommand } from './modules/scheduler/commands.js';
+import { buildGoalsCommand } from './modules/goals/commands.js';
 import { buildLeaderboardCommand } from './modules/leaderboard/commands.js';
-import { buildSeasonCommand } from './modules/season/commands.js';
-import { buildAskCommand, buildWipeHistoryCommand, buildAccountabilityCommand } from './modules/ai-assistant/commands.js';
-import {
-  buildLockinCommand,
-  buildScheduleSessionCommand,
-  buildEndsessionCommand,
-  buildInviteSessionCommand,
-} from './modules/sessions/commands.js';
-import {
-  buildMydataCommand,
-  buildDeletedataCommand,
-} from './modules/data-privacy/commands.js';
-import { buildNotificationsCommand } from './modules/notification-router/commands.js';
-import { buildCostCommand, buildAdminSetModelCommand } from './modules/ai-admin/commands.js';
-import { buildInspirationCommand } from './modules/inspiration/commands.js';
-import { buildTimerCommand } from './modules/timer/commands.js';
-import { buildRemindCommand, buildRemindersCommand } from './modules/reminders/commands.js';
+import { buildRemindersCommand } from './modules/reminders/commands.js';
 import { buildAnnounceUpdateCommand } from './modules/announce-update/commands.js';
 
-// --- Phase 1 Slash Commands ---
-
 const commands = [
-  new SlashCommandBuilder()
-    .setName('setup')
-    .setDescription('Set up your profile and unlock the server'),
-
-  new SlashCommandBuilder()
-    .setName('profile')
-    .setDescription('View or edit your profile')
-    .addUserOption((opt) =>
-      opt
-        .setName('user')
-        .setDescription('View another member\'s public profile')
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName('link')
-    .setDescription('Generate a code to link another Discord account'),
-
-  new SlashCommandBuilder()
-    .setName('verify')
-    .setDescription('Verify an account link code')
-    .addStringOption((opt) =>
-      opt
-        .setName('code')
-        .setDescription('The 6-character link code')
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName('unlink')
-    .setDescription('Unlink a Discord account from your identity'),
-
-  // --- Phase 2 Slash Commands ---
-
-  buildCheckinCommand(),
-  buildSetgoalCommand(),
   buildGoalsCommand(),
-  buildProgressCommand(),
-  buildCompletegoalCommand(),
-
-  // --- Phase 2 Scheduler Command ---
-
-  buildSettingsCommand(),
-
-  // --- Phase 3 Slash Commands ---
-
-  buildLeaderboardCommand(),
-  buildSeasonCommand(),
-
-  // --- Phase 4 Slash Commands ---
-
-  buildAskCommand(),
-  buildWipeHistoryCommand(),
-  buildAccountabilityCommand(),
-
-  // --- Phase 5 Slash Commands ---
-
-  buildLockinCommand(),
-  buildScheduleSessionCommand(),
-  buildEndsessionCommand(),
-  buildInviteSessionCommand(),
-
-  // --- Phase 5 Data Privacy Commands ---
-
-  buildMydataCommand(),
-  buildDeletedataCommand(),
-
-  // --- Phase 6 Commands ---
-
-  buildNotificationsCommand(),
-
-  // --- Phase 7 Commands ---
-
-  buildCostCommand(),
-  buildAdminSetModelCommand(),
-
-  // --- Phase 8 Commands ---
-
-  buildInspirationCommand(),
-
-  // --- Phase 9 Commands ---
-
-  buildTimerCommand(),
-
-  // --- Phase 10 Commands ---
-
-  buildRemindCommand(),
   buildRemindersCommand(),
-
-  // --- Announce-Update Command ---
-
+  buildLeaderboardCommand(),
   buildAnnounceUpdateCommand(),
 ];
 
