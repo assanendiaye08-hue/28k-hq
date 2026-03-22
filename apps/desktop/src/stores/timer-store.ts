@@ -19,6 +19,7 @@ import {
   type SavedTimerState,
 } from '../lib/timer-persistence';
 import { updateTrayTitle } from '../lib/timer-tray';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { onPhaseComplete, onSessionComplete } from '../lib/timer-notifications';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -180,20 +181,47 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const longBreakInterval = config.longBreakInterval ?? 4;
     const targetSessions = config.targetSessions ?? null;
 
-    const response = await apiFetch<{ id: string }>('/timer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: 'POMODORO',
-        workDuration,
-        breakDuration,
-        focus: config.focus,
-        goalId: config.goalId || undefined,
-        targetSessions: targetSessions ?? undefined,
-        longBreakDuration: longBreakDuration ?? undefined,
-        longBreakInterval: longBreakInterval ?? undefined,
-      }),
-    });
+    const timerBody = {
+      mode: 'POMODORO',
+      workDuration,
+      breakDuration,
+      focus: config.focus,
+      goalId: config.goalId || undefined,
+      targetSessions: targetSessions ?? undefined,
+      longBreakDuration: longBreakDuration ?? undefined,
+      longBreakInterval: longBreakInterval ?? undefined,
+    };
+
+    let response: { id: string };
+    try {
+      response = await apiFetch<{ id: string }>('/timer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(timerBody),
+      });
+    } catch (err) {
+      // If 409 (active session exists), cancel it and retry
+      if (err instanceof Error && err.message.includes('409')) {
+        try {
+          const active = await apiFetch<{ active: { id: string } | null }>('/timer/active');
+          if (active?.active?.id) {
+            await apiFetch(`/timer/${active.active.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'stop', totalWorkedMs: 0, totalBreakMs: 0, pomodoroCount: 0 }),
+            });
+          }
+        } catch { /* ignore cleanup errors */ }
+        // Retry creating the timer
+        response = await apiFetch<{ id: string }>('/timer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(timerBody),
+        });
+      } else {
+        throw err;
+      }
+    }
 
     set({
       phase: 'working',
@@ -314,10 +342,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       }
     }
 
-    // Clear persistence and tray BEFORE state change to prevent races
-    clearTimerState().catch(() => {});
-    updateTrayTitle(null).catch(() => {});
-
+    // Reset state first so UI updates immediately
     set({
       phase: 'idle',
       sessionId: null,
@@ -333,6 +358,17 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       transitionType: null,
       lastStopResult: null,
     });
+
+    // Await cleanup so persistence + tray are guaranteed cleared
+    await clearTimerState().catch(() => {});
+    await updateTrayTitle(null).catch(() => {});
+
+    // Show window so user can see setup form
+    try {
+      const win = getCurrentWindow();
+      await win.show();
+      await win.setFocus();
+    } catch { /* ignore if window API unavailable */ }
 
     return stopResponse;
   },
@@ -563,5 +599,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
     clearTimerState().catch(() => {});
     updateTrayTitle(null).catch(() => {});
+    // Show window so user can see setup form
+    getCurrentWindow().show().catch(() => {});
+    getCurrentWindow().setFocus().catch(() => {});
   },
 }));
