@@ -251,6 +251,15 @@ model MemberSchedule {
 
   reflectionIntensity String @default("off") // off, light, medium, heavy
 
+  // Coaching config: per-feature toggles and quiet hours (Phase 22)
+  enableBrief      Boolean   @default(true)  // toggle morning brief
+  enableNudge      Boolean   @default(true)  // toggle accountability nudges
+  enableReflection Boolean   @default(true)  // toggle reflections (separate from reflectionIntensity which controls frequency)
+  quietStart       String?                   // HH:mm format for quiet hours start (e.g., "22:00")
+  quietEnd         String?                   // HH:mm format for quiet hours end (e.g., "07:00")
+  dailyOutreachCount Int     @default(0)     // counter for today's bot-initiated messages
+  lastOutreachDate   DateTime?               // date the counter was last reset
+
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
