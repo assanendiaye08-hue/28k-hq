@@ -58,7 +58,7 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
 
 - [x] **Phase 20: Clean Slate** - Remove legacy modules, establish focus session signaling between desktop and bot (completed 2026-03-22)
 - [x] **Phase 21: Conversational Jarvis** - Natural language actions, commitment extraction, topic-aware context, coaching tone, brainstorming (completed 2026-03-22)
-- [ ] **Phase 22: Daily Rhythm** - Morning briefs, evening reflections, weekly planning, smart nudges, outreach budget, coaching settings
+- [x] **Phase 22: Daily Rhythm** - Morning briefs, evening reflections, weekly planning, smart nudges, outreach budget, coaching settings (completed 2026-03-22)
 - [ ] **Phase 23: Social Layer Refinement** - Voice co-working promotion, streak redesign, channel consolidation, accountability tone
 - [ ] **Phase 24: Desktop App Enhancement** - Today view, session history, who's grinding indicator
 
@@ -155,6 +155,6 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 14-19 | v2.0 | 14/14 | Complete | 2026-03-22 |
 | 20. Clean Slate | 2/2 | Complete    | 2026-03-22 | - |
 | 21. Conversational Jarvis | 3/3 | Complete    | 2026-03-22 | - |
-| 22. Daily Rhythm | 1/3 | In Progress|  | - |
+| 22. Daily Rhythm | 3/3 | Complete   | 2026-03-22 | - |
 | 23. Social Layer Refinement | v3.0 | 0/2 | Not started | - |
 | 24. Desktop App Enhancement | v3.0 | 0/2 | Not started | - |

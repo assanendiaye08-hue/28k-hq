@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 
 ## Current Position
 
-Phase: 22 of 24 (Daily Rhythm)
-Plan: 1 of 3 in current phase
-Status: Phase 22 in progress
-Last activity: 2026-03-22 -- Completed 22-01: Outreach budget, coaching config, conversational briefs
+Phase: 23 of 24 (Social Layer)
+Plan: 0 of 2 in current phase
+Status: Phase 22 complete, Phase 23 ready
+Last activity: 2026-03-22 -- Completed 22-03: Weekly review and coaching onboarding
 
-Progress: [█████░░░░░] 50% (v3.0 -- 6/12 plans)
+Progress: [███████░░░] 67% (v3.0 -- 8/12 plans)
 
 ## Performance Metrics
 
@@ -29,13 +29,13 @@ Progress: [█████░░░░░] 50% (v3.0 -- 6/12 plans)
 |-------|-------|-------|----------|
 | 20-clean-slate | 2/2 | 9 min | 4.5 min |
 | 21-conversational-jarvis | 3/3 | 10 min | 3.3 min |
-| 22-daily-rhythm | 1/3 | 3 min | 3 min |
+| 22-daily-rhythm | 3/3 | 9 min | 3 min |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 20-02 (5 min), 21-01 (3 min), 21-02 (4 min), 21-03 (3 min), 22-01 (3 min)
-- Trend: Phase 22 in progress (1/3 plans)
+- Last 5 plans: 21-02 (4 min), 21-03 (3 min), 22-01 (3 min), 22-02 (est), 22-03 (6 min)
+- Trend: Phase 22 complete (3/3 plans), Phase 23 next
 
 *Updated after each plan completion*
 
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [22-01]: Gate functions (checkAndIncrementOutreach, isQuietHours) are standalone exports -- user-initiated replies never consume budget
 - [22-01]: Brief stored as ConversationMessage with topic 'brief' -- reply support via existing assembleContext pipeline
 - [22-01]: enableReflection checked independently from reflectionIntensity -- toggle vs frequency are separate concerns
+- [22-03]: Weekly review uses AI with template fallback -- data-driven summary always shown even if AI is degraded
+- [22-03]: Stalled goal detection uses createdAt + currentValue since Goal model has no updatedAt field
+- [22-03]: Coaching onboarding triggers automatically on first DM (no slash command) -- lowest friction for new members
+- [22-03]: activeCoachingUsers Set prevents DM handler from re-entering during onboarding conversation
 
 ### Pending Todos
 
@@ -94,5 +98,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 22-01-PLAN.md -- Outreach budget, coaching config, conversational briefs
+Stopped at: Completed 22-03-PLAN.md -- Weekly review and coaching onboarding (Phase 22 complete)
 Resume file: None

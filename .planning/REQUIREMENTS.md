@@ -22,7 +22,7 @@
 
 - [x] **RHYTHM-01**: Morning brief DM -- today's commitments, deadlines, focus prompt
 - [ ] **RHYTHM-02**: Evening reflection DM -- close open loops, log what was done, set tomorrow's priority
-- [ ] **RHYTHM-03**: Weekly planning DM (Sunday) -- week review, goal progress, next week priorities
+- [x] **RHYTHM-03**: Weekly planning DM (Sunday) -- week review, goal progress, next week priorities
 - [ ] **RHYTHM-04**: Smart nudges -- stale goals, declining patterns. Less contact when disengaged, not more.
 - [x] **RHYTHM-05**: 2-3 bot-initiated touchpoints/day max across all features
 
@@ -50,7 +50,7 @@
 
 - [x] **SET-01**: Per-user config -- enable/disable each proactive feature
 - [x] **SET-02**: Quiet hours -- no bot messages during set window
-- [ ] **SET-03**: Coaching onboarding -- timezone + preferences on first interaction
+- [x] **SET-03**: Coaching onboarding -- timezone + preferences on first interaction
 
 ## Future Requirements (v3.1+)
 
@@ -83,7 +83,7 @@
 | JARV-05 | Phase 21 | Complete |
 | RHYTHM-01 | Phase 22 | Complete |
 | RHYTHM-02 | Phase 22 | Pending |
-| RHYTHM-03 | Phase 22 | Pending |
+| RHYTHM-03 | Phase 22 | Complete |
 | RHYTHM-04 | Phase 22 | Pending |
 | RHYTHM-05 | Phase 22 | Complete |
 | SOCIAL-01 | Phase 23 | Pending |
@@ -99,7 +99,7 @@
 | CLEAN-04 | Phase 20 | Complete |
 | SET-01 | Phase 22 | Complete |
 | SET-02 | Phase 22 | Complete |
-| SET-03 | Phase 22 | Pending |
+| SET-03 | Phase 22 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 25 line items (24 unique -- FOCUS-02 merged into CLEAN-01)
