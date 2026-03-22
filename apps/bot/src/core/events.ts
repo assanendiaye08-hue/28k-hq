@@ -33,11 +33,6 @@ export type BotEventMap = {
   sessionStarted: [sessionId: string, creatorMemberId: string];
   sessionEnded: [sessionId: string, durationMinutes: number];
 
-  // Phase 9: Productivity Timer
-  timerStarted: [memberId: string, mode: string];
-  timerCompleted: [memberId: string, totalWorkedMinutes: number];
-  timerCancelled: [memberId: string];
-  timerTransition: [memberId: string, type: string];
   buttonInteraction: [interaction: unknown];
 };
 

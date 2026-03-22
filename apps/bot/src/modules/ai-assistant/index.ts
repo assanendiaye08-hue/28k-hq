@@ -6,11 +6,8 @@
  *
  * Features:
  * - DM conversations with context-aware AI responses
- * - Natural language timer starts via DM ("start a 45 min focus session on coding")
  * - Natural language reminder creation via DM ("remind me Tuesday at 3pm to call X")
  * - Goal decomposition via DM ("break down my yearly goal", "decompose Build a SaaS")
- * - /ask command for chatting from any channel (ephemeral)
- * - /wipe-history to export and clear conversation data
  * - Per-member processing lock prevents race conditions
  * - Daily 50-message cap to control API costs
  * - DeepSeek V3.2 primary, Qwen 3.5 Plus fallback
@@ -29,13 +26,6 @@ import {
 } from './commands.js';
 import { handleChat } from './chat.js';
 import { activeSetupUsers } from '../onboarding/setup-flow.js';
-import { isTimerRequest, parseTimerRequest, isTimerStopRequest, isTimerPauseRequest, isTimerResumeRequest } from '../timer/natural-language.js';
-import { getActiveTimer, stopTimer, pauseTimer, resumeTimer, scheduleTransition } from '../timer/engine.js';
-import { startTimerForMember } from '../timer/index.js';
-import { persistTimerSession, deleteActiveTimerRecord, updateTimerRecord } from '../timer/session.js';
-import { buildTimerEmbed, buildTimerCompletedEmbed } from '../timer/embeds.js';
-import { buildWorkButtons, buildBreakButtons, buildPausedButtons } from '../timer/buttons.js';
-import { TIMER_DEFAULTS } from '@28k/shared';
 import { isReminderRequest, parseReminder } from '../reminders/parser.js';
 import { scheduleOneShot, scheduleRecurring } from '../reminders/scheduler.js';
 import { DiscordReminderDelivery } from '../reminders/delivery.js';
@@ -62,14 +52,12 @@ const aiAssistantModule: Module = {
         if (message.author.bot) return;
 
         // Handle DMs directly; for server channels, only respond in private space channels
-        let isPrivateChannel = false;
         if (!message.channel.isDMBased()) {
           const privateSpace = await db.privateSpace.findFirst({
             where: { channelId: message.channel.id, type: 'CHANNEL' },
             select: { memberId: true },
           });
           if (!privateSpace) return;
-          isPrivateChannel = true;
 
           // Verify author owns this private channel
           const authorCheck = await db.discordAccount.findUnique({
@@ -94,170 +82,7 @@ const aiAssistantModule: Module = {
           return;
         }
 
-        // Check for timer stop/pause/resume before timer start
-        if (isTimerStopRequest(message.content)) {
-          const activeTimer = getActiveTimer(account.memberId);
-          if (!activeTimer) {
-            await message.reply("You don't have an active timer to stop.");
-            return;
-          }
-          const stopped = stopTimer(account.memberId);
-          if (!stopped) return;
-
-          try { await deleteActiveTimerRecord(db, account.memberId); } catch { /* non-critical */ }
-          const result = await persistTimerSession(db, stopped, stopped.totalWorkedMs < 60_000 ? 'CANCELLED' : 'COMPLETED');
-
-          // Update DM embed if possible
-          try {
-            if (stopped.dmChannelId && stopped.dmMessageId) {
-              const dmChannel = await client.channels.fetch(stopped.dmChannelId);
-              if (dmChannel && 'messages' in dmChannel) {
-                const dmMsg = await (dmChannel as import('discord.js').TextBasedChannel).messages.fetch(stopped.dmMessageId);
-                await dmMsg.edit({
-                  embeds: [buildTimerCompletedEmbed(result.durationMinutes, result.xpAwarded, stopped.pomodoroCount, stopped.mode, stopped.focus)],
-                  components: [],
-                });
-              }
-            }
-          } catch { /* non-critical */ }
-
-          await message.reply(`Timer stopped. ${result.durationMinutes} min worked.${result.xpAwarded > 0 ? ` +${result.xpAwarded} XP` : ''}`);
-          ctx.events.emit(result.durationMinutes >= 1 ? 'timerCompleted' : 'timerCancelled', account.memberId, result.durationMinutes);
-          return;
-        }
-
-        if (isTimerPauseRequest(message.content)) {
-          const activeTimer = getActiveTimer(account.memberId);
-          if (!activeTimer) {
-            await message.reply("You don't have an active timer to pause.");
-            return;
-          }
-          if (activeTimer.state === 'paused') {
-            await message.reply("Your timer is already paused. Say 'resume timer' to continue.");
-            return;
-          }
-          const paused = pauseTimer(account.memberId);
-          if (!paused) return;
-
-          // Update DM embed
-          try {
-            if (paused.dmChannelId && paused.dmMessageId) {
-              const dmChannel = await client.channels.fetch(paused.dmChannelId);
-              if (dmChannel && 'messages' in dmChannel) {
-                const dmMsg = await (dmChannel as import('discord.js').TextBasedChannel).messages.fetch(paused.dmMessageId);
-                await dmMsg.edit({
-                  embeds: [buildTimerEmbed(paused)],
-                  components: [buildPausedButtons()],
-                });
-              }
-            }
-          } catch { /* non-critical */ }
-
-          try {
-            await updateTimerRecord(db, account.memberId, {
-              totalWorkedMs: paused.totalWorkedMs,
-              totalBreakMs: paused.totalBreakMs,
-              timerState: paused.state,
-              prePauseState: paused.prePauseState,
-              remainingMs: paused.remainingMs,
-            });
-          } catch { /* non-critical */ }
-
-          await message.reply('Timer paused.');
-          return;
-        }
-
-        if (isTimerResumeRequest(message.content)) {
-          const activeTimer = getActiveTimer(account.memberId);
-          if (!activeTimer) {
-            await message.reply("You don't have an active timer to resume.");
-            return;
-          }
-          if (activeTimer.state !== 'paused') {
-            await message.reply("Your timer isn't paused.");
-            return;
-          }
-          const resumed = resumeTimer(account.memberId);
-          if (!resumed) return;
-
-          const buttons = resumed.state === 'working' ? buildWorkButtons() : buildBreakButtons();
-
-          // Update DM embed
-          try {
-            if (resumed.dmChannelId && resumed.dmMessageId) {
-              const dmChannel = await client.channels.fetch(resumed.dmChannelId);
-              if (dmChannel && 'messages' in dmChannel) {
-                const dmMsg = await (dmChannel as import('discord.js').TextBasedChannel).messages.fetch(resumed.dmMessageId);
-                await dmMsg.edit({
-                  embeds: [buildTimerEmbed(resumed)],
-                  components: [buttons],
-                });
-              }
-            }
-          } catch { /* non-critical */ }
-
-          // Reschedule transition for remaining time
-          if (resumed.remainingMs && resumed.remainingMs > 0) {
-            const transitionType = resumed.state === 'working' ? 'work_to_break' : 'break_to_work';
-            scheduleTransition(account.memberId, resumed.remainingMs, async () => {
-              ctx.events.emit('timerTransition', account.memberId, transitionType);
-            });
-          }
-
-          try {
-            await updateTimerRecord(db, account.memberId, {
-              totalWorkedMs: resumed.totalWorkedMs,
-              totalBreakMs: resumed.totalBreakMs,
-              timerState: resumed.state,
-              prePauseState: resumed.prePauseState,
-              remainingMs: resumed.remainingMs,
-            });
-          } catch { /* non-critical */ }
-
-          await message.reply('Timer resumed.');
-          return;
-        }
-
-        // Check for timer intent before regular chat processing
-        if (isTimerRequest(message.content)) {
-          // Already has an active timer -- tell them
-          if (getActiveTimer(account.memberId)) {
-            await message.reply(
-              "You already have a timer running. Say 'stop timer' or use /timer stop first.",
-            );
-            return;
-          }
-
-          const parsed = await parseTimerRequest(db, account.memberId, message.content);
-          if (parsed.isTimerRequest) {
-            const timer = await startTimerForMember(
-              client,
-              db,
-              ctx.events,
-              account.memberId,
-              message.author.id,
-              {
-                mode: parsed.mode ?? 'pomodoro',
-                workDuration: parsed.workMinutes ?? TIMER_DEFAULTS.defaultWorkMinutes,
-                breakDuration: parsed.breakMinutes ?? TIMER_DEFAULTS.defaultBreakMinutes,
-                focus: parsed.focus,
-                goalId: null,
-                responseChannelId: isPrivateChannel ? message.channel.id : undefined,
-              },
-            );
-
-            if (!timer) {
-              await message.reply(
-                'Could not start the timer. Please enable DMs from this server and try again.',
-              );
-            }
-            // Timer started successfully -- DM with embed+buttons already sent by startTimerForMember
-            return;
-          }
-          // AI says it's not actually a timer request -- fall through to regular chat
-        }
-
-        // Check for reminder intent (after timer -- timer is more specific, per Pitfall 7)
+        // Check for reminder intent
         if (isReminderRequest(message.content)) {
           const schedule = await db.memberSchedule.findUnique({
             where: { memberId: account.memberId },
