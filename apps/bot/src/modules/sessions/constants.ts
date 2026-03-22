@@ -24,3 +24,6 @@ export const MAX_SESSION_TITLE_LENGTH = 50;
 
 /** DM participants this many minutes before scheduled start. */
 export const SCHEDULED_SESSION_REMINDER_MINUTES = 5;
+
+/** Reusable voice co-working promotion line for embeds and briefs. */
+export const VOICE_PROMO_LINE = 'Working alongside others increases focus by 143%. No talking required -- just lock in.';

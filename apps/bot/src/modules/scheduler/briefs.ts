@@ -21,6 +21,7 @@ import { callAI } from '../../shared/ai-client.js';
 import { BRAND_COLORS } from '@28k/shared';
 import { deliverNotification } from '../notification-router/router.js';
 import { getRankForXP, getNextRankInfo, calculateStreakMultiplier } from '@28k/shared';
+import { VOICE_PROMO_LINE } from '../sessions/constants.js';
 import { getRecentMessages, getSummary, storeMessage } from '../ai-assistant/memory.js';
 import { buildSystemPrompt, AI_NAME } from '../ai-assistant/personality.js';
 import { checkAndIncrementOutreach, isQuietHours } from '../../shared/delivery.js';
@@ -63,6 +64,8 @@ export interface CommunityPulse {
   weeklyVoiceMinutes: number;
   recentWinsCount: number;
   recentLessonsCount: number;
+  currentVoiceMembers: number;
+  currentVoiceMemberNames: string[];
 }
 
 /** Structured template data for AI or fallback rendering. */
@@ -83,8 +86,9 @@ interface BriefTemplate {
  * - Count members who checked in today (across all members)
  * - Get total voice minutes this week across server
  * - Count wins and lessons posts in last 24 hours
+ * - Detect members currently in voice channels (live presence)
  */
-export async function getCommunityPulse(db: ExtendedPrismaClient): Promise<CommunityPulse> {
+export async function getCommunityPulse(db: ExtendedPrismaClient, client?: Client): Promise<CommunityPulse> {
   const now = new Date();
   const todayStart = startOfDay(now);
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -114,11 +118,37 @@ export async function getCommunityPulse(db: ExtendedPrismaClient): Promise<Commu
     }),
   ]);
 
+  // Detect members currently in voice channels (live presence)
+  let currentVoiceMembers = 0;
+  const currentVoiceMemberNames: string[] = [];
+
+  if (client) {
+    const guild = client.guilds.cache.first();
+    if (guild) {
+      for (const channel of guild.channels.cache.values()) {
+        if (channel.isVoiceBased()) {
+          for (const member of channel.members.values()) {
+            currentVoiceMembers++;
+            if (currentVoiceMemberNames.length < 5) {
+              currentVoiceMemberNames.push(member.displayName);
+            }
+          }
+        }
+      }
+      // Add overflow indicator if more than 5
+      if (currentVoiceMembers > 5) {
+        currentVoiceMemberNames.push(`+${currentVoiceMembers - 5} more`);
+      }
+    }
+  }
+
   return {
     todayCheckInCount,
     weeklyVoiceMinutes: voiceAgg._sum.durationMinutes ?? 0,
     recentWinsCount,
     recentLessonsCount,
+    currentVoiceMembers,
+    currentVoiceMemberNames,
   };
 }
 
@@ -195,6 +225,7 @@ export async function generateBrief(
   memberId: string,
   db: ExtendedPrismaClient,
   recentReflections: Array<{ type: string; insights: string | null; createdAt: Date }> = [],
+  client?: Client,
 ): Promise<string> {
   // Check cache
   const todayKey = new TZDate(new Date(), memberData.timezone)
@@ -217,12 +248,14 @@ export async function generateBrief(
     const summary = await getSummary(db, memberId);
     const summarySnippet = summary ? summary.slice(0, 500) : null;
 
-    // Get community pulse
-    const pulse = await getCommunityPulse(db);
+    // Get community pulse (with live voice presence if client available)
+    const pulse = await getCommunityPulse(db, client);
 
     // Build Jarvis system prompt layered with brief-specific addendum
     const aceSystemPrompt = await buildSystemPrompt(db, memberId);
-    const briefAddendum = `\n\nWrite a morning brief for this member. Keep it 3-6 sentences. Include their personal stats, reference any ongoing conversations or commitments they mentioned, add a community highlight if something interesting happened. If they have recent reflection insights, weave one reference in naturally -- e.g. "You mentioned mornings are your peak time, so here's your brief early." Don't force it if no reflections exist. Make it feel like their personal operator catching them up.`;
+    const briefAddendum = `\n\nWrite a morning brief for this member. Keep it 3-6 sentences. Include their personal stats, reference any ongoing conversations or commitments they mentioned, add a community highlight if something interesting happened. If they have recent reflection insights, weave one reference in naturally -- e.g. "You mentioned mornings are your peak time, so here's your brief early." Don't force it if no reflections exist. Make it feel like their personal operator catching them up.
+
+Voice co-working is the flagship productivity feature. When members are in voice channels, highlight this prominently. The library effect -- just being present with others working -- increases productivity significantly. Frame voice sessions as the easiest way to be more productive, not as a social obligation. Include a "Lock-in" section after goals and before reminders.`;
 
     // Build user message with full context
     const userParts: string[] = [
@@ -240,8 +273,13 @@ export async function generateBrief(
       userParts.push(`Recent conversation:\n${msgText}`);
     }
 
+    // Lock-in section data for the AI
+    const lockInSection = pulse.currentVoiceMembers > 0
+      ? `Lock-in: ${pulse.currentVoiceMembers} member(s) grinding right now (${pulse.currentVoiceMemberNames.join(', ')}). Highlight this -- tell the member to join a voice channel to work alongside them.`
+      : `Lock-in: Voice rooms are open. Suggest starting a session with /lockin -- working alongside others increases focus by 143%.`;
+
     userParts.push(
-      `Community pulse: ${pulse.todayCheckInCount} members checked in today, ${pulse.weeklyVoiceMinutes} voice minutes this week, ${pulse.recentWinsCount} wins and ${pulse.recentLessonsCount} lessons posted in last 24h.`,
+      `Community pulse: ${pulse.todayCheckInCount} members checked in today, ${pulse.weeklyVoiceMinutes} voice minutes this week, ${pulse.recentWinsCount} wins and ${pulse.recentLessonsCount} lessons posted in last 24h.\n\n${lockInSection}`,
     );
 
     // Reflection context
@@ -424,8 +462,8 @@ export async function sendBrief(
       lastCheckInCategories: lastCheckIn?.categories ?? [],
     };
 
-    // Generate brief with full AI context (including reflections)
-    const briefText = await generateBrief(memberData, memberId, db, recentReflections);
+    // Generate brief with full AI context (including reflections and live voice presence)
+    const briefText = await generateBrief(memberData, memberId, db, recentReflections, client);
 
     // Build branded embed (amber/gold)
     const embedFields = [

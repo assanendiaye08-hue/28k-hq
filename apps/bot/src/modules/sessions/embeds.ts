@@ -7,6 +7,7 @@
 
 import { EmbedBuilder, channelMention } from 'discord.js';
 import { BRAND_COLORS } from '@28k/shared';
+import { VOICE_PROMO_LINE } from './constants.js';
 
 /**
  * Build an announcement embed for a session (posted in #sessions or DM).
@@ -19,12 +20,13 @@ export function buildSessionAnnouncementEmbed(
 ): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setColor(BRAND_COLORS.primary)
-    .setTitle(`Lock-In: ${title}`)
+    .setTitle(`\u{1F3A7} Lock-In: ${title}`)
     .setDescription(
       scheduledFor
         ? `**${creatorName}** scheduled a ${visibility.toLowerCase()} session for <t:${Math.floor(scheduledFor.getTime() / 1000)}:F>.`
         : `**${creatorName}** started a ${visibility.toLowerCase()} session. Jump in!`,
     )
+    .addFields({ name: 'Why join?', value: VOICE_PROMO_LINE })
     .setTimestamp();
 
   if (visibility === 'PUBLIC') {
@@ -70,6 +72,10 @@ export function buildSessionSummaryEmbed(
     ? participantNames.join(', ')
     : 'Solo session';
 
+  const participantCount = participantNames.length || 1;
+  const totalFocusedMinutes = participantCount * durationMinutes;
+  const collectiveImpact = `${participantCount} ${participantCount === 1 ? 'person' : 'people'} x ${durationMinutes}m = **${totalFocusedMinutes} focused minutes**`;
+
   return new EmbedBuilder()
     .setColor(BRAND_COLORS.success)
     .setTitle(`Session Complete: ${title}`)
@@ -78,6 +84,7 @@ export function buildSessionSummaryEmbed(
       { name: 'Topic', value: topic || title, inline: true },
       { name: 'Attendees', value: participantList, inline: true },
       { name: 'Duration', value: timeStr, inline: true },
+      { name: 'Collective Impact', value: collectiveImpact },
     )
     .setTimestamp();
 }
