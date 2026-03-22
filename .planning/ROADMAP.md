@@ -74,11 +74,11 @@ Full details: .planning/milestones/v2.0-ROADMAP.md
   3. Only /goals, /reminders, and /leaderboard slash commands remain -- all others are removed
   4. No per-member private channels exist in the server -- all private interaction happens via DMs
   5. When a member starts a timer session in the desktop app, the bot receives a signal and holds non-critical messages until the session ends
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: TBD
-- [ ] 20-02: TBD
+- [ ] 20-01-PLAN.md -- Remove timer + auto-feed modules, strip slash commands to 4 remaining
+- [ ] 20-02-PLAN.md -- DMs-only delivery refactor + focus session signaling between desktop and bot
 
 ### Phase 21: Conversational Jarvis
 **Goal**: Members interact with Jarvis through natural conversation in DMs -- managing goals, check-ins, and reminders without slash commands -- with topic-aware context and a direct, objective coaching tone
