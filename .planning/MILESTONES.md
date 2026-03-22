@@ -19,3 +19,13 @@
 
 ---
 
+
+## v2.0 Desktop Companion App (Shipped: 2026-03-22)
+
+**Phases completed:** 19 phases, 49 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+

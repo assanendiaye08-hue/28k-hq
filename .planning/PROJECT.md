@@ -47,20 +47,21 @@ When a member opens Discord, the environment pulls them into productive action �
 - ✓ Self-evaluation/reflection (configurable intensity, AI questions, Jarvis feedback loop) — v1.1
 - ✓ Monthly progress recap (adaptive AI narrative, shareable to #wins) — v1.1
 
+- ✓ Monorepo restructure (Turborepo + pnpm: apps/bot, apps/desktop, apps/api, packages/db, packages/shared) — v2.0
+- ✓ REST API server (Fastify) on VPS with shared database — v2.0
+- ✓ Discord OAuth authentication (PKCE flow, auto-registration) — v2.0
+- ✓ Tauri desktop app with system tray, menu bar countdown — v2.0
+- ✓ Pomodoro timer (local-first, hours+minutes config, progress ring, alarm transitions, XP sync) — v2.0
+- ✓ Flowmodoro timer (count-up, auto-calculated ratio breaks) — v2.0
+- ✓ Goals CRUD from desktop (create, progress update, complete with XP) — v2.0
+- ✓ Dashboard (priorities, weekly goals, streak/rank, daily quote, auto-refresh) — v2.0
+- ✓ Settings page (auto-updater, autostart toggles) — v2.0
+- ✓ Dark theme with amber accents, macOS-native design — v2.0
+- ✓ 34 automated tests (13 unit + 21 E2E API) — v2.0
+
 ### Active
 
-#### v2.0 Desktop Companion App
-- [ ] Monorepo restructure (Turborepo + pnpm: apps/bot, apps/desktop, apps/api, packages/db, packages/shared)
-- [ ] REST API server (Fastify) on VPS — shared database access for desktop app
-- [ ] Discord OAuth authentication for desktop app
-- [ ] Tauri desktop app: menu bar icon (gold ouroboros), system tray presence
-- [ ] Timer: Pomodoro mode (custom work/break/sessions/long break) with menu bar countdown
-- [ ] Timer: Flowmodoro mode (running timer, auto-calculated break ratio)
-- [ ] Timer: Full setup screen, menu bar controls, alarm + screen focus on transitions
-- [ ] Goals: Nested hierarchy view (yearly → quarterly → monthly → weekly) with progress bars
-- [ ] Dashboard: Today's priorities, weekly goals, streak/rank, daily operator quote
-- [ ] Session data syncs to bot for XP/streak tracking
-- [ ] Dark theme with gold accents (brand identity)
+(Next milestone — TBD)
 
 ### Out of Scope
 
@@ -75,7 +76,7 @@ When a member opens Discord, the environment pulls them into productive action �
 - **The group**: 10-25 friends from the same city, diverse profiles (FAANG engineers, small biz owners, students, ecom, affiliate). Smart and capable but spending time gaming on Discord instead of building
 - **The founder's angle**: Already a hustler making money online. Wants to pull friends into the same mindset
 - **Key insight**: These are gamers — wired for competition, progression, streaks, leaderboards. The bots tap into that psychology
-- **Current state**: v1.1 shipped — 23,564 LOC TypeScript, 35 plans, 51 requirements validated across 2 milestones. Ready for deployment and real-world testing
+- **Current state**: v2.0 shipped — 6,398 LOC TypeScript (desktop + API), 49 plans, 106 requirements validated across 3 milestones. Desktop app running, API deployed to VPS
 - **Future integration**: Apple ecosystem integration planned (APNs, Shortcuts) — pluggable delivery backend already in place
 - **Tech stack**: discord.js, Prisma 7, OpenRouter (Grok 4.1 Fast primary + DeepSeek V3.2 fallback), node-cron, chrono-node, rss-parser, PM2
 
@@ -103,9 +104,12 @@ When a member opens Discord, the environment pulls them into productive action �
 | Pluggable delivery backend | Future Apple integration without rewrite | ✓ Good — interface ready, Discord impl shipped |
 
 ---
-| Desktop companion app (Tauri v2) | Visual features don't belong in Discord embeds — timer, goals, dashboard need proper UI | — Pending |
-| Monorepo + API architecture | Shared DB layer enables desktop, future mobile/web without rewriting backend | — Pending |
-| Fastify REST API (not tRPC) | REST works with any client language (future iOS/web), tRPC locks to TypeScript | — Pending |
+| Desktop companion app (Tauri v2) | Visual features don't belong in Discord embeds — timer, goals, dashboard need proper UI | ✓ Good — shipped v2.0 |
+| Monorepo + API architecture | Shared DB layer enables desktop, future mobile/web without rewriting backend | ✓ Good — bot and desktop share DB seamlessly |
+| Fastify REST API (not tRPC) | REST works with any client language (future iOS/web), tRPC locks to TypeScript | ✓ Good |
+| Local-first timer | Timer runs locally, API syncs in background — no server dependency for start/stop | ✓ Good — eliminated all 409/stale session bugs |
+| Single window (no popover) | Popover caused dual dock icons and cross-window sync complexity | ✓ Good — simpler, no sync issues |
+| Server auto-cancel stale sessions | POST /timer auto-completes any existing ACTIVE session | ✓ Good — foolproof timer restart |
 
 ---
-*Last updated: 2026-03-21 after v2.0 milestone definition*
+*Last updated: 2026-03-22 after v2.0 milestone completion*
