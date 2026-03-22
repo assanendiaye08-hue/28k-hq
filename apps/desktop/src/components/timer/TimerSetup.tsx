@@ -5,18 +5,25 @@
  * Supports Pomodoro (structured cycles) and Flowmodoro (count-up with ratio breaks).
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useTimerStore, type TimerMode } from '../../stores/timer-store';
+import { useGoalsStore } from '../../stores/goals-store';
 import { TIMER_DEFAULTS } from '@28k/shared';
 import { preloadAlarm } from '../../lib/timer-audio';
 import { Card } from '../common/Card';
 
 export function TimerSetup() {
   const start = useTimerStore((s) => s.start);
+  const goals = useGoalsStore((s) => s.goals);
+  const fetchGoals = useGoalsStore((s) => s.fetchGoals);
 
   const [timerMode, setTimerMode] = useState<TimerMode>('pomodoro');
   const [focus, setFocus] = useState('');
+  const [goalId, setGoalId] = useState<string | null>(null);
+
+  // Fetch goals on mount for the dropdown
+  useEffect(() => { fetchGoals(); }, [fetchGoals]);
   const [workDuration, setWorkDuration] = useState<number>(TIMER_DEFAULTS.defaultWorkMinutes);
   const [breakDuration, setBreakDuration] = useState<number>(TIMER_DEFAULTS.defaultBreakMinutes);
   const [longBreakDuration, setLongBreakDuration] = useState(15);
@@ -45,6 +52,7 @@ export function TimerSetup() {
           focus: focus.trim(),
           timerMode: 'flowmodoro',
           breakRatio,
+          goalId,
         });
       } else {
         start({
@@ -57,6 +65,7 @@ export function TimerSetup() {
           targetSessions: unlimited ? null : targetSessions,
           autoStartBreak,
           autoStartWork,
+          goalId,
         });
       }
       // Auto-minimize — timer runs in menu bar, click tray to reopen
@@ -110,6 +119,25 @@ export function TimerSetup() {
             <p className="text-error text-xs mt-1">Focus is required</p>
           )}
         </div>
+
+        {/* Goal (optional) */}
+        {goals.filter(g => g.status === 'ACTIVE').length > 0 && (
+          <div>
+            <label className="block text-text-secondary text-sm mb-1">Goal (optional)</label>
+            <select
+              value={goalId ?? ''}
+              onChange={(e) => setGoalId(e.target.value || null)}
+              className={inputClass}
+            >
+              <option value="">No goal</option>
+              {goals
+                .filter(g => g.status === 'ACTIVE')
+                .map(g => (
+                  <option key={g.id} value={g.id}>{g.title}</option>
+                ))}
+            </select>
+          </div>
+        )}
 
         {timerMode === 'pomodoro' ? (
           <>
