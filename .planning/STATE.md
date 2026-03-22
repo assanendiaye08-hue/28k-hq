@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming.
-**Current focus:** v3.0 Phase 22 - Daily Rhythm
+**Current focus:** v3.0 Phase 23 - Social Layer
 
 ## Current Position
 
 Phase: 23 of 24 (Social Layer)
-Plan: 0 of 2 in current phase
-Status: Phase 22 complete, Phase 23 ready
-Last activity: 2026-03-22 -- Completed 22-03: Weekly review and coaching onboarding
+Plan: 1 of 2 in current phase
+Status: Executing Phase 23
+Last activity: 2026-03-22 -- Completed 23-01: Streak two-day rule and channel consolidation
 
-Progress: [███████░░░] 67% (v3.0 -- 8/12 plans)
+Progress: [████████░░] 75% (v3.0 -- 9/12 plans)
 
 ## Performance Metrics
 
@@ -30,12 +30,12 @@ Progress: [███████░░░] 67% (v3.0 -- 8/12 plans)
 | 20-clean-slate | 2/2 | 9 min | 4.5 min |
 | 21-conversational-jarvis | 3/3 | 10 min | 3.3 min |
 | 22-daily-rhythm | 3/3 | 9 min | 3 min |
-| 23-social-layer | 0/2 | - | - |
+| 23-social-layer | 1/2 | 3 min | 3 min |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 21-02 (4 min), 21-03 (3 min), 22-01 (3 min), 22-02 (7 min), 22-03 (6 min)
-- Trend: Phase 22 complete (3/3 plans), Phase 23 next
+- Last 5 plans: 21-03 (3 min), 22-01 (3 min), 22-02 (7 min), 22-03 (6 min), 23-01 (3 min)
+- Trend: Phase 23 in progress (1/2 plans)
 
 *Updated after each plan completion*
 
@@ -79,6 +79,9 @@ Recent decisions affecting current work:
 - [22-03]: Stalled goal detection uses createdAt + currentValue since Goal model has no updatedAt field
 - [22-03]: Coaching onboarding triggers automatically on first DM (no slash command) -- lowest friction for new members
 - [22-03]: activeCoachingUsers Set prevents DM handler from re-entering during onboarding conversation
+- [23-01]: Two-day rule replaces both 7-day reset and weekly grace budget -- simpler mental model
+- [23-01]: Consistency rate uses UTC date strings for distinct-day counting (timezone-independent window)
+- [23-01]: buildStreakLeaderboardEmbed made async with optional db param for backward compatibility
 
 ### Pending Todos
 
@@ -102,5 +105,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 22-02-PLAN.md -- Evening reflection open-loop closure and graduated pullback (Phase 22 complete)
+Stopped at: Completed 23-01-PLAN.md -- Streak two-day rule and channel consolidation
 Resume file: None
