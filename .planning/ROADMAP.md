@@ -110,9 +110,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 22-01-PLAN.md -- Outreach budget, coaching config (per-feature toggles + quiet hours), conversational morning brief
-- [ ] 22-02-PLAN.md -- Evening reflection with open-loop closure, smart nudges with stale goal detection and graduated pullback
-- [ ] 22-03-PLAN.md -- Weekly planning with week review summary, coaching onboarding flow for first-time DM users
+- [x] 22-01-PLAN.md -- Outreach budget, coaching config (per-feature toggles + quiet hours), conversational morning brief
+- [x] 22-02-PLAN.md -- Evening reflection with open-loop closure, smart nudges with stale goal detection and graduated pullback
+- [x] 22-03-PLAN.md -- Weekly planning with week review summary, coaching onboarding flow for first-time DM users
 
 ### Phase 23: Social Layer Refinement
 **Goal**: The Discord server structure is tightened -- fewer channels that matter more, voice co-working promoted as the flagship social feature, streaks redesigned to encourage consistency without punishment, and the bot absorbs accountability friction so friends can focus on support
@@ -123,11 +123,11 @@ Plans:
   2. A member who misses one day of their streak does not reset to zero -- the system tracks consistency rate and applies a two-day grace rule, preserving historical progress
   3. The server has fewer, higher-signal channels -- resource channels consolidated, private spaces category removed, channel layout makes the server feel focused rather than sprawling
   4. When a member has declining activity or missed commitments, the bot delivers the hard truth directly in DMs so that friends in public channels focus on celebration and support rather than confrontation
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 23-01: TBD
-- [ ] 23-02: TBD
+- [ ] 23-01-PLAN.md -- Streak two-day rule, consistency rate, never-zero reset + server channel consolidation
+- [ ] 23-02-PLAN.md -- Voice co-working promotion in briefs/embeds + bot accountability tone refinement
 
 ### Phase 24: Desktop App Enhancement
 **Goal**: The desktop app gains a focused Today view for execution mode, session history for review, and a community presence indicator so members can see who is working without opening Discord
