@@ -44,7 +44,7 @@ export function TimerPage() {
           longBreakInterval: number | null;
         } | null>('/timer/active');
 
-        if (active && active.timerState !== 'STOPPED') {
+        if (active && active.timerState !== 'STOPPED' && active.remainingMs > 0) {
           restore({
             phase: active.timerState === 'PAUSED' ? 'paused' : 'working',
             sessionId: active.id,
