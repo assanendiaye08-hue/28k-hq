@@ -19,13 +19,10 @@ pub fn run() {
                 MenuItem::with_id(app, "quit", "Quit 28K HQ", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
 
-            // Build tray icon from embedded PNG
-            let tray_icon_bytes = include_bytes!("../icons/tray-icon.png");
-            let tray_img = tauri::image::Image::from_bytes(tray_icon_bytes)
-                .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
+            // Build tray icon
             TrayIconBuilder::with_id("main")
-                .icon(tray_img)
-                .icon_as_template(true)
+                .icon(app.default_window_icon().unwrap().clone())
+                .icon_as_template(false)
                 .tooltip("28K HQ")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
