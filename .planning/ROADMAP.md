@@ -99,6 +99,11 @@ Plans:
 **Goal**: Count-up timer mode with auto-calculated breaks, plus goal CRUD from desktop app
 **Depends on**: Phase 17
 **Requirements**: FLW-01, FLW-02, FLW-03, FLW-04, FLW-05, FLW-06, GOAL-03, GOAL-04, GOAL-05
+**Plans:** 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Flowmodoro timer mode: store extension, count-up tick, tray elapsed, setup toggle, display
+- [ ] 18-02-PLAN.md — Goals editing: create form, inline progress update, complete action with XP feedback
 
 ### Phase 19: Cross-Platform Sync + Polish
 **Goal**: Bot-desktop timer/goal sync, one-timer enforcement, real-time dashboard, auto-updater, autostart
