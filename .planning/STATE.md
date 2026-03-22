@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** When a member opens Discord, the environment pulls them into productive action -- not gaming. The desktop app extends this to their entire workstation.
-**Current focus:** v2.0 Phase 18 - Flowmodoro Goals Editing
+**Current focus:** v2.0 Phase 19 - Cross-Platform Sync Polish
 
 ## Current Position
 
-Phase: 18 of 19 (Flowmodoro Goals Editing)
+Phase: 19 of 19 (Cross-Platform Sync Polish)
 Plan: 1 of 2 in current phase
 Status: In Progress
-Last activity: 2026-03-22 -- Completed 18-01 (Flowmodoro timer mode)
+Last activity: 2026-03-22 -- Completed 19-01 (Tauri plugins + dashboard auto-refresh)
 
-Progress: [#############░░░░░░░] 65% (v2.0) -- Phase 18 in progress, Plan 01 complete (5 of 6 v2.0 phases)
+Progress: [################░░░░] 80% (v2.0) -- Phase 19 in progress, Plan 01 complete (5.5 of 6 v2.0 phases)
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [#############░░░░░░░] 65% (v2.0) -- Phase 18 in progres
 - Trend: stable (goal CRUD follows established store/component patterns)
 | Phase 18 P02 | 3 | 2 tasks | 5 files |
 | Phase 18 P01 | 6 min | 2 tasks | 8 files |
+| Phase 19 P01 | 3 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase 18]: [18-02]: Slide-down panel for goal creation instead of modal, matching timer setup UX
 - [Phase 18]: [18-02]: Group-hover opacity for action buttons to keep goal tree clean until interaction
 - [Phase 18]: [18-02]: 2-second inline XP feedback fade rather than toast notification for goal completion
+- [19-01]: Updater pubkey and endpoint URL are placeholders -- actual key generation is pre-release
+- [19-01]: Dashboard refresh is event-driven via cross-store getState().fetchDashboard(), not polling
 
 ### Pending Todos
 
@@ -123,5 +126,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 18-01-PLAN.md (Flowmodoro timer mode with count-up work and ratio breaks)
+Stopped at: Completed 19-01-PLAN.md (Tauri plugins + dashboard auto-refresh wiring)
 Resume file: None
