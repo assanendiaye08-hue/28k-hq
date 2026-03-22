@@ -192,18 +192,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       longBreakInterval: longBreakInterval ?? undefined,
     };
 
-    // Cancel any stale active session before creating a new one
-    try {
-      const check = await apiFetch<{ active: { id: string } | null }>('/timer/active');
-      if (check?.active?.id) {
-        await apiFetch(`/timer/${check.active.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'stop', totalWorkedMs: 0, totalBreakMs: 0, pomodoroCount: 0 }),
-        });
-      }
-    } catch { /* ignore — will get 409 below if it didn't work */ }
-
+    // Server auto-cancels any stale active session on POST
     const response = await apiFetch<{ id: string }>('/timer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
