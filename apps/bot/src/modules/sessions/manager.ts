@@ -560,6 +560,10 @@ async function resolveParticipantNames(
   return names;
 }
 
+// DESIGN: Public session announcements are celebration-only.
+// Accountability and performance data are DM-only (nudge.ts).
+// This separation lets friends focus on support while the bot handles hard truths.
+
 /**
  * Post an announcement in the #sessions text channel.
  */
