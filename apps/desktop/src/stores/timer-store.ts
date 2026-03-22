@@ -314,6 +314,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       }
     }
 
+    // Clear persistence and tray BEFORE state change to prevent races
+    clearTimerState().catch(() => {});
+    updateTrayTitle(null).catch(() => {});
+
     set({
       phase: 'idle',
       sessionId: null,
@@ -329,9 +333,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       transitionType: null,
       lastStopResult: null,
     });
-
-    clearTimerState().catch(() => {});
-    updateTrayTitle(null).catch(() => {});
 
     return stopResponse;
   },

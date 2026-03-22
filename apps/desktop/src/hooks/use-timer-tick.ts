@@ -30,9 +30,16 @@ export function useTimerTick(): TimerTick {
   const [remainingMs, setRemainingMs] = useState(() => getRemainingMs());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Clear interval helper
+  const clearTick = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (phase === 'working' || phase === 'on_break') {
-      // Initial update
       const initial = getRemainingMs();
       setRemainingMs(initial);
       updateTrayTitle(initial).catch(() => {});
@@ -43,19 +50,19 @@ export function useTimerTick(): TimerTick {
         updateTrayTitle(remaining).catch(() => {});
 
         if (remaining <= 0) {
+          clearTick();
           completePhase();
         }
       }, 1000);
 
       return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
+        clearTick();
+        // Always clear tray on cleanup (phase change or unmount)
+        updateTrayTitle(null).catch(() => {});
       };
     }
 
-    // Not in active phase -- clear tray and reset
+    // Not in active phase — clear tray
     updateTrayTitle(null).catch(() => {});
     if (phase === 'paused') {
       setRemainingMs(getRemainingMs());
@@ -63,7 +70,9 @@ export function useTimerTick(): TimerTick {
       setRemainingMs(0);
     }
 
-    return undefined;
+    return () => {
+      updateTrayTitle(null).catch(() => {});
+    };
   }, [phase, getRemainingMs, completePhase]);
 
   return {
