@@ -1,12 +1,11 @@
 import { config } from '../core/config.js';
-import type { ExtendedPrismaClient } from '@28k/db';
 
 /**
  * Check if a Discord user is the owner.
  * Looks up whether this Discord account is linked to the same Member
  * as the configured OWNER_DISCORD_ID — supports multi-account identity.
  */
-export async function isOwner(userId: string, db: ExtendedPrismaClient): Promise<boolean> {
+export async function isOwner(userId: string, db: any): Promise<boolean> {
   // Fast path: exact match
   if (userId === config.OWNER_DISCORD_ID) return true;
 
