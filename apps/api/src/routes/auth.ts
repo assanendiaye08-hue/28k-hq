@@ -60,14 +60,33 @@ export default async function authRoutes(fastify: FastifyInstance) {
         return reply.status(502).send({ error: 'Failed to fetch Discord user' });
       }
 
-      // Look up linked account
-      const account = await fastify.db.discordAccount.findUnique({
+      // Look up linked account, or auto-create for first-time desktop login
+      let account = await fastify.db.discordAccount.findUnique({
         where: { discordId: discordUser.id },
         include: { member: true },
       });
 
       if (!account) {
-        return reply.status(403).send({ error: 'Not a 28K HQ member' });
+        // Auto-register: create Member + DiscordAccount
+        const member = await fastify.db.member.create({
+          data: {
+            displayName: discordUser.global_name || discordUser.username,
+            discordAccounts: {
+              create: {
+                discordId: discordUser.id,
+                username: discordUser.username,
+              },
+            },
+          },
+        });
+        account = await fastify.db.discordAccount.findUnique({
+          where: { discordId: discordUser.id },
+          include: { member: true },
+        });
+        if (!account) {
+          return reply.status(500).send({ error: 'Failed to create account' });
+        }
+        fastify.log.info({ discordId: discordUser.id, memberId: member.id }, 'Auto-registered new member from desktop login');
       }
 
       // Sign JWT access token
