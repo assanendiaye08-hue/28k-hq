@@ -17,6 +17,9 @@ import { TimerTransition } from './TimerTransition';
 export function TimerDisplay() {
   const phase = useTimerStore((s) => s.phase);
   const phaseDurationMs = useTimerStore((s) => s.phaseDurationMs);
+  const workDuration = useTimerStore((s) => s.workDuration);
+  const breakDuration = useTimerStore((s) => s.breakDuration);
+  const longBreakDuration = useTimerStore((s) => s.longBreakDuration);
   const pomodoroCount = useTimerStore((s) => s.pomodoroCount);
   const targetSessions = useTimerStore((s) => s.targetSessions);
   const focus = useTimerStore((s) => s.focus);
@@ -32,7 +35,11 @@ export function TimerDisplay() {
 
   const { remainingMs, formattedTime } = useTimerTick();
 
-  const progress = phaseDurationMs > 0 ? 1 - remainingMs / phaseDurationMs : 0;
+  // Use original phase duration for progress (not phaseDurationMs which shrinks after pause/resume)
+  const originalDurationMs = (phase === 'working' || (phase === 'paused' && useTimerStore.getState().prePausePhase === 'working'))
+    ? workDuration * 60000
+    : (isLongBreak() ? longBreakDuration : breakDuration) * 60000;
+  const progress = originalDurationMs > 0 ? 1 - remainingMs / originalDurationMs : 0;
 
   // Phase label
   const phaseLabel = (() => {
