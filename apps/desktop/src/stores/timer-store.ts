@@ -245,7 +245,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       totalBreakMs: newTotalBreakMs,
     });
 
-    updateTrayTitle(null).catch(() => {});
+    // Show frozen remaining time in tray (not null)
+    updateTrayTitle(remaining).catch(() => {});
     saveTimerState(buildSaveState(get())).catch(() => {});
 
     // Fire API in background
@@ -278,6 +279,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       pauseRemainingMs: 0,
     });
 
+    // Immediately sync tray with remaining time
+    updateTrayTitle(pauseRemainingMs).catch(() => {});
     saveTimerState(buildSaveState(get())).catch(() => {});
 
     // Fire API in background
