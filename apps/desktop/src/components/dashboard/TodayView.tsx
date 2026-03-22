@@ -1,6 +1,7 @@
 import { useDashboardStore } from '../../stores/dashboard-store';
 import { PriorityList } from './PriorityList';
 import { StreakBadge } from './StreakBadge';
+import { GrindingIndicator } from './GrindingIndicator';
 import { TimerWidget } from './TimerWidget';
 import { SessionHistory } from './SessionHistory';
 
@@ -44,6 +45,7 @@ export function TodayView() {
             currentStreak={member.currentStreak}
             longestStreak={member.longestStreak}
           />
+          <GrindingIndicator />
         </div>
       </div>
     </div>
