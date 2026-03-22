@@ -1,7 +1,11 @@
 /**
  * Core chat handler for the AI assistant.
  *
- * Processes messages through the AI pipeline with:
+ * Two modes of operation:
+ * - handleChat: Plain conversation (used by /ask slash command)
+ * - handleChatWithTools: Tool-calling conversation (used by DM handler)
+ *
+ * Both share the same pipeline:
  * - Per-member processing lock (prevents race conditions from rapid messages)
  * - Daily message cap (50 messages per member per day)
  * - Centralized AI client with budget enforcement and model routing
@@ -14,6 +18,7 @@ import type { ExtendedPrismaClient } from '@28k/db';
 import { callAI } from '../../shared/ai-client.js';
 import { storeMessage, assembleContext } from './memory.js';
 import { buildSystemPrompt } from './personality.js';
+import { intentTools } from './intent-tools.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -62,6 +67,14 @@ async function withMemberLock<T>(memberId: string, fn: () => Promise<T>): Promis
       processingLocks.delete(memberId);
     }
   }
+}
+
+// ─── Types ──────────────────────────────────────────────────────────────────────
+
+/** Result from handleChatWithTools, indicating whether a tool was called. */
+export interface ChatWithToolsResult {
+  response: string;
+  toolCall?: { name: string; params: Record<string, unknown> } | null;
 }
 
 // ─── Chat Handler ──────────────────────────────────────────────────────────────
@@ -162,5 +175,146 @@ export async function handleChat(
     await storeMessage(db, memberId, 'assistant', responseText);
 
     return responseText;
+  });
+}
+
+// ─── Tool-Calling Chat Handler ──────────────────────────────────────────────────
+
+/**
+ * Handle a DM message with tool-calling support.
+ *
+ * Same pipeline as handleChat (daily cap, member lock, context assembly),
+ * but passes intentTools to the AI so it can detect actionable intents.
+ *
+ * Returns a ChatWithToolsResult:
+ * - If the LLM invoked a tool: { response, toolCall: { name, params } }
+ * - If no tool called: { response, toolCall: null }
+ *
+ * The caller is responsible for presenting confirmations and executing actions.
+ */
+export async function handleChatWithTools(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  userMessage: string,
+): Promise<ChatWithToolsResult> {
+  return withMemberLock(memberId, async () => {
+    // 1. Check daily message cap
+    const member = await db.member.findUniqueOrThrow({
+      where: { id: memberId },
+      include: { schedule: true },
+    });
+
+    const timezone = member.schedule?.timezone ?? 'UTC';
+    const now = new TZDate(new Date(), timezone);
+    const todayStart = startOfDay(now);
+
+    const todayMessageCount = await db.conversationMessage.count({
+      where: {
+        memberId,
+        role: 'user',
+        createdAt: { gte: todayStart },
+      },
+    });
+
+    if (todayMessageCount >= DAILY_MESSAGE_CAP) {
+      return {
+        response: "You've hit the daily limit (50 messages). Resets at midnight your time.",
+        toolCall: null,
+      };
+    }
+
+    // 2. Store the user message
+    await storeMessage(db, memberId, 'user', userMessage);
+
+    // 3. Assemble context
+    const context = await assembleContext(db, memberId);
+
+    // 4. Build system prompt
+    const systemPrompt = await buildSystemPrompt(db, memberId);
+
+    // 5. Build messages array
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    // Add cold tier: conversation summary as historical context
+    if (context.summary) {
+      messages.push({
+        role: 'system',
+        content: `Historical context: ${context.summary}`,
+      });
+    }
+
+    // Add warm tier: weekly summaries from days 8-30
+    if (context.weeklySummaries.length > 0) {
+      messages.push({
+        role: 'system',
+        content: `Recent weeks: ${context.weeklySummaries.join('\n')}`,
+      });
+    }
+
+    // Add hot tier: recent messages (last 7 days verbatim)
+    for (const msg of context.recentMessages) {
+      messages.push({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      });
+    }
+
+    // 6. Call AI with tools
+    const result = await callAI(db, {
+      memberId,
+      feature: 'intent',
+      messages,
+      tools: intentTools,
+    });
+
+    if (result.degraded) {
+      return {
+        response: "My circuits are a bit fried right now. Try again in a sec.",
+        toolCall: null,
+      };
+    }
+
+    // 7. Check for tool calls
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      const firstToolCall = result.toolCalls[0];
+      let parsedParams: Record<string, unknown>;
+      try {
+        parsedParams = JSON.parse(firstToolCall.function.arguments) as Record<string, unknown>;
+      } catch {
+        logger.warn(`Failed to parse tool call arguments: ${firstToolCall.function.arguments}`);
+        parsedParams = {};
+      }
+
+      // Store assistant response if it has content alongside the tool call
+      if (result.content) {
+        await storeMessage(db, memberId, 'assistant', result.content);
+      }
+
+      logger.debug(
+        `Tool call for ${memberId}: ${firstToolCall.function.name} (${JSON.stringify(parsedParams)})`,
+      );
+
+      return {
+        response: result.content ?? '',
+        toolCall: {
+          name: firstToolCall.function.name,
+          params: parsedParams,
+        },
+      };
+    }
+
+    // 8. No tool call -- regular conversation
+    const responseText = result.content ?? '';
+    if (responseText) {
+      logger.debug(`AI response for ${memberId} (${responseText.length} chars, model: ${result.model})`);
+      await storeMessage(db, memberId, 'assistant', responseText);
+    }
+
+    return {
+      response: responseText || "My circuits are a bit fried right now. Try again in a sec.",
+      toolCall: null,
+    };
   });
 }
