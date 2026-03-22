@@ -10,31 +10,31 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 21 of 24 (Conversational Jarvis)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-22 -- Completed 21-01: AI client tool calling, Commitment model, coaching personality
+Last activity: 2026-03-22 -- Completed 21-02: NL intent detection and action pipeline
 
-Progress: [██░░░░░░░░] 25% (v3.0 -- 3/12 plans)
+Progress: [███░░░░░░░] 33% (v3.0 -- 4/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 52 (18 v1.0 + 17 v1.1 + 14 v2.0 + 3 v3.0)
+- Total plans completed: 53 (18 v1.0 + 17 v1.1 + 14 v2.0 + 4 v3.0)
 - Average duration: 5 min
-- Total execution time: 3.45 hours
+- Total execution time: 3.52 hours
 
 **By Phase (v3.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 20-clean-slate | 2/2 | 9 min | 4.5 min |
-| 21-conversational-jarvis | 1/3 | 3 min | 3 min |
+| 21-conversational-jarvis | 2/3 | 7 min | 3.5 min |
 | 22-daily-rhythm | 0/3 | - | - |
 | 23-social-layer | 0/2 | - | - |
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 19-01 (3 min), 19-02 (2 min), 20-01 (4 min), 20-02 (5 min), 21-01 (3 min)
+- Last 5 plans: 19-02 (2 min), 20-01 (4 min), 20-02 (5 min), 21-01 (3 min), 21-02 (4 min)
 - Trend: Phase 21 in progress
 
 *Updated after each plan completion*
@@ -60,6 +60,10 @@ Recent decisions affecting current work:
 - [21-01]: OpenRouter params cast to Record<string,unknown> for tools field (SDK type lacks it)
 - [21-01]: Tool calls extracted via type assertion on completion message (SDK types may not include tool_calls)
 - [21-01]: TOOL_AWARENESS_PROMPT exported for potential reuse in other prompt builders
+- [21-02]: Reuse existing checkin/reminder/goal logic in executor -- keeps NL actions consistent with slash commands
+- [21-02]: Brainstorm tool defined but defers to Plan 03 -- no confirmation needed
+- [21-02]: Private channel check removed from DM handler -- DM-only after Phase 20
+- [21-02]: Tool descriptions include negative examples to minimize false positives
 
 ### Pending Todos
 
@@ -83,5 +87,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 21-01-PLAN.md -- AI client tool calling, Commitment model, coaching personality
+Stopped at: Completed 21-02-PLAN.md -- NL intent detection, confirmation executor, DM handler refactored
 Resume file: None
