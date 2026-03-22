@@ -78,7 +78,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
             accounts: {
               create: {
                 discordId: discordUser.id,
-                username: discordUser.username,
               },
             },
           },
