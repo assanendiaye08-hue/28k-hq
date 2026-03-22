@@ -64,11 +64,14 @@ export function App() {
     const restore = async () => {
       try {
         const member = await tryRestoreSession();
+        console.log('[restore] member:', member);
         if (member) {
           login(member, getAccessToken() ?? '');
+        } else {
+          console.log('[restore] no member returned');
         }
-      } catch {
-        // Session restore failed
+      } catch (err) {
+        console.error('[restore] error:', err);
       } finally {
         setLoading(false);
       }
