@@ -34,7 +34,7 @@ Progress: [███████░░░] 67% (v3.0 -- 8/12 plans)
 | 24-desktop-enhancement | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 21-02 (4 min), 21-03 (3 min), 22-01 (3 min), 22-02 (est), 22-03 (6 min)
+- Last 5 plans: 21-02 (4 min), 21-03 (3 min), 22-01 (3 min), 22-02 (7 min), 22-03 (6 min)
 - Trend: Phase 22 complete (3/3 plans), Phase 23 next
 
 *Updated after each plan completion*
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [22-01]: Gate functions (checkAndIncrementOutreach, isQuietHours) are standalone exports -- user-initiated replies never consume budget
 - [22-01]: Brief stored as ConversationMessage with topic 'brief' -- reply support via existing assembleContext pipeline
 - [22-01]: enableReflection checked independently from reflectionIntensity -- toggle vs frequency are separate concerns
+- [22-02]: DAILY reflection branches into dedicated runDailyClosingFlow -- WEEKLY/MONTHLY keep existing behavior unchanged
+- [22-02]: Stale goal detection uses check-in recency as proxy since Goal model has no updatedAt field
+- [22-02]: Graduated pullback returns null for 15+ days (no nudging) vs PullbackTier object for active tiers
+- [22-02]: Tomorrow's priority stored with topic 'planning' so morning brief assembleContext naturally surfaces it
 - [22-03]: Weekly review uses AI with template fallback -- data-driven summary always shown even if AI is degraded
 - [22-03]: Stalled goal detection uses createdAt + currentValue since Goal model has no updatedAt field
 - [22-03]: Coaching onboarding triggers automatically on first DM (no slash command) -- lowest friction for new members
@@ -98,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-22
-Stopped at: Completed 22-03-PLAN.md -- Weekly review and coaching onboarding (Phase 22 complete)
+Stopped at: Completed 22-02-PLAN.md -- Evening reflection open-loop closure and graduated pullback (Phase 22 complete)
 Resume file: None

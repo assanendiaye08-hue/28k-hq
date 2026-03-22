@@ -21,9 +21,9 @@
 ### Daily Rhythm
 
 - [x] **RHYTHM-01**: Morning brief DM -- today's commitments, deadlines, focus prompt
-- [ ] **RHYTHM-02**: Evening reflection DM -- close open loops, log what was done, set tomorrow's priority
+- [x] **RHYTHM-02**: Evening reflection DM -- close open loops, log what was done, set tomorrow's priority
 - [x] **RHYTHM-03**: Weekly planning DM (Sunday) -- week review, goal progress, next week priorities
-- [ ] **RHYTHM-04**: Smart nudges -- stale goals, declining patterns. Less contact when disengaged, not more.
+- [x] **RHYTHM-04**: Smart nudges -- stale goals, declining patterns. Less contact when disengaged, not more.
 - [x] **RHYTHM-05**: 2-3 bot-initiated touchpoints/day max across all features
 
 ### Social Layer
@@ -82,9 +82,9 @@
 | JARV-04 | Phase 21 | Complete |
 | JARV-05 | Phase 21 | Complete |
 | RHYTHM-01 | Phase 22 | Complete |
-| RHYTHM-02 | Phase 22 | Pending |
+| RHYTHM-02 | Phase 22 | Complete |
 | RHYTHM-03 | Phase 22 | Complete |
-| RHYTHM-04 | Phase 22 | Pending |
+| RHYTHM-04 | Phase 22 | Complete |
 | RHYTHM-05 | Phase 22 | Complete |
 | SOCIAL-01 | Phase 23 | Pending |
 | SOCIAL-02 | Phase 23 | Pending |
