@@ -1,7 +1,7 @@
 # Project Research Summary
 
 **Project:** Discord Hustler v3.0
-**Domain:** Gamified productivity coaching system for former gamers (10-25 young men, 20s-30s)
+**Domain:** AI-powered productivity system for ambitious young knowledge workers — three-layer architecture (Discord social server, Jarvis AI coaching via DMs, Tauri desktop execution app)
 **Researched:** 2026-03-22
 **Confidence:** HIGH
 
@@ -9,252 +9,167 @@
 
 ## Executive Summary
 
-Discord Hustler v3.0 is a behavior change system, not a productivity tracker. The distinction matters enormously for every design decision. Four independent research streams converge on one principle: **sustainable behavior change for this audience requires identity-level transformation, not metric-level incentives.** Former gamers already possess the neural hardware for deep focus and sustained effort — they built it through 8-12 hour gaming sessions. The challenge is not building new capacity; it is redirecting existing capacity toward productive work. A system that merely wraps productive tasks in game mechanics fails within weeks because it competes on the wrong terrain. It can never be as fun as an actual game. Instead, the system must help members cross a psychological bridge from "gamer who should be working" to "builder who games for fun" — and that bridge is built through identity reinforcement, social belonging, and evidence accumulation, not XP scores.
+The research converges on one central finding: ambitious knowledge workers do not fail because they lack motivation or tools. They fail because the cognitive overhead of managing their system exceeds the value the system provides, and because every tool competes for the same attention that should be going to deep work. The solution is not more features — it is sharper channel boundaries, lower maintenance friction, and a system that works for the user rather than requiring the user to work for it. The existing Discord Hustler architecture (three distinct channels with different cognitive roles) is structurally sound and validated by first-principles research. The v3.0 work is about refining each layer, removing overlap, and resolving the places where the channels currently compete.
 
-The recommended approach is a minimalist daily loop: one proactive push from Jarvis each morning (plan your day), passive deep work tracking through the desktop timer (execute), and one proactive push each evening (close the loop with a reflection that doubles as a check-in). Everything else — leaderboards, streaks, XP, lock-in sessions — is social scaffolding that supports this loop. The gamification layer should be front-loaded, heaviest in weeks 1-3 when habits are forming, and gradually give way to identity-based feedback as members move through the internalization continuum. The AI coach (Jarvis) is the single highest-leverage component: its competitive advantage over human coaches is perfect data recall and zero judgment; its responsibility is to ask questions 70% of the time and reflect behavior back with identity framing, not dispense advice or motivational quotes.
+The peak performance research establishes hard constraints the system must respect. The human brain supports roughly 3-4 hours of genuine deep work per day — not 8, not 10. A single interruption costs 23 minutes of recovery. Every focus block the system fails to protect is a non-recoverable productivity loss. This means the highest-leverage thing the system can do is not gamification, not AI coaching, and not goal tracking — it is protecting 90-minute focus blocks from interruption. Everything else is secondary. The timer must be a fortress. Jarvis must never message during sessions. Notifications during deep work hours are failures of the system, not features.
 
-The primary risks are (1) the overjustification trap — over-gamifying to the point where members work for XP rather than their goals, then quit when XP novelty fades; (2) the "what the hell" effect — binary streaks that cause complete abandonment after one missed day; and (3) feature fragmentation — 26 bot modules and 4 desktop pages creating cognitive overhead that kills engagement. The mitigation for all three is the same: fewer features, tighter daily loop, graceful failure design. The current system's strongest existing assets — the morning brief, the Pomodoro timer, and the voice lock-in sessions — map directly to the highest-evidence behavior change mechanisms and should anchor v3.0.
+The social mechanics research reveals that friend groups have a critical structural vulnerability: they go easy on each other. The bot absorbs the social cost of accountability that friends naturally soften. This is the key insight for the Discord server and Jarvis design. Jarvis delivers the uncomfortable objective truth (you have not checked in in 5 days; your landing page goal has not moved in two weeks) so that friends can focus on celebrating and supporting each other. The design risk is not too little accountability — it is accountability that tips from guilt-inducing into shame-inducing, which triggers abandonment rather than reparative action. Every accountability feature must be tuned to produce guilt (I missed a day, I will do better tomorrow) not shame (I am someone who fails). The research is unambiguous: shame causes members to leave; guilt causes members to try harder.
 
 ---
 
 ## Key Findings
 
-### The Core Principles (synthesized across all four research files)
+### Peak Performance Principles (from PEAK-PERFORMANCE.md)
 
-These principles appear consistently across behavioral science, coaching effectiveness, habit architecture, and ecosystem design research. Every system behavior in v3.0 should trace back to at least one of these:
+The cognitive science literature supports six non-negotiable system behaviors. Interruptions cost 23 minutes of recovery — the system must never generate them during focus blocks. Optimal focus blocks are 90 minutes (aligned with ultradian biological rhythms), though 25-minute Pomodoros are valid entry ramps. Daily deep work should target 3-4 hours max, not 8 — the system should celebrate quality hours, not raw hours. Weekly planning (30-45 min) plus daily tactical reviews (5-10 min) outperform either alone. Evening review that explicitly closes open loops (Zeigarnik effect) protects sleep quality. Implementation intentions — specifying *when* and *where* you will work on something — increase follow-through from 14% to 41% in controlled studies.
 
-1. **Design for the worst day, not the best.** When someone is tired, unmotivated, and distracted, the system must still work. One-tap check-in. Auto-generated morning brief. One-click timer start. If it requires energy to use, it fails.
+**Core behavioral principles:**
+- Focus block protection: timer must suppress all system notifications during sessions
+- 3-4 hour daily deep work ceiling: the target, not 8-hour hustle metrics
+- Post-session breaks are mandatory recovery, not optional: 15-20 minutes after each 90-min block
+- Evening closure is neurologically protective: close open loops before rest
+- Chronotype adaptation: learn when each user is most productive from data, not self-report
+- Track outcomes automatically, not inputs manually
 
-2. **Progress visibility over goal tracking.** "You completed 12 deep work sessions this month" beats "You're 40% behind your goal." Amabile's research (12,000+ diary entries) shows minor progress on meaningful work is the single strongest predictor of a good day.
+**Anti-patterns to eliminate:**
+- Glorifying long hours or late-night sessions (the system must not celebrate these)
+- Harsh streak punishment that triggers the what-the-hell effect
+- Mid-session progress checks or notifications that interrupt focus
+- Planning sessions longer than 10 minutes per day
+- Manual data entry for any tracking purpose
 
-3. **Identity reinforcement over reward dispensing.** "Builders show up even on hard days" is more powerful than "+50 XP." Every coaching interaction should reflect WHO they are becoming, not only WHAT they did.
+### Social Mechanics (from SOCIAL-MECHANICS.md)
 
-4. **Forgiving systems over rigid chains.** Binary streaks cause complete abandonment after one miss (abstinence violation effect). Grace periods, consistency rates, and "current run + lifetime total" framing prevent the spiral.
+Self-Determination Theory is the foundational framework — every social feature must satisfy autonomy (members choose, not forced), competence (members see themselves improving), and relatedness (members feel connected). The 10-25 person friend group has a built-in advantage (pre-existing trust, genuine care) and a built-in vulnerability (friends enable excuses, avoid uncomfortable truths). The bot must be designed to compensate for the vulnerability structurally.
 
-5. **Social connection over individual tracking.** Lock-in sessions, shared wins, group rituals. The group identity is the strongest behavior change lever available. Tracker features support it but cannot replace it.
+**Must have for healthy community:**
+- Multi-dimensional leaderboards: single-dimension ranking produces one winner and many losers, not a team
+- Streak mechanics with graceful failure: never reset to zero, preserve historical record, normalize breaks
+- Seasonal resets (already built): the single strongest retention mechanism, creates natural re-enrollment
+- Voice co-working channels: the library effect is real (143% productivity increase in Focusmate data) and requires zero social performance
+- Wins channel as social proof: recalibrates what the group considers "normal" — most powerful channel in the server
 
-6. **Gamification as scaffolding, not destination.** XP and leaderboards bootstrap engagement during weeks 1-3 while habits form. By month 3, the dominant motivation should be identity and community, not XP scores.
+**What kills the group:**
+- Public shaming for low activity
+- One-size-fits-all accountability intensity across all members
+- Competition so intense it becomes adversarial
+- No informal social space (server becomes a workplace, not a friend group's hangout)
+- Leaderboards where the same person always wins with no seasonal reset
 
-7. **Process accountability over outcome accountability.** "Did you do your deep work block?" not "Did you make money today?" Process is controllable; outcomes are not.
+**Friend-group-specific design rule:** The system (bot, leaderboards, streaks) delivers hard truths. Friends deliver support and celebration. Never design features that require friends to confront each other about performance.
 
-8. **Jarvis asks, never tells.** 70% questions, 30% observations. Zero advice unless asked. Every AI coaching interaction should reference the member's specific data — never generic motivation.
+### Personal Ops Design (from PERSONAL-OPS.md)
 
----
+The executive assistant benchmark defines exactly what Jarvis should do: morning orientation, commitment tracking, progress visibility, friction removal, end-of-day closure. These five functions account for 80% of operational value. The research identifies five traps that kill productivity systems: the Method Trap (implementing a methodology instead of outcomes), the Simplification Trap (merging distinct concepts into one generic feature), the Building Block Trap (infinite configurability that shifts system design burden to the user), the Desktop-First Trap (mobile friction causes abandonment), and the Structural Trap (enterprise features crowding out personal experience).
 
-### What the System Should DO
+**Jarvis must do:**
+- Morning brief at configurable time: priorities, deadlines, streak status — read-only, zero effort for the user
+- Commitment extraction from natural conversation: no forms, no slash command workflows
+- Pattern recognition across time: "you set this same goal in January and March and stalled both times"
+- Forward-looking framing exclusively: never backward-shaming ("you missed yesterday")
+- Maximum 3 bot-initiated messages per day at any intensity setting
+- Zero required configuration to start: defaults must work out of the box
 
-Derived from the intersection of behavioral science and ecosystem design:
+**Jarvis communication tone:**
+- Direct, not warm. Factual, not emotional. Competent, not charming. Brief, not chatty.
+- Never open with pleasantries, never use filler phrases, never volunteer unsolicited life advice
+- Reference the user's own words and commitments back to them
+- Good: "3 goals active. Landing page is due tomorrow — you're 60% through. Sales outreach has not started. What's the priority today?"
+- Bad: "Hey! Great to see you checking in today! How are you feeling about your goals?"
 
-**Daily behaviors the system must drive:**
-- Deliver one Jarvis morning brief (PUSH, passive, 10 seconds to read) containing today's priority, streak status, and one implementation intention prompt
-- Accept one evening reflection (PUSH, active, 60 seconds) that replaces the /checkin command — Jarvis asks "What did you get done today?" and extracts the check-in from the response
-- Passively track deep work via desktop timer (PULL, zero friction, one-click start)
-- Award XP immediately on timer completion, reflection response, and goal updates — reward must arrive within seconds of behavior, not at month-end
+**What Jarvis must never do:**
+- Pretend to have emotions or personal investment (uncanny valley applies to text-based AI)
+- Make value judgments about user choices
+- Require any form of manual data entry
+- Send more than 3 unsolicited messages per day
+- Follow up on its own unanswered messages
+- Interrupt timer sessions under any circumstances
+- Weaponize history ("you always say this and never follow through")
 
-**Weekly behaviors the system must drive:**
-- Deliver one Sunday planning session (5 minutes, conversational, reviews prior week data)
-- Surface a Jarvis weekly recap with specific metrics: "You coded 14 hours — up from 9 last week. Your consistency rate is 86%."
-- Update leaderboard pods (groups of 5-7, not a single ranked list of 25)
+### Channel Architecture and Integration (from DISTRIBUTION-MAPPING.md)
 
-**Per-season behaviors the system must drive:**
-- Reset leaderboard at season start (every 60-90 days)
-- Archive season stats as identity artifacts — "Season 1 you logged 180 focus hours and completed 12 goals"
-- At week 3 of each season, Jarvis proactively names the novelty trough and frames it as a boss fight to push through
+The defining principle for the three-channel system is cognitive mode matching. **The app shows, the DM coaches, the server socializes.** Each channel activates when the user is in the cognitive mode that channel serves: the Discord server for social energy (seeing others work, competing, celebrating), Jarvis DMs for private coaching (reflection, planning, accountability), the desktop app for execution (timer, active goals, today's priorities). They must never duplicate the same interaction.
 
-**Streak/failure design mandatories:**
-- Never show "0" after a broken streak — show "current run" + "best run" + "consistency rate"
-- Two-day rule: streak breaks only after 2 consecutive missed days, not 1 (37% longer habit retention)
-- Streak freezes earned through consistency (1 per 14 active days, cap 3) — resource management, not a purchased power-up
-- Jarvis sends ONE acknowledgment after a broken streak, celebrates the run that ended, sets the next low milestone ("let's get a 7-day run going")
+**Channel ownership rules (non-negotiable):**
+- Goals stored once in database, displayed differently in each channel: tree view in app, conversational in DMs, anonymized ranking in server
+- Timer is desktop-only post-v3.0: bot timer module removed, desktop owns execution loop
+- Push goes to DMs, pull comes from the app: briefs and nudges push to where the user already is; the app serves intent
+- Check-ins move to natural DM conversation: slash command remains as fallback only
+- No private data on the server: check-ins, reflections, goals with notes, coaching — all DM-only
+- App never sends coaching notifications: Jarvis owns push; desktop app owns only timer events (session end, break end)
 
-**Jarvis coaching mandatories:**
-- Reference only the member's actual data — never fabricate patterns, never use generic quotes
-- Keep messages short: morning briefs are 3-4 lines, reflection prompts are 1 question, weekly recaps are bullet points
-- Never escalate contact when someone goes quiet — one check-in after 3 days of silence, one "door is open" message after 2 weeks, then silence
-- When a member returns after absence: "Good to see you. What do you want to focus on?" — no guilt, no baggage
-- Never fake emotions: "I noticed your streak broke" is honest; "I'm worried about you" is not
+**Integration priorities:**
+- Tier 1 (build): Google Calendar read-only (plan timer sessions around meetings), browser focus extension (enforce timer promise by blocking distracting sites during sessions), APNs push notifications (reach users when Discord is not open)
+- Tier 2 (build later): Apple Watch complications, Apple Shortcuts
+- Tier 3 (never build): Notion sync, Todoist sync, GitHub integration, activity/window tracking, mobile app, Spotify integration
 
----
-
-### What the System Should NOT DO
-
-Directly supported by research findings across all four files:
-
-**Remove these features entirely:**
-- **Bot timer module** — desktop handles this better; dual timers create confusion and split the habit cue
-- **Auto-feed** (RSS/YouTube/Reddit fetching) — encourages consumption, not production; costs AI tokens; directly opposes "build don't consume" ethos; remove ~400 LOC
-- **Inspiration system** (3 people you admire for Jarvis to reference) — no evidence of behavior change impact; remove ~150 LOC, one less DB table
-- **Private per-member channels** — DMs provide true privacy; server channel management is maintenance burden; remove ~200 LOC
-- **Badges/achievements** — weak evidence across all research; the system correctly does not have them; do not add them in v3.0
-
-**Simplify these features:**
-- **Check-in** — merge into the evening reflection; Jarvis asks "What did you do today?" and the response IS the check-in; eliminate one separate interaction point
-- **Reflection intensity levels** — reduce from 4 levels (off/light/medium/heavy) to 2: daily or weekly-only; the middle options add complexity without evidence
-- **Season ceremony** — simplify to: reset leaderboard, post final standings embed, start new season; remove champion role cron, hall-of-fame channel, cleanup jobs
-- **Resources channels** — remove AI auto-tagging (costs tokens, creates ghost threads); just award XP for sharing
-
-**Never build these:**
-- Activity/window tracking — surveillance kills intrinsic motivation
-- AI-generated task lists — removes agency; Jarvis asks what they want to work on, it does not prescribe
-- Desktop notifications from Jarvis — desktop is the PULL channel; Discord is the PUSH channel; mixing them creates notification fatigue
-- Chat/messaging in the desktop app — duplicates Discord; creates feature fragmentation
-- Analytics/charts in the desktop app — encourages navel-gazing over working; the dashboard with priorities + streak + rank is enough
-- Single global ranked leaderboard (1-25) — motivates top 5, demoralizes the other 20; use rotating pods of 5-7
-
----
-
-### The Ideal Daily and Weekly Flow
-
-```
-MORNING (Discord DM — PUSH, passive)
-Jarvis morning brief:
-  - "Day 14 streak. Yesterday: 2h15m on your store."
-  - "Today's priority: Ship the landing page."
-  - "What's the ONE thing you'll get done today?"
-Member reads in 10 seconds. No response required.
-        |
-        v
-WORK DAY (Desktop App — PULL)
-Member opens app when ready to work.
-Dashboard shows today's priority, streak, rank.
-One click starts Pomodoro or Flowmodoro timer.
-Timer ends: XP syncs immediately, streak counter updates.
-Member can check voice channels to see who else is grinding.
-        |
-        v
-EVENING (Discord DM — PUSH, active)
-Jarvis: "You put in 2h15m today. What did you get done?"
-Member responds in free text (60 seconds).
-Jarvis extracts categories, marks check-in, awards XP, updates streak.
-Jarvis may ask one follow-up if the answer is detailed.
-        |
-        v
-WEEKLY (Sunday — Discord DM — PUSH, active)
-Jarvis: "Last week: 14 hours, 87% consistency, 3 goals progressed. What's the focus this week?"
-Member sets/adjusts weekly goals in 5 minutes.
-        |
-        v
-MONTHLY (1st — Discord DM — PUSH, passive)
-Jarvis generates AI narrative of the month.
-Member can share to #wins.
-```
-
-**Total weekly interaction cost:** ~15 touchpoints (7 passive morning briefs, 7 active 60-second reflections, 1 Sunday planning session). This is within the research-backed 3-5 meaningful touchpoints per day threshold.
-
----
-
-### Existing Features: Keep, Change, Remove
-
-| Feature | Verdict | Action |
-|---------|---------|--------|
-| Morning Brief | KEEP + ENHANCE | Add "What's your ONE thing today?" implementation intention prompt |
-| Desktop Timer (Pomodoro/Flowmodoro) | KEEP AS-IS | Already well-built; local-first is correct; XP sync closes the reward loop |
-| Daily Reflection | KEEP + SIMPLIFY | 1 question, 1 response; remove intensity levels; merge /checkin into it |
-| Weekly Planning (Sunday) | KEEP AS-IS | Conversational flow is exactly right |
-| Goals (hierarchy) | KEEP | Desktop for CRUD, bot for decomposition and nudging |
-| Nudge System | KEEP + RETUNE | Fire on missed reflection (not missed /checkin); keep configurable intensity |
-| Dashboard | KEEP | Priorities + streak + rank on launch; no charts or analytics |
-| Leaderboard | KEEP + RESTRUCTURE | Change from single ranked list to rotating pods of 5-7 |
-| Lock-in Sessions | KEEP | Voice co-working is genuinely high-leverage for former gamers |
-| Voice Tracking | KEEP | Zero-friction XP; passive measurement |
-| Wins/Lessons Channels | KEEP | Low maintenance, high social value |
-| XP / Rank System | KEEP | Connective tissue; every behavior -> XP -> rank |
-| Season System | KEEP + SIMPLIFY | Remove ceremony complexity; keep the reset and archive |
-| Monthly Recap | KEEP | Good closure mechanism |
-| Bot Timer | REMOVE | Desktop handles this; dual timers create UX confusion |
-| Auto-Feed | REMOVE | Consumption vs production; costs tokens; remove entirely |
-| Inspiration System | REMOVE | No evidence of behavior change; one less module |
-| Private Channels | REMOVE | DMs are the private space; server channels add maintenance |
-| Resources AI Tagging | REMOVE | Cost vs value; just reward sharing |
-| Check-in (/checkin command) | MERGE | Absorb into evening reflection |
-
----
-
-### Critical Pitfalls to Avoid in v3.0
-
-**Pitfall 1: The Overjustification Trap**
-Building XP and leaderboards as the primary motivation engine. Extrinsic rewards destroy intrinsic motivation over time (d confirmed in multiple meta-analyses). The fix: XP is loudest in weeks 1-3, then gradually fades as Jarvis shifts coaching from "you earned 50 XP" to identity-based feedback like "you've shipped 3 things this season." Season 1 is gamification-heavy. Season 4 should be meaning-heavy.
-
-**Pitfall 2: Binary Streak Catastrophe**
-A single missed day breaks a 90-day streak; the member enters the "what the hell" abandonment spiral (47% more likely to binge-quit after a streak break per Health Psychology research). The fix: two-day rule, streak freezes, consistency rate as the primary metric, "current run + best run + lifetime total" framing. Never show a plain "0."
-
-**Pitfall 3: Notification Fatigue / The Nagging Bot**
-More than 2 push notifications per day causes disengagement (average person receives 125 notifications/day; 23 minutes to regain focus after an interruption). Escalating contact when someone goes quiet is the definition of nagging. The fix: max 2 daily pushes (morning brief + evening reflection), never follow up on a follow-up, one check-in after 3 days of silence, then back off.
-
-**Pitfall 4: Feature Fragmentation**
-26 bot modules operating side-by-side without a coherent daily flow. Members face decision overhead about which feature to use when. The fix: define one canonical daily loop (morning brief → work → evening reflection) and make every other feature a supplement to that loop, not a parallel system.
-
-**Pitfall 5: Advice-Giving AI**
-Jarvis defaults to solving problems and dispensing wisdom rather than asking questions. This triggers psychological reactance — being told what to do makes people LESS likely to do it. The fix: 70% questions, 30% observations, 0% unsolicited advice. Jarvis should ask "What do you think would help?" not "You should try waking up earlier."
-
-**Pitfall 6: Goodhart's Law (Gaming the Gamification)**
-These are gamers. They will find the minimum-effort path to maximum XP within days of launch. The fix: outcome-weighted XP (completing goals retroactively multiplies time-tracking XP with a 1.5x bonus), peer validation on wins (community reactions determine bonus — no reactions = no bonus), diminishing XP returns after 6 focus blocks per day, and opaque XP formulas (members know roughly how it works but cannot optimize against an exact number).
+**Server structure changes:**
+- Consolidate three resource channels into one #resources channel
+- Add #active-now channel (bot posts live activity: "Alex started a 50-min flow session")
+- Remove PRIVATE SPACES category: all private interaction belongs in DMs
+- Keep exactly two voice channels (The Lab, The Office): more channels fragment the body-doubling benefit
 
 ---
 
 ## Implications for Roadmap
 
-Based on the combined research, v3.0 should be structured around the principle of **coherence before features**. The current system has too many features that operate as isolated modules. The first priority is to establish the daily loop as the spine of the system, then layer social features on top, then refine gamification mechanics. New features come last.
+### Phase 1: Focus Engine Hardening
+**Rationale:** The highest-leverage single thing the system can do is protect focus blocks from interruption. This comes first because everything else (coaching, gamification, social features) is useless if users cannot get into deep work. The 23-minute recovery cost per interruption means the timer must be a fortress before anything else is built.
+**Delivers:** Timer with full notification suppression during sessions, post-session break prompting aligned with ultradian rhythms, menu bar countdown that works without requiring attention, XP sync in background without user action. Desktop app owns execution completely — bot timer module removed.
+**Addresses:** Protection of 90-minute focus blocks, elimination of mid-session interruptions, support for both Pomodoro and Flowmodoro patterns, resolution of the timer overlap problem between desktop and bot.
+**Avoids:** The most critical anti-pattern from PEAK-PERFORMANCE.md (generating notifications during deep work). Avoids attention residue from task switching during sessions.
+**Research flag:** Standard patterns — timer mechanics are well-documented and the existing implementation is the foundation. No research phase needed.
 
-### Phase 1: Daily Loop Foundation
-**Rationale:** The morning brief → work → evening reflection loop is the highest-evidence behavior change mechanism available (implementation intentions d=0.65, immediate reward requirement per Fogg). Until this loop runs cleanly as one continuous experience, all other features are decorative. This phase also removes the features that create noise and maintenance burden.
-**Delivers:** Morning brief with implementation intention prompt; evening reflection that absorbs /checkin; direct data flow from desktop timer into Jarvis coaching context; removal of bot timer, auto-feed, inspiration, and private channels
-**Avoids:** Feature fragmentation pitfall; notification fatigue pitfall
-**Research flag:** Standard patterns — this is well-documented UX/behavior design; no additional research needed
+### Phase 2: Jarvis Conversation Layer (Natural Language Check-ins)
+**Rationale:** The shift from slash commands to natural conversation is the most structurally important v3.0 change. It eliminates input friction (the number one cause of system abandonment at 67% during setup), enables commitment extraction from natural language, and turns Jarvis into the intelligent operations layer the research describes. This comes second because the timer must be solid before coaching is layered on top.
+**Delivers:** Natural language check-in parsing (extract categories, scores, commitments from conversation without a form), commitment archaeology across conversation history, forward-looking tone calibration, configurable intensity that defaults to working well without any configuration required.
+**Addresses:** The Method Trap and Building Block Trap from PERSONAL-OPS.md abandonment research. Implements the EA benchmark: morning orientation, commitment tracking, progress visibility, friction removal, end-of-day closure.
+**Avoids:** Uncanny valley (be distinctively AI, not imitation-human), backward-shaming framing, more than 3 unsolicited messages per day, any interaction requiring the user to fill out a form.
+**Research flag:** Needs phase research for NLP extraction patterns and conversation state management across Discord DM sessions. The tone calibration work needs real user testing — hypothesis-driven, not research-driven.
 
-### Phase 2: Streak and Failure System Redesign
-**Rationale:** Binary streaks are the single most likely cause of member abandonment (63% abandonment after first miss without recovery mechanisms per streak psychology research). This must be addressed before v3.0 reaches real users; fixing it after launch is harder than fixing it before.
-**Delivers:** Two-day rule implementation; streak freezes earned through consistency; "current run + best run + consistency rate" display replacing a plain streak counter; recovery protocol in Jarvis (acknowledge run, set low next milestone, no guilt)
-**Avoids:** Binary streak catastrophe pitfall; "what the hell" abandonment spiral
-**Research flag:** Standard patterns — streak design is well-documented; Duolingo and Beeminder have published their approaches
+### Phase 3: Morning Brief and Rhythm System
+**Rationale:** The morning brief is the highest-leverage proactive feature — validated by EA research, productivity framework research, and consistent patterns across multiple sources. Once natural conversation works, the brief should pull from conversation history, timer data, and goals database to produce a truly personalized orientation. This is the daily anchor that makes the rest of the system feel coherent.
+**Delivers:** Personalized morning brief (streak, priority goals, deadline warnings, community pulse, follow-up on yesterday's conversation), evening closure prompt (close open loops before rest, protect sleep quality through Zeigarnik effect), weekly planning session (Sunday, auto-generated summary with coaching prompts for goal decomposition and implementation intentions).
+**Addresses:** Weekly planning plus daily tactical review combination (HIGH confidence from PEAK-PERFORMANCE.md). Implementation intentions: when the brief prompts "when will you work on this?" it is neurologically protective. Evening review Zeigarnik closure effect.
+**Avoids:** Making the planning process itself heavy (morning brief must take under 5 minutes total), universal fixed send time (adapt to each user's chronotype data over time).
+**Research flag:** Standard scheduling patterns. Gap: optimal morning brief length for Discord DMs needs real user testing — no research specific to this delivery channel. Hypothesis: 150-250 words is the ceiling before users stop reading fully.
 
-### Phase 3: Jarvis Coaching Quality
-**Rationale:** The AI coach is the highest-leverage component in the entire system. Its advantage over every static habit app is that it can vary, personalize, and ask questions based on the member's actual data. Generic Jarvis responses that ignore member history are indistinguishable from a template and will be muted. This phase invests in prompt engineering, context window strategy, and anti-repetition mechanics before the system scales.
-**Delivers:** Member-specific data context passed to every Jarvis interaction (recent timer sessions, current streak, goal status, last few responses); question bank organized by situation (goal review, missed commitment, celebration, reflection) with rotation to prevent repetition; escalation state machine (first miss = silence, second = light acknowledgment, week+ = one warm check-in, 2 weeks = door-open message); tone calibration (light touch / balanced / direct) as member preference; identity-framing language that mirrors behavior back as evidence of who they are becoming
-**Avoids:** Advice-giving AI pitfall; notification fatigue pitfall; uncanny valley AI pitfall
-**Research flag:** Needs research-phase during planning — prompt engineering for coaching at this specificity requires testing patterns and reviewing emerging AI coaching design literature
+### Phase 4: Social Layer Refinement
+**Rationale:** Once the personal ops layer (Jarvis) and execution layer (desktop) are solid, the social layer can be sharpened. The server structure is mostly correct — the changes are surgical: channel consolidation, #active-now feed, private spaces removal. The gamification mechanics (seasonal system, multi-dimensional leaderboards) are already right per the research. This phase is about tightening boundaries, not rebuilding.
+**Delivers:** Consolidated server structure (one #resources channel, #active-now live activity feed, remove per-member private channels), streak mechanics with graceful failure (preserve historical records, normalize breaks, no shame for missing days), leaderboard confirmation that multi-dimensional ranking prevents runaway leader problem, seasonal system that resets rankings while preserving lifetime stats.
+**Addresses:** Friend-group vulnerability (system delivers hard truths, friends deliver support), engagement decay curve (seasonal re-enrollment moments), comparison spiral prevention (personal trajectory metrics more prominent than relative ranking), streak anxiety and what-the-hell effect mitigation.
+**Avoids:** Single-dimension leaderboards, harsh streak punishment, mandatory uniform accountability intensity, server that has no informal social breathing room.
+**Research flag:** Standard Discord server design patterns. Gap: optimal check-in frequency for this specific group needs user testing. Gap: how much gamification is too much for a friend group with a gamer background needs real calibration after launch.
 
-### Phase 4: Gamification Redesign
-**Rationale:** The current XP system works but has exploitable structures that gamers will find. The leaderboard as a single ranked list of 25 people demotivates the bottom 20. This phase makes the gamification ungameable and multi-dimensional. It should come after the daily loop and Jarvis coaching are solid, because gamification is scaffolding — if the foundation (the loop, the coach) is weak, better gamification just papers over the problem.
-**Delivers:** Outcome-weighted XP with completion multiplier (1.5x retroactive on time XP when goal is completed); diminishing returns on focus blocks beyond 6 per day; rotating leaderboard pods of 5-7 (weekly rotation); multi-metric leaderboards (consistency rate, goals completed, current run, most improved); variable XP bonuses on check-ins based on Jarvis quality assessment; simplified two-level reflection intensity (daily vs weekly-only)
-**Avoids:** Overjustification trap; Goodhart's Law gaming; single-dominant-player leaderboard demoralization
-**Research flag:** Standard patterns for most of this; the Jarvis quality assessment on check-ins is novel and may need iteration
+### Phase 5: Desktop App Today View and Cockpit Refinement
+**Rationale:** The desktop app is functionally complete but needs one high-value addition: a Today focus view. The dashboard currently shows goals hierarchy, streak, rank, and quote — useful for planning. But during execution, that is too much information. The focus view strips to what am I working on plus how long have I been working. This matches the cognitive mode of someone in a deep work session.
+**Delivers:** Today focus view (timer plus current goal only, no hierarchy noise during sessions), session history for today (total focused time, number of sessions — glanceable, not analytics), active now indicator showing community members in voice or timer sessions (library effect in the app without requiring Discord to be open).
+**Addresses:** Digital environment design from PEAK-PERFORMANCE.md (the app should be a focused workspace, not an information hub). The cockpit principle from DISTRIBUTION-MAPPING.md: glanceable in 2 seconds, never demanding attention.
+**Avoids:** Full analytics dashboard (creates analysis paralysis), leaderboard in the app (social energy belongs on the server), chat with Jarvis in the app (duplicates DM channel, splits conversation history).
+**Research flag:** Standard Tauri patterns for view navigation. The active now indicator requires a lightweight real-time API endpoint — needs architecture planning before implementation.
 
-### Phase 5: Season System and Identity Architecture
-**Rationale:** Seasons are the primary mechanism for surviving the novelty trough (weeks 3-8 when initial excitement fades). Each season reset is a mini-onboarding moment that re-engages drifted members. The seasonal archive is also how the system builds identity artifacts over time — "Season 1 you logged 180 hours" viewed from Season 4 is evidence of becoming. This phase simplifies the season ceremony while strengthening its identity reinforcement value.
-**Delivers:** Simplified season lifecycle (reset leaderboard, post final standings embed, start new season — no ceremony cron jobs); seasonal archive as identity record (Jarvis references it in coaching: "Last season you completed 12 goals..."); at week 3 of each new season, Jarvis proactively names the trough and frames it as a boss fight; progressive challenge unlocks within a season (week 2: group challenges, week 4: advanced analytics, week 6: mentorship)
-**Avoids:** Novelty trough abandonment; overjustification trap (season archives shift focus from XP to accomplishments)
-**Research flag:** Standard patterns — Valorant/competitive game season design is well-documented
-
-### Phase 6: Social Layer Enhancements
-**Rationale:** Social connection is the strongest single behavior change lever for this audience. The lock-in sessions, wins channel, and voice tracking already exist and work. This phase deepens the social layer without adding complexity — the goal is making the "lobby effect" (seeing friends online triggers you to join) more visible.
-**Delivers:** Dashboard showing who is currently in a focus session or voice channel (same as "friends online" in any game); Jarvis morning brief includes "X members already checked in today" social signal; periodic community events (48-hour build sprints, accountability weeks); Jarvis highlights specific member wins in morning briefs to create aspiration
-**Avoids:** Relatedness need going unmet (SDT); the system feeling like solo tracking rather than a crew
-**Research flag:** Standard patterns — social proof and body doubling are well-documented; implementation is straightforward
-
----
+### Phase 6: Tier 1 Integrations
+**Rationale:** Only after the three core layers are solid should integrations be layered on. Google Calendar read-only serves the planning moment directly. Browser focus extension serves the execution moment directly. APNs serves the coaching moment when Discord is closed. All three pass the integration decision test: each serves a specific named moment in the daily flow and none creates a second source of truth.
+**Delivers:** Google Calendar OAuth integration (read-only, shows today's events alongside goal priorities in app), browser extension that blocks configured sites when timer is running and unblocks during breaks (local WebSocket communication with desktop app), APNs push notification routing for morning briefs and deadline warnings (plugs into existing notification router architecture).
+**Addresses:** 60% of work time lost to context switching (PERSONAL-OPS.md). The digital environment as the knowledge worker's primary performance variable (PEAK-PERFORMANCE.md). Notification delivery when Discord app is not open (gap in current system).
+**Avoids:** Second sources of truth (no Notion or Todoist sync — single database), maintenance overhead for solo developer, integrations that are novelties rather than serving a specific daily moment.
+**Research flag:** Google Calendar OAuth feasibility verified (tauri-plugin-google-auth exists). Browser extension IPC pattern with Tauri needs design work. APNs requires Apple Developer account and server-side infrastructure — needs setup research before implementation.
 
 ### Phase Ordering Rationale
 
-The ordering flows from highest to lowest evidence weight and highest to lowest foundational dependency:
-
-- Phase 1 (daily loop) must come first because every other phase depends on members having a consistent daily touchpoint rhythm. A better leaderboard means nothing if members are not showing up daily.
-- Phase 2 (streak redesign) must come before public launch because the current binary streak system will trigger abandonment events at scale. It is cheap to fix before launch and expensive to fix after.
-- Phase 3 (Jarvis quality) is third because once the daily loop runs, Jarvis is what members interact with most. Generic Jarvis responses degrade retention faster than any other single factor.
-- Phase 4 (gamification) comes after the coaching is solid because gamification is scaffolding — the AI coach must be able to guide members from extrinsic to intrinsic motivation, and it cannot do that if the coaching itself is generic.
-- Phase 5 (seasons) and Phase 6 (social) come last because they enhance an already-functioning system. Building a seasonal ceremony before the daily loop works is premature optimization.
+The order is strictly determined by dependency and impact hierarchy. Focus protection (Phase 1) comes first because it is the highest-leverage behavior and all other features are additive to focused work sessions. Jarvis conversation (Phase 2) comes next because it is the structural foundation for all coaching — morning briefs, evening reviews, and commitment tracking all depend on natural language parsing. Morning rhythm (Phase 3) builds on conversation to produce daily and weekly rituals. Social refinement (Phase 4) depends on the personal ops layer being solid — the bot should not be trying to coach the community while its core conversational capability is being rebuilt. Desktop refinement (Phase 5) is incremental on a working app. Integrations (Phase 6) extend a complete system rather than patch an incomplete one.
 
 ### Research Flags
 
-Phases needing `/gsd:research-phase` during planning:
-- **Phase 3 (Jarvis Coaching Quality):** Prompt engineering for coaching AI at this level of specificity — context window strategy, question bank curation, anti-repetition system — is a niche domain with rapidly evolving best practices. Research before planning this phase.
+Phases needing deeper research during planning:
+- **Phase 2 (Jarvis Conversation):** NLP extraction patterns from Discord message text, conversation state management across DM sessions, tone calibration across different user personalities. No canonical Discord-specific pattern — needs design research.
+- **Phase 6 (Integrations):** APNs server-side setup is non-trivial and requires Apple Developer account provisioning. Browser extension IPC protocol with Tauri desktop app needs architecture research before implementation.
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1 (Daily Loop):** Implementation intentions, BJ Fogg behavior model, and push/pull notification architecture are well-documented. No additional research needed.
-- **Phase 2 (Streak Redesign):** Duolingo, Beeminder, and habit tracker UX research covers this thoroughly.
-- **Phase 4 (Gamification):** SDT, overjustification effect, and leaderboard design patterns are extensively documented.
-- **Phase 5 (Seasons):** Competitive game season architecture is well-understood and directly applicable.
-- **Phase 6 (Social Layer):** Body doubling, social proof, and lobby effect are well-documented behavioral patterns.
+- **Phase 1 (Timer):** Focus timer mechanics, Tauri system notifications, menu bar integration — all well-documented with existing implementation as foundation.
+- **Phase 3 (Morning Brief/Rhythm):** Scheduling patterns (node-cron), Discord DM sending, weekly/daily cadence — all already implemented, this is refinement work.
+- **Phase 4 (Social Layer):** Discord channel management, leaderboard mechanics, seasonal resets — all already implemented and working.
+- **Phase 5 (Desktop App):** Tauri view routing, component additions — incremental work on existing foundation.
 
 ---
 
@@ -262,52 +177,59 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Core behavioral principles | HIGH | Grounded in peer-reviewed research: SDT (Deci & Ryan), Amabile's Progress Principle, Fogg Behavior Model, Gollwitzer's implementation intentions meta-analysis (d=0.65). Multiple independent sources converge. |
-| Coaching design (Jarvis) | HIGH | 200+ RCTs on Motivational Interviewing, AI coaching PMC studies, 10-session optimal cadence from executive coaching research. The 70/30 question/observation ratio is well-supported. |
-| Gamification design | HIGH | Overjustification effect has strong meta-analytic support. Streak psychology (two-day rule, freeze mechanics) backed by Smashing Magazine 2026 UX research and Duolingo published data. XP tuning values are LOW confidence and need iteration. |
-| Ecosystem / feature removal | HIGH | Feature removal recommendations (bot timer, auto-feed, inspiration, private channels) are backed by maintenance cost analysis of the actual codebase + behavior change evidence that those features do not move the needle. |
-| Specific XP values and thresholds | LOW | The XP weights (15-25 for check-in, 20 per focus block, etc.) are starting points derived from game design patterns, not A/B tested for this specific group. These need tuning with real user data. |
-| Optimal season length | MEDIUM | 60-90 days is directional, based on habit formation research (66-day average) and game industry patterns, not empirically tested for this specific community. |
-| Jarvis prompt engineering | MEDIUM | General coaching principles are HIGH confidence; the specific prompt structures that will work for this community's voice and context need iteration. |
+| Peak performance principles | HIGH | Multiple peer-reviewed meta-analyses, replicated findings across decades. The 23-minute interruption cost, 3-4 hour ceiling, and Zeigarnik effect are among the most robust findings in cognitive psychology. |
+| Social mechanics and community design | HIGH | SDT is well-validated. Gamification backfire dynamics are well-documented. Friend-group-specific dynamics have less research but available evidence is consistent. |
+| Personal ops design | HIGH | EA benchmark research is strong. Abandonment data (67% during setup, 45% at 3 months) corroborated by multiple app industry sources. AI tone calibration is medium-confidence. |
+| Channel boundaries and distribution | HIGH | Derived from first principles (cognitive modes) plus codebase analysis of existing implementation. Daily flow mapping grounded in actual scheduler/briefs/reflection code. |
+| Integration feasibility | MEDIUM | Tier 1 integration approaches verified through documentation but implementation complexity estimates may vary. APNs requires confirming Apple Developer account setup. |
 
-**Overall confidence:** HIGH for design principles and feature decisions. MEDIUM for specific tuning parameters (XP values, season length, notification timing). LOW for anything requiring real-user feedback loops.
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Timer task labeling:** The desktop timer currently starts a session with a duration but no task name. Connecting timer sessions to specific goals is essential for Jarvis to provide specific coaching ("you worked 2h15m on your store today"). Solution: add optional task label on timer start, with goal suggestions from the active goal list.
-- **Extended absence protocol:** The nudge system handles 1-3 day misses. What happens after 2+ weeks of silence? Research says the bot should not spam. The right answer is probably a single human (founder) DM, not another Jarvis message. This needs a decision.
-- **Check-in fallback:** Merging /checkin into the evening reflection assumes members will respond to Jarvis DMs. Some members may prefer the explicit command. Consider keeping /checkin as an alternate path that counts as the daily reflection response (same outcome, different input method).
-- **Jarvis coaching tone vs. community voice:** The coaching principles (observe, question, avoid advice) are clear. The specific language that lands with this audience (Discord gaming community slang vs. corporate productivity language) needs calibration. The system prompt for Jarvis should be co-authored with the community's actual voice, not just derived from coaching research.
+- **Optimal check-in frequency for this specific group:** Research supports daily for habit formation, weekly for sustainability. The friend group's gaming background may shift their tolerance. Start with configurable defaults and measure actual response rates in Phase 4.
+- **Discord DM read rates and optimal brief length:** No research specific to Discord as a coaching delivery channel. Test brief length in Phase 3 — hypothesis: 150-250 words is the ceiling before users stop reading fully.
+- **AI tone calibration across group members:** "Ruthlessly objective" lands differently across personalities. The intensity dial partially addresses this. May need finer-grained tone settings after Phase 2 ships — collect feedback actively in the first month.
+- **Long-term engagement beyond 6 months:** Most productivity system research tracks to 3-6 months. Hypothesis: the community layer (seasonal resets, leaderboards, shared accountability) is the 12-month retention mechanism, not the AI alone. Design Phase 4 with this in mind.
+- **Optimal active-to-total member ratio for this group:** Research suggests 40-60% active at any given time. The friend group's social bonds may push this higher. Monitor and design for a realistic 5-10 person active core at any moment.
+- **Gamification depth tolerance for gamers:** Gamers may find heavy gamification more engaging or more critically dismissible than general populations. Phase 4 leaderboard and streak calibration should be treated as an experiment with feedback collection built in.
 
 ---
 
 ## Sources
 
-### Primary (HIGH confidence — peer-reviewed)
-- Deci & Ryan — Self-Determination Theory (autonomy, competence, relatedness framework; 40+ years of research)
-- Gollwitzer (1999) — Implementation Intentions meta-analysis (94 studies, 8,000+ participants, d=0.65)
-- Teresa Amabile & Steven Kramer — The Progress Principle (12,000+ diary entries, HBS)
-- Miller & Rollnick — Motivational Interviewing (200+ RCTs, OARS technique, righting reflex)
-- Phillippa Lally (UCL 2009) — 66-day habit formation, missing one day has no material effect
-- Baumeister / Hagger 36-lab replication — Willpower debate; practical design implication holds regardless
-- PMC — Accountability research (65% with commitment, 95% with appointment, 2x with partner)
-- PMC — AI vs human coaching goal attainment RCT (327 participants, 10 months)
-- PMC — Streak psychology and abandonment (63% abandonment after first miss without recovery)
+### Primary (HIGH confidence — peer-reviewed research)
+- Leroy (2009) — Attention residue from task switching. 23-minute recovery cost.
+- Gollwitzer (1999) — Implementation intentions. 14% to 41% follow-through increase.
+- Mark, Gudith & Klocke (2008) — Interruption cost research. University of California, Irvine.
+- Ericsson (1993) — Deliberate practice ceiling: 3-4 hours/day for peak performers.
+- Baumeister & Masicampo (2011) — Zeigarnik effect and evening closure as cognitive protection.
+- Csikszentmihalyi (1990) — Flow state conditions and triggers.
+- Festinger (1954) — Social Comparison Theory. Upward vs. downward comparison dynamics.
+- Ryan & Deci — Self-Determination Theory (autonomy, competence, relatedness).
+- PMC 2024 — Field experiment on weekly planning: reduced rumination, increased cognitive flexibility.
+- Nature Communications Psychology 2024 — Flow state neurophysiology framework.
+- Chronobiology International 2025 — Chronotype synchrony effects on cognitive performance.
+- Ergonomics 2025 — Coworking ESM study: body doubling well-being and productivity effects.
+- PMC 2025 — Pomodoro vs. Flowmodoro break-taking comparison.
 
-### Secondary (MEDIUM confidence — practitioner + corroborated)
-- James Clear — Atomic Habits (identity-based change, habit stacking, four laws)
-- BJ Fogg — Tiny Habits / Behavior Model (B=MAP, anchor-behavior-celebration)
-- Michael Bungay Stanier — The Coaching Habit (say less, ask more; seven questions)
-- Duolingo — Streak freeze reduced churn 21% (published product data)
-- Smashing Magazine 2026 — Streak system UX psychology
-- Proactive AI coaching data (Pinnacle) — 75% usage vs 51% for reactive, 94% monthly retention
-- Yu-kai Chou — Octalysis Framework (leaderboard design for small groups)
-- SCIRP 2024 — Uncanny valley in AI coaching (behavioral authenticity, not appearance)
+### Secondary (MEDIUM confidence — industry research, platform data)
+- Worklytics 2025 — Knowledge worker productivity benchmarks (60% focus efficiency metric).
+- Asana Work Index — 60% of work time spent on meta-work.
+- McKinsey — 28% of work time spent on email alone.
+- Focusmate — 143% average productivity increase with virtual coworking partner present.
+- Association for Talent Development — 65% goal achievement with public commitment, 95% with accountability partner.
+- The Success Alliance — 10 specific mastermind group failure modes and attrition patterns.
+- Journal It research — 67% abandon during setup, 45% abandon at 3 months.
+- WiserNotify 2025 — Push notification frequency thresholds (6+ per week: 46% disable notifications).
+- Smashing Magazine 2026 — Streak system UX psychology and graceful failure design.
+- Nature Scientific Reports 2025 — AI-augmented productivity and intrinsic motivation paradox.
+- Taylor & Francis 2025 — AI vs. human feedback meta-analysis (41 studies, 4,813 participants).
 
-### Tertiary (LOW confidence — single source or requires validation)
-- Specific XP values and rank thresholds — starting points from game design patterns; need real-user tuning
-- Season length (60-90 days) — directional from habit formation research; not empirically tested for this community
-- "Week 3 trough" timing — directional from app retention research; actual timing will vary per member
+### Tertiary (grounded in codebase analysis — DISTRIBUTION-MAPPING.md)
+- `apps/bot/src/modules/` (25 modules) — Current bot feature inventory and implementation state.
+- `apps/desktop/src/pages/` (5 pages) — Current desktop app scope and component boundaries.
+- `apps/api/src/routes/` (6 routes) — API surface and data flow architecture.
 
 ---
 
