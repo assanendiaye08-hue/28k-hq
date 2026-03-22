@@ -337,6 +337,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   completePhase: () => {
+    // Clear tray immediately on phase completion
+    updateTrayTitle(null).catch(() => {});
+
     const state = get();
     const {
       phase, phaseStartedAt, phaseDurationMs,

@@ -21,13 +21,6 @@
         "backgroundThrottling": "disabled"
       }
     ],
-    "trayIcon": {
-      "id": "main",
-      "iconPath": "icons/tray-icon.png",
-      "iconAsTemplate": true,
-      "tooltip": "28K HQ",
-      "showMenuOnLeftClick": false
-    },
     "security": {
       "csp": "default-src 'self'; connect-src 'self' http://localhost:3001 https://api.28khq.com; img-src 'self' https://cdn.discordapp.com"
     }

@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useTimerStore } from '../../stores/timer-store';
 import { TIMER_DEFAULTS } from '@28k/shared';
 import { preloadAlarm } from '../../lib/timer-audio';
@@ -48,6 +49,8 @@ export function TimerSetup() {
         autoStartBreak,
         autoStartWork,
       });
+      // Auto-minimize — timer runs in menu bar, click tray to reopen
+      getCurrentWindow().hide().catch(() => {});
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to start timer';
       if (message.includes('409') || message.includes('active')) {
