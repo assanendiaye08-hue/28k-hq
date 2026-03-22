@@ -1,18 +1,7 @@
 import { useEffect } from 'react';
 import { useDashboardStore } from '../stores/dashboard-store';
-import { PriorityList } from '../components/dashboard/PriorityList';
-import { WeeklyGoals } from '../components/dashboard/WeeklyGoals';
-import { StreakBadge } from '../components/dashboard/StreakBadge';
-import { RankProgress } from '../components/dashboard/RankProgress';
-import { DailyQuote } from '../components/dashboard/DailyQuote';
+import { TodayView } from '../components/dashboard/TodayView';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-}
 
 export function DashboardPage() {
   const data = useDashboardStore((s) => s.data);
@@ -48,38 +37,5 @@ export function DashboardPage() {
 
   if (!data) return null;
 
-  const { member, goals, quote } = data;
-
-  return (
-    <div className="max-w-5xl">
-      {/* Greeting */}
-      <h1 className="text-2xl font-bold text-text-primary mb-6">
-        {getGreeting()}, {member.displayName}
-      </h1>
-
-      {/* Dashboard grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left column: priorities + weekly goals */}
-        <div className="lg:col-span-2 space-y-4">
-          <PriorityList goals={goals.today} />
-          <WeeklyGoals goals={goals.weekly} />
-        </div>
-
-        {/* Right column: streak, rank, quote */}
-        <div className="space-y-4">
-          <StreakBadge
-            currentStreak={member.currentStreak}
-            longestStreak={member.longestStreak}
-          />
-          <RankProgress
-            rank={member.rank}
-            rankColor={member.rankColor}
-            totalXp={member.totalXp}
-            nextRank={member.nextRank}
-          />
-          <DailyQuote quote={quote} />
-        </div>
-      </div>
-    </div>
-  );
+  return <TodayView />;
 }
