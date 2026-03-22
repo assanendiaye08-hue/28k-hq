@@ -277,6 +277,18 @@ export default async function timerRoutes(fastify: FastifyInstance) {
       fastify.db.timerSession.findMany({
         where: { memberId: request.memberId, status: 'COMPLETED' },
         orderBy: { endedAt: 'desc' },
+        select: {
+          id: true,
+          focus: true,
+          goalId: true,
+          mode: true,
+          totalWorkedMs: true,
+          totalBreakMs: true,
+          pomodoroCount: true,
+          xpAwarded: true,
+          startedAt: true,
+          endedAt: true,
+        },
         take: limit,
         skip: offset,
       }),
@@ -285,6 +297,26 @@ export default async function timerRoutes(fastify: FastifyInstance) {
       }),
     ]);
 
-    return reply.status(200).send({ sessions, count });
+    // Batch-fetch goal titles for sessions that have a goalId
+    const goalIds = [...new Set(sessions.filter((s) => s.goalId).map((s) => s.goalId as string))];
+    const goalMap = new Map<string, string>();
+
+    if (goalIds.length > 0) {
+      const goals = await fastify.db.goal.findMany({
+        where: { id: { in: goalIds } },
+        select: { id: true, title: true },
+      });
+      for (const g of goals) {
+        goalMap.set(g.id, g.title);
+      }
+    }
+
+    // Map goalTitle onto each session
+    const enrichedSessions = sessions.map((s) => ({
+      ...s,
+      goalTitle: s.goalId ? (goalMap.get(s.goalId) ?? null) : null,
+    }));
+
+    return reply.status(200).send({ sessions: enrichedSessions, count });
   });
 }
