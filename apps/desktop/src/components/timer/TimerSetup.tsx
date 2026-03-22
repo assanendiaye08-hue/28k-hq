@@ -61,7 +61,7 @@ export function TimerSetup() {
   };
 
   const inputClass =
-    'bg-surface-2 border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand outline-none w-full';
+    'bg-surface-2 border border-white/5 rounded-xl px-3 py-2.5 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/30 outline-none w-full transition-colors';
 
   return (
     <Card title="Start Timer">
@@ -226,7 +226,7 @@ export function TimerSetup() {
         <button
           onClick={handleStart}
           disabled={isSubmitting}
-          className="w-full bg-brand hover:bg-brand/90 text-surface-base font-semibold py-3 px-8 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-brand hover:bg-brand/90 text-surface-base font-semibold py-3 px-8 rounded-xl shadow-lg shadow-brand/20 transition-all active:scale-[0.98] disabled:opacity-50"
         >
           {isSubmitting ? 'Starting...' : 'Start Timer'}
         </button>

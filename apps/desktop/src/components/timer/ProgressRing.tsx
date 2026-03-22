@@ -17,7 +17,7 @@ interface ProgressRingProps {
 export function ProgressRing({
   progress,
   size = 200,
-  strokeWidth = 6,
+  strokeWidth = 8,
   color = 'var(--color-brand)',
   children,
 }: ProgressRingProps) {
@@ -52,7 +52,7 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+          style={{ transition: 'stroke-dashoffset 0.5s ease', filter: `drop-shadow(0 0 6px ${color})` }}
         />
       </svg>
       {/* Centered content */}

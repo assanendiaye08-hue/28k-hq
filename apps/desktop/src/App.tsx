@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
@@ -15,6 +15,23 @@ import { TimerPage } from './pages/TimerPage';
 import { TimerPopover } from './components/timer/TimerPopover';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, color: '#f44', background: '#111', minHeight: '100vh' }}>
+          <h1>App crashed</h1>
+          <pre style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{this.state.error.message}</pre>
+          <pre style={{ color: '#888', whiteSpace: 'pre-wrap', fontSize: 12 }}>{this.state.error.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -143,6 +160,7 @@ export function App() {
   }
 
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <Routes>
         <Route
@@ -187,5 +205,6 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }

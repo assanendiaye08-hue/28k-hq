@@ -17,7 +17,7 @@ export function TimerControls({ onPause, onResume, onStop, isPaused }: TimerCont
       {/* Pause / Resume */}
       <button
         onClick={isPaused ? onResume : onPause}
-        className="w-12 h-12 flex items-center justify-center rounded-full bg-surface-2 hover:bg-surface-3 text-text-primary transition-colors"
+        className="w-14 h-14 flex items-center justify-center rounded-full bg-surface-2 hover:bg-surface-3 text-text-primary shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-all active:scale-95"
         title={isPaused ? 'Resume' : 'Pause'}
       >
         {isPaused ? (
@@ -36,7 +36,7 @@ export function TimerControls({ onPause, onResume, onStop, isPaused }: TimerCont
       {/* Stop */}
       <button
         onClick={onStop}
-        className="w-12 h-12 flex items-center justify-center rounded-full bg-error/20 hover:bg-error/30 text-error transition-colors"
+        className="w-14 h-14 flex items-center justify-center rounded-full bg-error/20 hover:bg-error/30 text-error shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-all active:scale-95"
         title="Stop"
       >
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
