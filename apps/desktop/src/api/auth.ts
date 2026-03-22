@@ -107,7 +107,14 @@ export async function loginWithDiscord(): Promise<AuthResult> {
 
 export async function tryRestoreSession(): Promise<AuthResult['member'] | null> {
   try {
-    const store = await load('auth.json', { defaults: {} });
+    // Retry store load once — Tauri plugins can be briefly unavailable during HMR
+    let store;
+    try {
+      store = await load('auth.json', { defaults: {} });
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+      store = await load('auth.json', { defaults: {} });
+    }
     const refreshToken = await store.get<string>('refreshToken');
     if (!refreshToken) return null;
 
