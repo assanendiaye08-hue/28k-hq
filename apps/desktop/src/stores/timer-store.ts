@@ -167,6 +167,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // ── Actions ──
 
   start: async (config) => {
+    if (get().phase !== 'idle') {
+      throw new Error('A timer is already active. Stop it first.');
+    }
     if (!config.focus.trim()) {
       throw new Error('Focus is required to start a timer');
     }
