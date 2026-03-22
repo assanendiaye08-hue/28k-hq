@@ -22,7 +22,7 @@ export function TimerPage() {
     const restoreState = async () => {
       // First try local persistence
       const saved = await loadTimerState();
-      if (saved && saved.phase !== 'idle') {
+      if (saved && saved.phase && saved.phase !== 'idle' && saved.phaseDurationMs > 0) {
         restore(saved);
         return;
       }
