@@ -209,6 +209,10 @@ export async function callAI(
     if (responseFormat) {
       params.responseFormat = responseFormat as ChatGenerationParams['responseFormat'];
     }
+    // Pass tool definitions to the model if provided
+    if (options.tools && options.tools.length > 0) {
+      (params as Record<string, unknown>).tools = options.tools;
+    }
     return openrouter.chat.send({ chatGenerationParams: params });
   }
 
@@ -237,8 +241,12 @@ export async function callAI(
     }
   }
 
-  // Step 6: Extract content
+  // Step 6: Extract content and tool calls
   const content = completion.choices[0]?.message?.content ?? null;
+  const rawToolCalls = (completion.choices[0]?.message as Record<string, unknown> | undefined)?.tool_calls as
+    | Array<{ id: string; function: { name: string; arguments: string } }>
+    | undefined;
+  const toolCalls = rawToolCalls && rawToolCalls.length > 0 ? rawToolCalls : undefined;
 
   // Step 7: Extract usage (null-check -- SDK types it as optional)
   let usageObj: AICallResult['usage'] = null;
@@ -281,5 +289,6 @@ export async function callAI(
     usage: usageObj,
     model: actualModel,
     degraded: false,
+    ...(toolCalls ? { toolCalls } : {}),
   };
 }
