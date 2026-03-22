@@ -35,6 +35,9 @@ import {
   executePendingAction,
   PENDING_ACTION_TTL,
 } from './intent-executor.js';
+import { BrainstormManager } from './brainstorm.js';
+
+const brainstormManager = new BrainstormManager();
 
 const aiAssistantModule: Module = {
   name: 'ai-assistant',
@@ -73,6 +76,23 @@ const aiAssistantModule: Module = {
           return;
         }
 
+        // Check for active brainstorm session (before pending actions or LLM calls)
+        if (brainstormManager.hasActiveSession(account.memberId)) {
+          await message.channel.sendTyping();
+          // Check if user wants to end
+          if (/^(done|end|stop|exit|quit)\b/i.test(message.content.trim())) {
+            brainstormManager.endSession(account.memberId);
+            await message.reply('Brainstorm wrapped. Good session.');
+            return;
+          }
+          const brainstormResponse = await brainstormManager.handleMessage(db, account.memberId, message.content);
+          const chunks = splitMessage(brainstormResponse);
+          for (const chunk of chunks) {
+            await message.reply(chunk);
+          }
+          return;
+        }
+
         // Check for pending confirmation FIRST (before any LLM call)
         const pending = pendingActions.get(account.memberId);
         if (pending) {
@@ -103,8 +123,12 @@ const aiAssistantModule: Module = {
         if (result.toolCall) {
           // Tool was called -- present confirmation
           if (result.toolCall.name === 'start_brainstorm') {
-            // Brainstorm doesn't need confirmation -- Plan 03 handles this
-            await message.reply(result.response || "Brainstorming mode isn't available yet.");
+            const topic = result.toolCall.params.topic as string;
+            const openingMessage = brainstormManager.startSession(account.memberId, topic);
+            const response = result.response
+              ? `${result.response}\n\n${openingMessage}`
+              : openingMessage;
+            await message.reply(response);
             return;
           }
 
