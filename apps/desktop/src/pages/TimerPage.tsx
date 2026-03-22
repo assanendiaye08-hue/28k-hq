@@ -75,8 +75,10 @@ export function TimerPage() {
   }, [restore]);
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
-      {phase === 'idle' ? <TimerSetup /> : <TimerDisplay />}
+    <div className="max-w-lg mx-auto">
+      <div key={phase === 'idle' ? 'setup' : 'display'} className="animate-fade-in">
+        {phase === 'idle' ? <TimerSetup /> : <TimerDisplay />}
+      </div>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 {
   "identifier": "default",
   "description": "Default capability set for the 28K HQ desktop app",
-  "windows": ["main", "timer-popover", "timer-mini"],
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "store:default",
     "positioner:default",
     "opener:default",
+    "oauth:allow-start",
+    "oauth:allow-cancel",
     "notification:default",
     "core:tray:default",
     "core:window:allow-show",

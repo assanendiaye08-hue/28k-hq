@@ -8,6 +8,7 @@
 
 import { useTimerStore } from '../../stores/timer-store';
 import { useTimerTick } from '../../hooks/use-timer-tick';
+import { Card } from '../common/Card';
 import { ProgressRing } from './ProgressRing';
 import { SessionDots } from './SessionDots';
 import { TimerControls } from './TimerControls';
@@ -114,32 +115,29 @@ export function TimerDisplay() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* Progress Ring with countdown */}
-      <ProgressRing progress={progress} color={ringColor}>
-        <span className="text-4xl font-mono font-bold text-text-primary">
-          {formattedTime}
-        </span>
-      </ProgressRing>
+    <Card>
+      <div className="flex flex-col items-center gap-6 py-4">
+        <ProgressRing progress={progress} color={ringColor}>
+          <span className="text-4xl font-mono font-bold text-text-primary">
+            {formattedTime}
+          </span>
+        </ProgressRing>
 
-      {/* Phase label */}
-      <p className={`text-lg font-semibold ${phaseLabel.color}`}>
-        {phaseLabel.text}
-      </p>
+        <p className={`text-lg font-semibold ${phaseLabel.color}`}>
+          {phaseLabel.text}
+        </p>
 
-      {/* Focus text */}
-      <p className="text-text-secondary text-sm">{focus}</p>
+        <p className="text-text-secondary text-sm">{focus}</p>
 
-      {/* Session dots */}
-      <SessionDots completed={pomodoroCount} total={targetSessions} />
+        <SessionDots completed={pomodoroCount} total={targetSessions} />
 
-      {/* Controls */}
-      <TimerControls
-        onPause={() => pause()}
-        onResume={() => resume()}
-        onStop={() => stop()}
-        isPaused={phase === 'paused'}
-      />
-    </div>
+        <TimerControls
+          onPause={() => pause()}
+          onResume={() => resume()}
+          onStop={() => stop()}
+          isPaused={phase === 'paused'}
+        />
+      </div>
+    </Card>
   );
 }
