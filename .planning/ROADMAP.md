@@ -93,9 +93,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 21-01-PLAN.md -- Foundation: AI client tool calling support, Commitment model, topic field, coaching tone personality
-- [ ] 21-02-PLAN.md -- NL actions: intent tools, confirmation executor, tool-calling chat handler, DM handler refactor
-- [ ] 21-03-PLAN.md -- Topic-aware context filtering and brainstorming mode with diverge/cluster/evaluate phases
+- [x] 21-01-PLAN.md -- Foundation: AI client tool calling support, Commitment model, topic field, coaching tone personality
+- [x] 21-02-PLAN.md -- NL actions: intent tools, confirmation executor, tool-calling chat handler, DM handler refactor
+- [x] 21-03-PLAN.md -- Topic-aware context filtering and brainstorming mode with diverge/cluster/evaluate phases
 
 ### Phase 22: Daily Rhythm
 **Goal**: Jarvis proactively coaches members through daily and weekly routines -- morning orientation, evening closure, weekly planning, smart nudges -- all respecting per-user settings and a hard cap on bot-initiated messages
@@ -107,12 +107,12 @@ Plans:
   3. Member receives a Sunday weekly review DM summarizing the week's goal progress and prompting next week's priorities
   4. Member with a stale goal (no progress in 5+ days) receives a nudge -- but a member who has been disengaged gets fewer nudges, not more
   5. No member receives more than 2-3 bot-initiated DMs per day across all feature types combined, and members can configure quiet hours, enable/disable individual features, and set preferences through a coaching onboarding flow on first interaction
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 22-01: TBD
-- [ ] 22-02: TBD
-- [ ] 22-03: TBD
+- [ ] 22-01-PLAN.md -- Outreach budget, coaching config (per-feature toggles + quiet hours), conversational morning brief
+- [ ] 22-02-PLAN.md -- Evening reflection with open-loop closure, smart nudges with stale goal detection and graduated pullback
+- [ ] 22-03-PLAN.md -- Weekly planning with week review summary, coaching onboarding flow for first-time DM users
 
 ### Phase 23: Social Layer Refinement
 **Goal**: The Discord server structure is tightened -- fewer channels that matter more, voice co-working promoted as the flagship social feature, streaks redesigned to encourage consistency without punishment, and the bot absorbs accountability friction so friends can focus on support
