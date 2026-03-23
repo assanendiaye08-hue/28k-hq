@@ -55,10 +55,10 @@ export const PENDING_ACTION_TTL = 5 * 60 * 1000;
 // ─── Confirmation Detection ─────────────────────────────────────────────────────
 
 /** Affirmative patterns -- case insensitive, word boundary at start. */
-const CONFIRM_PATTERNS = /^(yes|yeah|yep|sure|ok|do it|go ahead|confirm|y)\b/i;
+const CONFIRM_PATTERNS = /^(yes|yeah|yep|sure|ok|okay|do it|go ahead|confirm|sounds good|let's do it|let's go|let go|yup|absolutely|perfect|great|👍|✅|y)\b/i;
 
 /** Denial patterns -- case insensitive, word boundary at start. */
-const DENY_PATTERNS = /^(no|nah|nope|cancel|never mind|nevermind|n)\b/i;
+const DENY_PATTERNS = /^(no|nah|nope|cancel|never mind|nevermind|stop|don't|dont|skip|ignore|n)\b/i;
 
 /**
  * Check if text is a confirmation (yes, yeah, yep, sure, etc.).
@@ -289,7 +289,7 @@ async function executeSetReminder(
     // Fallback: try chrono directly
     const fireAt = chrono.parseDate(timeText, { instant: new Date(), timezone }, { forwardDate: true });
     if (!fireAt) {
-      await message.reply("Couldn't parse that time. Try something more specific like 'tomorrow at 9am'.");
+      await message.reply("Couldn't parse that time. Try something like 'tomorrow at 9am', 'Friday 3pm', or 'in 2 hours'.");
       return;
     }
 

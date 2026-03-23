@@ -187,7 +187,7 @@ export function buildBriefTemplate(data: MemberBriefData): BriefTemplate {
   // Today's reminders
   const todayReminders = data.reminderTimes.length > 0
     ? `Check-in reminders at: ${data.reminderTimes.join(', ')}`
-    : 'No reminders set -- use /settings to configure';
+    : 'No reminders set -- just DM me to set one up';
 
   // Milestone approaching (within 20% of next rank)
   let milestoneApproaching: string | null = null;
@@ -343,7 +343,7 @@ function formatTemplateFallback(template: BriefTemplate): string {
   if (template.goalsSummary.length > 0) {
     lines.push(`Active goals: ${template.goalsSummary.join('; ')}.`);
   } else {
-    lines.push("No active goals -- use /setgoal to set one. Even something small gets the ball rolling.");
+    lines.push("No active goals -- just tell me in a DM what you're working on and I'll set one up.");
   }
 
   lines.push(template.todayReminders);

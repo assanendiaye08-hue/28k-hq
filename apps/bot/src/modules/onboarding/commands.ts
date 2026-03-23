@@ -244,13 +244,11 @@ async function runSetup(
       // Send feature guide
       await dm.send(
         "**Here's what you've unlocked:**\n\n" +
-        "**Just talk to me here** — I know your goals, track your progress, and keep you accountable. " +
-        "Tell me what you're working on, ask me to set a reminder, break down a goal, or just check in. Plain English, no commands.\n\n" +
+        "**Just talk to me here** — plain English, no commands needed. I know your goals, track your progress, and keep you accountable.\n\n" +
         "**First message you send me** — I'll ask your timezone, morning brief time, and how hard you want me to push you. Takes one minute.\n\n" +
         "**Desktop app** — Download 28K HQ for Mac/Windows to run focus timers in your menu bar and manage goals visually.\n\n" +
-        "`/goals` — Quick view of your active goals\n" +
-        "`/reminders` — See your upcoming reminders\n" +
-        "`/leaderboard` — See the rankings\n\n" +
+        "You can also use these shortcuts in the server:\n" +
+        "`/goals` · `/reminders` · `/leaderboard`\n\n" +
         "Send me a message here when you're ready.",
       );
     } catch {
