@@ -92,19 +92,50 @@ export async function handleAnnounceUpdateCommand(
   // Build the embed
   const embed = new EmbedBuilder()
     .setColor(0xf59e0b)
-    .setTitle(`\u{1F514} 28K HQ Desktop v${version}`)
-    .setDescription('A new version of the desktop app is available.');
+    .setTitle(`🔔 28K HQ Desktop v${version}`)
+    .setDescription('New version of the desktop app. Download and install below.');
 
   if (notes) {
     embed.addFields({ name: "What's New", value: notes });
   }
 
-  embed.addFields({
-    name: 'Download',
-    value: `[Click here to download](${downloadUrl})`,
-  });
+  embed.addFields(
+    {
+      name: '📥 Download',
+      value: [
+        `**[Go to download page](${downloadUrl})**`,
+        '',
+        '**Mac (M1/M2/M3/M4):** `_aarch64.dmg`',
+        '**Mac (Intel):** `_x64.dmg`',
+        '**Windows:** `_x64_en-US.msi`',
+        '',
+        '*Not sure which Mac? Click  → About This Mac.*',
+      ].join('\n'),
+    },
+    {
+      name: '🍎 Mac Install',
+      value: [
+        '1. Open the `.dmg`, drag **28K HQ** to Applications',
+        '2. Open Terminal and paste:',
+        '```xattr -cr /Applications/28K\\ HQ.app```',
+        '3. Launch **28K HQ** from Applications',
+      ].join('\n'),
+    },
+    {
+      name: '🪟 Windows Install',
+      value: [
+        '1. Open the `.msi` file',
+        '2. If SmartScreen pops up: **More info → Run anyway**',
+        '3. Follow installer, launch from Start menu',
+      ].join('\n'),
+    },
+    {
+      name: '🚀 First Launch',
+      value: 'Click **Login with Discord** → authorize → you\'re in. Timer lives in your menu bar.',
+    },
+  );
 
-  embed.setFooter({ text: 'Update your app to get the latest features' });
+  embed.setFooter({ text: 'Questions? DM me (the bot) — I\'ll help.' });
 
   try {
     if (targetChannel.isTextBased() && 'send' in targetChannel) {
