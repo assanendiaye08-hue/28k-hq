@@ -364,9 +364,9 @@ export async function runCoachingOnboarding(
     let timezone = 'UTC';
     const tzResponse = await awaitCoachingResponse(dm, discordId);
     if (tzResponse === null) {
-      await dm.send("No worries, we'll use UTC. You can change it anytime with /settings.");
+      await dm.send("No worries, we'll use UTC. Just tell me your timezone anytime to update it.");
     } else if (/skip/i.test(tzResponse)) {
-      await dm.send("Got it, defaulting to UTC. Change anytime with /settings.");
+      await dm.send("Got it, defaulting to UTC. Just tell me your timezone anytime to update it.");
     } else {
       const resolved = resolveTimezone(tzResponse);
       if (resolved) {
@@ -385,10 +385,10 @@ export async function runCoachingOnboarding(
             timezone = retryResolved;
             await dm.send(`Got it, ${timezone}.`);
           } else {
-            await dm.send("No match -- defaulting to UTC. Change anytime with /settings.");
+            await dm.send("No match — defaulting to UTC. Just tell me your timezone anytime to update it.");
           }
         } else {
-          await dm.send("Defaulting to UTC. Change anytime with /settings.");
+          await dm.send("Defaulting to UTC. Just tell me your timezone anytime to update it.");
         }
       }
     }
@@ -401,14 +401,14 @@ export async function runCoachingOnboarding(
     let briefTime: string | null = null;
     const briefResponse = await awaitCoachingResponse(dm, discordId);
     if (briefResponse === null || /skip/i.test(briefResponse ?? '')) {
-      await dm.send("No morning brief -- you can enable it later with /settings.");
+      await dm.send("No morning brief — just tell me anytime and I'll set it up.");
     } else {
       const parsed = parseTimeInput(briefResponse);
       if (parsed) {
         briefTime = parsed;
         await dm.send(`Morning brief set for ${briefTime}.`);
       } else {
-        await dm.send("Couldn't parse that time -- skipping for now. Use /settings to set it later.");
+        await dm.send("Couldn't parse that time — skipping for now. Just tell me anytime to set it.");
       }
     }
 
