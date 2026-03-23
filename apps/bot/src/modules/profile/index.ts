@@ -34,7 +34,7 @@ const profileModule: Module = {
           .setRequired(false),
       );
 
-    ctx.commands.register('profile', builder as SlashCommandBuilder, profileCommand);
+    // /profile removed in v3.0 — ask Jarvis about your profile via DM
 
     // Listen for memberSetupComplete event to trigger AI tag extraction
     ctx.events.on('memberSetupComplete', (...args: unknown[]) => {

@@ -59,8 +59,8 @@ export function buildCheckinCommand(): SlashCommandBuilder {
 /**
  * Register the /checkin command with the module context.
  */
-export function registerCheckinCommands(ctx: ModuleContext): void {
-  ctx.commands.register('checkin', buildCheckinCommand(), handleCheckin);
+export function registerCheckinCommands(_ctx: ModuleContext): void {
+  // /checkin removed in v3.0 — use DM to log activity with Jarvis
 }
 
 /**

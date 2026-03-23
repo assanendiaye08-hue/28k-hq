@@ -146,10 +146,8 @@ export function buildCompletegoalCommand(): SlashCommandBuilder {
 // ─── Command Registration ───────────────────────────────────────────────────────
 
 export function registerGoalCommands(ctx: ModuleContext): void {
-  ctx.commands.register('setgoal', buildSetgoalCommand(), handleSetgoal);
+  // /setgoal, /progress, /completegoal removed in v3.0 — manage goals via DM or /goals
   ctx.commands.register('goals', buildGoalsCommand(), handleGoals);
-  ctx.commands.register('progress', buildProgressCommand(), handleProgress);
-  ctx.commands.register('completegoal', buildCompletegoalCommand(), handleCompletegoal);
 }
 
 // ─── Autocomplete Handler ───────────────────────────────────────────────────────

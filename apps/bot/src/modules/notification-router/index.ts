@@ -13,9 +13,7 @@ const notificationRouterModule: Module = {
   name: 'notification-router',
 
   register(ctx: ModuleContext): void {
-    // Register /notifications command
-    registerNotificationsCommands(ctx);
-
+    // /notifications removed in v3.0 — configure via DM with Jarvis
     ctx.logger.info('[notification-router] Module registered');
   },
 };
