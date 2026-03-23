@@ -473,7 +473,7 @@ export async function runCoachingOnboarding(
         { name: 'Morning Brief', value: briefTime ?? 'Off', inline: true },
         { name: 'Coaching Level', value: accountabilityLevel, inline: true },
       )
-      .setFooter({ text: "Reply 'done' or adjust anytime with /settings" })
+      .setFooter({ text: "Just DM me anytime to adjust anything" })
       .setTimestamp();
 
     await dm.send({ embeds: [confirmEmbed] });

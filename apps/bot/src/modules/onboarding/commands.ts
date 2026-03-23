@@ -249,16 +249,13 @@ async function runSetup(
       // Send feature guide
       await dm.send(
         "**Here's what you've unlocked:**\n\n" +
-        "**Jarvis (that's me)** — DM me anytime. I know your goals, track your streaks, and keep you accountable. " +
-        "I can also start timers, set reminders, and break down goals — just tell me in plain English.\n\n" +
-        "`/checkin` — Log what you worked on today and earn XP\n" +
-        "`/setgoal` — Set targets with deadlines\n" +
-        "`/timer start` — Focused work sessions (pomodoro or free-form)\n" +
-        "`/remind` — Set reminders, or just DM me \"remind me tomorrow at 9am to...\"\n" +
-        "`/leaderboard` — See the rankings\n" +
-        "`/profile` — View or edit your profile\n" +
-        "`/settings` — Configure daily briefs, nudges, and reflection intensity\n\n" +
-        "Start with `/checkin` in the server to log your first activity, or just DM me here.",
+        "**Just talk to me here** — I know your goals, track your progress, and keep you accountable. " +
+        "Tell me what you're working on, ask me to set a reminder, break down a goal, or just check in. Plain English, no commands.\n\n" +
+        "**Desktop app** — Download 28K HQ for Mac/Windows to run focus timers in your menu bar and manage goals visually.\n\n" +
+        "`/goals` — Quick view of your active goals\n" +
+        "`/reminders` — See your upcoming reminders\n" +
+        "`/leaderboard` — See the rankings\n\n" +
+        "Start by telling me what you're grinding on today.",
       );
     } catch {
       logger.warn(
