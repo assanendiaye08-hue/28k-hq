@@ -44,13 +44,21 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @28k/db db:generate
 
-      - name: Build desktop app
+      - name: Build frontend
         env:
           VITE_API_URL: http://168.119.235.79:3001
           VITE_DISCORD_CLIENT_ID: "1484776955634253947"
         run: |
           cd apps/desktop
-          pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          pnpm build
+          echo "--- Verify env vars baked in ---"
+          grep -c "168.119" dist/assets/*.js && echo "API URL: OK" || echo "API URL: MISSING!"
+          grep -c "1484776955634253947" dist/assets/*.js && echo "Client ID: OK" || echo "Client ID: MISSING!"
+
+      - name: Build Tauri app
+        run: |
+          cd apps/desktop
+          pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config '{"build":{"beforeBuildCommand":""}}'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
