@@ -12,10 +12,13 @@ jobs:
         include:
           - platform: macos-latest
             target: aarch64-apple-darwin
+            bundles: dmg
           - platform: macos-latest
             target: x86_64-apple-darwin
+            bundles: dmg
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
+            bundles: msi
 
     runs-on: ${{ matrix.platform }}
 
@@ -47,19 +50,16 @@ jobs:
           VITE_DISCORD_CLIENT_ID: 1484776955634253947
         run: |
           cd apps/desktop
-          pnpm tauri build --target ${{ matrix.target }}
+          pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.target }}
+          if-no-files-found: error
           path: |
-            apps/desktop/src-tauri/target/release/bundle/**/*.dmg
-            apps/desktop/src-tauri/target/release/bundle/**/*.msi
-            apps/desktop/src-tauri/target/release/bundle/**/*.exe
-            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
-            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
-            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.msi
 
   release:
     needs: build
@@ -82,6 +82,4 @@ jobs:
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.msi
-            artifacts/**/*.exe
           generate_release_notes: true
-          fail_on_unmatched_files: false
