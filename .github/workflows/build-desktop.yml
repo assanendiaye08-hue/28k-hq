@@ -47,7 +47,7 @@ jobs:
       - name: Build desktop app
         env:
           VITE_API_URL: http://168.119.235.79:3001
-          VITE_DISCORD_CLIENT_ID: 1484776955634253947
+          VITE_DISCORD_CLIENT_ID: "1484776955634253947"
         run: |
           cd apps/desktop
           pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
