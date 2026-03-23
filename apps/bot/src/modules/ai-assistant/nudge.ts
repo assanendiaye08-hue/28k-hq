@@ -425,7 +425,7 @@ export async function sendNudge(
 
       if (isExtendedSilence) {
         const goalNames = member.goals.map((g) => g.title).join(', ') || 'their goals';
-        nudgeInstruction = `This member has been quiet for ${daysSinceCheckIn} days. ${consistencyContext}${commitmentContext} Send a genuine check-in -- not a productivity nag. Something like: "Hey ${member.displayName}, it's been ${daysSinceCheckIn} days. No pressure, but I want to check in -- are you still locked in on ${goalNames}, or do you want to adjust? You can always use /accountability light or just tell me to back off." Keep it real and human. 2-3 sentences max.`;
+        nudgeInstruction = `This member has been quiet for ${daysSinceCheckIn} days. ${consistencyContext}${commitmentContext} Send a genuine check-in -- not a productivity nag. Something like: "Hey ${member.displayName}, it's been ${daysSinceCheckIn} days. No pressure, but I want to check in -- are you still locked in on ${goalNames}, or do you want to adjust? Just tell me to ease up if you need space." Keep it real and human. 2-3 sentences max.`;
       } else {
         // Normal nudge -- state what's pending, offer a choice
         const streakInfo = member.currentStreak > 0
@@ -440,7 +440,7 @@ export async function sendNudge(
           ? ` Stale goals to mention as observation (not accusation): ${staleGoals.map((g) => `"${g.title}" hasn't seen movement in ${g.daysSinceUpdate} days`).join('; ')}.`
           : '';
 
-        nudgeInstruction = `Send a ${levelConfig.tone} accountability nudge. ${consistencyContext} ${streakInfo} ${goalInfo}${staleInfo}${commitmentContext} Days since last check-in: ${daysSinceCheckIn ?? 'never'}. State what's pending. Offer a choice: recommit, adjust, or take a break. One question, not a lecture. Keep it to 1-3 sentences. Remind them to use /checkin.`;
+        nudgeInstruction = `Send a ${levelConfig.tone} accountability nudge. ${consistencyContext} ${streakInfo} ${goalInfo}${staleInfo}${commitmentContext} Days since last check-in: ${daysSinceCheckIn ?? 'never'}. State what's pending. Offer a choice: recommit, adjust, or take a break. One question, not a lecture. Keep it to 1-3 sentences. Remind them to check in with me here.`;
       }
     }
 

@@ -440,7 +440,7 @@ export async function runPlanningSession(
         { name: 'Reminders', value: reminderDisplay, inline: true },
         { name: 'Streak', value: `${member.currentStreak} days`, inline: true },
       )
-      .setFooter({ text: 'Use /goals to view, /progress to update, /completegoal to finish' })
+      .setFooter({ text: 'Use /goals to view, or tell me in a DM to update anything' })
       .setTimestamp();
 
     await dm.send({ embeds: [confirmEmbed] });

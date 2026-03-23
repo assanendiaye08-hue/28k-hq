@@ -546,6 +546,17 @@ export async function runCoachingOnboarding(
 
     await dm.send({ embeds: [confirmEmbed] });
 
+    // Help message — show what Jarvis can do right away
+    await dm.send(
+      "Here's what I can do — just write naturally:\n\n" +
+      "**Set a goal** → \"I want to hit $5k/mo by June\"\n" +
+      "**Set a reminder** → \"Remind me to send invoices every Friday at 5pm\"\n" +
+      "**Log progress** → \"Worked 3 hours on the landing page today\"\n" +
+      "**Get your status** → \"How am I doing on my goals?\"\n" +
+      "**Plan your week** → \"Let's plan this week\"\n\n" +
+      "No commands, no syntax. Just talk.",
+    );
+
     // Emit scheduleUpdated so SchedulerManager picks up the new/updated schedule
     events.emit('scheduleUpdated', memberId);
 

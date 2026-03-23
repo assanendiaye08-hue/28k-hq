@@ -38,7 +38,7 @@ export async function sendWelcomeMessage(channel: TextChannel): Promise<void> {
     {
       name: 'Your Private Space',
       value:
-        'After setup, you get a personal space (DM or private channel) where your AI assistant lives. ' +
+        'After setup, your personal space is a direct message with Jarvis — private by default. ' +
         'It tracks your goals, sends daily briefs, and keeps you locked in.',
       inline: false,
     },

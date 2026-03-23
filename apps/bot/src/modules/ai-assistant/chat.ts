@@ -136,7 +136,7 @@ export async function handleChat(
     });
 
     if (todayMessageCount >= DAILY_MESSAGE_CAP) {
-      return "You've hit the daily limit (50 messages). Resets at midnight your time. Use /checkin or /setgoal for those workflows.";
+      return "You've hit the daily limit (50 messages). Resets at midnight your time. Come back then — I'll be here.";
     }
 
     // 2. Classify topic from user message

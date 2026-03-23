@@ -255,10 +255,13 @@ async function handleSetgoal(
 
   // Parse deadline
   let deadline = parseDeadline(deadlineInput);
+  let deadlineFallback = false;
 
   // If timeframe is provided and deadline fell through to fallback, use timeframe deadline
   if (timeframeInput && isFallbackDeadline(deadline)) {
     deadline = getTimeframeDeadline(timeframeInput);
+  } else if (isFallbackDeadline(deadline)) {
+    deadlineFallback = true;
   }
 
   // Validate parent if provided
@@ -337,6 +340,14 @@ async function handleSetgoal(
     });
   }
 
+  if (deadlineFallback) {
+    embed.addFields({
+      name: 'Deadline note',
+      value: "Couldn't parse that deadline — set it to 7 days from now. Tell me in a DM if you want a different date.",
+      inline: false,
+    });
+  }
+
   if (activeGoalCount >= 5) {
     embed.addFields({
       name: 'Heads up',
@@ -386,7 +397,7 @@ async function handleGoals(
 
     if (topGoals.length === 0) {
       await interaction.editReply({
-        embeds: [infoEmbed('No active goals', 'Use /setgoal to create one.')],
+        embeds: [infoEmbed('No active goals', 'Tell Jarvis in a DM what you\'re working on and I\'ll set one up.')],
       });
       return;
     }
