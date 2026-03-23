@@ -44,21 +44,20 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @28k/db db:generate
 
-      - name: Build frontend
+      - name: Build desktop app
         env:
-          VITE_API_URL: http://168.119.235.79:3001
+          VITE_API_URL: https://28khq.space
           VITE_DISCORD_CLIENT_ID: "1484776955634253947"
         run: |
           cd apps/desktop
-          pnpm build
-          echo "--- Verify env vars baked in ---"
-          grep -c "168.119" dist/assets/*.js && echo "API URL: OK" || echo "API URL: MISSING!"
-          grep -c "1484776955634253947" dist/assets/*.js && echo "Client ID: OK" || echo "Client ID: MISSING!"
+          pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
-      - name: Build Tauri app
+      - name: Verify build
         run: |
-          cd apps/desktop
-          pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config src-tauri/tauri.conf.ci.json
+          echo "--- Check frontend was embedded ---"
+          ls -lh apps/desktop/dist/ || echo "No dist dir!"
+          grep -c "28khq.space" apps/desktop/dist/assets/*.js 2>/dev/null && echo "API URL: BAKED IN" || echo "API URL: MISSING"
+        shell: bash
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
