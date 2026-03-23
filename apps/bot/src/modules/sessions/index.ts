@@ -41,11 +41,7 @@ const sessionsModule: Module = {
   register(ctx: ModuleContext): void {
     const db = ctx.db as ExtendedPrismaClient;
 
-    // Register slash commands
-    ctx.commands.register('lockin', buildLockinCommand(), handleLockin);
-    ctx.commands.register('schedule-session', buildScheduleSessionCommand(), handleScheduleSession);
-    ctx.commands.register('endsession', buildEndsessionCommand(), handleEndsession);
-    ctx.commands.register('invite-session', buildInviteSessionCommand(), handleInviteSession);
+    // Session slash commands removed in v3.0 — desktop app handles timers
 
     // On bot ready: cleanup and start scheduled sessions
     ctx.client.once('ready', async (readyClient) => {

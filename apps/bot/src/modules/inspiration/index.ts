@@ -18,8 +18,7 @@ const inspirationModule: Module = {
   name: 'inspiration',
 
   register(ctx: ModuleContext): void {
-    // Register /inspiration command with add, remove, list subcommands
-    ctx.commands.register('inspiration', buildInspirationCommand(), handleInspirationCommand);
+    // /inspiration removed in v3.0
 
     // Register autocomplete handler for /inspiration remove name option
     ctx.events.on('autocomplete', async (...args: unknown[]) => {

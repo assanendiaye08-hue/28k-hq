@@ -111,8 +111,8 @@ export function buildSettingsCommand(): SlashCommandBuilder {
 /**
  * Register the /settings command with the module context.
  */
-export function registerSchedulerCommands(ctx: ModuleContext): void {
-  ctx.commands.register('settings', buildSettingsCommand(), handleSettings);
+export function registerSchedulerCommands(_ctx: ModuleContext): void {
+  // /settings removed in v3.0 — configure via DM with Jarvis
 }
 
 /**

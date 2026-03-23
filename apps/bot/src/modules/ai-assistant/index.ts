@@ -46,10 +46,8 @@ const aiAssistantModule: Module = {
     const db = ctx.db as ExtendedPrismaClient;
     const { client, logger } = ctx;
 
-    // 1. Register slash commands
-    ctx.commands.register('ask', buildAskCommand(), handleAsk);
+    // /ask and /accountability removed in v3.0 — use DM to talk to Jarvis
     ctx.commands.register('wipe-history', buildWipeHistoryCommand(), handleWipeHistory);
-    ctx.commands.register('accountability', buildAccountabilityCommand(), handleAccountability);
 
     // 2. Listen for DM messages
     client.on('messageCreate', async (message) => {
