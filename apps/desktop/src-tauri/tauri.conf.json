@@ -1,7 +1,7 @@
 {
   "productName": "28K HQ",
   "identifier": "com.28khq.desktop",
-  "version": "0.1.0",
+  "version": "3.2.0",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
