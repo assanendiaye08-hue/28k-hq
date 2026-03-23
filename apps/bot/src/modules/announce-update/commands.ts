@@ -101,37 +101,20 @@ export async function handleAnnounceUpdateCommand(
 
   embed.addFields(
     {
-      name: '📥 Download',
-      value: [
-        `**[Go to download page](${downloadUrl})**`,
-        '',
-        '**Mac (M1/M2/M3/M4):** `_aarch64.dmg`',
-        '**Mac (Intel):** `_x64.dmg`',
-        '**Windows:** `_x64_en-US.msi`',
-        '',
-        '*Not sure which Mac? Click  → About This Mac.*',
-      ].join('\n'),
+      name: 'Download',
+      value: `**[Download here](${downloadUrl})**\nMac M-chip: \`aarch64.dmg\` · Mac Intel: \`x64.dmg\` · Windows: \`x64_en-US.msi\``,
     },
     {
-      name: '🍎 Mac Install',
-      value: [
-        '1. Open the `.dmg`, drag **28K HQ** to Applications',
-        '2. Open Terminal and paste:',
-        '```xattr -cr /Applications/28K\\ HQ.app```',
-        '3. Launch **28K HQ** from Applications',
-      ].join('\n'),
+      name: 'Mac Install',
+      value: '1. Open `.dmg`, drag to Applications\n2. Open **Terminal**, paste: `xattr -cr /Applications/28K\\ HQ.app`\n3. Launch from Applications',
     },
     {
-      name: '🪟 Windows Install',
-      value: [
-        '1. Open the `.msi` file',
-        '2. If SmartScreen pops up: **More info → Run anyway**',
-        '3. Follow installer, launch from Start menu',
-      ].join('\n'),
+      name: 'Windows Install',
+      value: '1. Open `.msi` file\n2. SmartScreen? Click **More info** then **Run anyway**\n3. Launch from Start menu',
     },
     {
-      name: '🚀 First Launch',
-      value: 'Click **Login with Discord** → authorize → you\'re in. Timer lives in your menu bar.',
+      name: 'First Launch',
+      value: 'Click **Login with Discord** and authorize. Timer lives in your menu bar.',
     },
   );
 
