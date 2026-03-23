@@ -41,8 +41,7 @@ const remindersModule: Module = {
     const db = ctx.db as ExtendedPrismaClient;
     const { client, logger } = ctx;
 
-    // 1. Register slash commands
-    ctx.commands.register('remind', buildRemindCommand(), handleRemind);
+    // /remind removed in v3.0 — use DM or /reminders
     ctx.commands.register('reminders', buildRemindersCommand(), handleReminders);
 
     // 2. Create delivery instance
