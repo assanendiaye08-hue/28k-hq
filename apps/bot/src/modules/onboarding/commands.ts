@@ -220,12 +220,7 @@ async function runSetup(
           },
         });
 
-        // Create default MemberSchedule so briefs and nudges start immediately
-        await tx.memberSchedule.create({
-          data: {
-            memberId: member.id,
-          },
-        });
+        // MemberSchedule is created during coaching onboarding (first DM to Jarvis)
 
         return { memberRecord: member, recoveryKey: recKey };
       });
