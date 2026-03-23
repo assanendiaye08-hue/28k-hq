@@ -25,6 +25,7 @@ import winston from 'winston';
 import { SETUP_TIMEOUT_MS, BRAND_COLORS } from '@28k/shared';
 import type { ExtendedPrismaClient } from '@28k/db';
 import type { IEventBus } from '../../shared/types.js';
+import { callAI } from '../../shared/ai-client.js';
 
 const setupLogger = winston.createLogger({
   level: 'debug',
@@ -234,48 +235,109 @@ const TIMEZONE_ALIASES: Record<string, string> = {
   bst: 'Europe/London',
   london: 'Europe/London',
   cet: 'Europe/Paris',
+  cest: 'Europe/Paris',
   paris: 'Europe/Paris',
+  lyon: 'Europe/Paris',
+  marseille: 'Europe/Paris',
+  toulouse: 'Europe/Paris',
+  france: 'Europe/Paris',
   berlin: 'Europe/Berlin',
+  germany: 'Europe/Berlin',
+  madrid: 'Europe/Madrid',
+  spain: 'Europe/Madrid',
+  rome: 'Europe/Rome',
+  italy: 'Europe/Rome',
+  amsterdam: 'Europe/Amsterdam',
+  brussels: 'Europe/Brussels',
+  zurich: 'Europe/Zurich',
+  stockholm: 'Europe/Stockholm',
+  dubai: 'Asia/Dubai',
+  uae: 'Asia/Dubai',
   jst: 'Asia/Tokyo',
   tokyo: 'Asia/Tokyo',
+  japan: 'Asia/Tokyo',
   ist: 'Asia/Kolkata',
+  india: 'Asia/Kolkata',
+  mumbai: 'Asia/Kolkata',
+  delhi: 'Asia/Kolkata',
+  singapore: 'Asia/Singapore',
+  shanghai: 'Asia/Shanghai',
+  beijing: 'Asia/Shanghai',
+  china: 'Asia/Shanghai',
+  seoul: 'Asia/Seoul',
+  korea: 'Asia/Seoul',
   aest: 'Australia/Sydney',
   sydney: 'Australia/Sydney',
+  australia: 'Australia/Sydney',
   utc: 'UTC',
   'new york': 'America/New_York',
   'los angeles': 'America/Los_Angeles',
   chicago: 'America/Chicago',
   denver: 'America/Denver',
+  toronto: 'America/Toronto',
+  montreal: 'America/Montreal',
+  canada: 'America/Toronto',
+  mexico: 'America/Mexico_City',
+  brazil: 'America/Sao_Paulo',
+  'sao paulo': 'America/Sao_Paulo',
 };
 
 /**
  * Resolve a timezone string from user input. Accepts IANA strings directly,
- * common abbreviations, and city names.
+ * common abbreviations, and city/country names.
  */
-function resolveTimezone(input: string): string | null {
-  const normalized = input.trim().toLowerCase().replace(/[_-]/g, ' ');
+function resolveTimezoneStatic(input: string): string | null {
+  // Strip common suffixes like "time", "timezone", "time zone"
+  const stripped = input.trim().toLowerCase()
+    .replace(/\s*(time\s*zone|timezone|time)\s*$/i, '')
+    .replace(/[_-]/g, ' ')
+    .trim();
 
-  // Check aliases first
-  if (TIMEZONE_ALIASES[normalized]) {
-    return TIMEZONE_ALIASES[normalized];
-  }
+  if (TIMEZONE_ALIASES[stripped]) return TIMEZONE_ALIASES[stripped];
 
   // Check if it's a valid IANA string directly
   try {
     Intl.DateTimeFormat(undefined, { timeZone: input.trim() });
     return input.trim();
-  } catch {
-    // Not a valid IANA string
-  }
+  } catch { /* not valid IANA */ }
 
-  // Try partial match against aliases
+  // Partial match
   for (const [key, value] of Object.entries(TIMEZONE_ALIASES)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
+    if (stripped.includes(key) || key.includes(stripped)) {
       return value;
     }
   }
 
   return null;
+}
+
+/**
+ * Resolve timezone using AI when static matching fails.
+ * Returns the IANA string, or null if genuinely unresolvable.
+ */
+async function resolveTimezoneWithAI(db: ExtendedPrismaClient, input: string): Promise<string | null> {
+  try {
+    const result = await callAI(db, {
+      memberId: 'system',
+      feature: 'chat',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a timezone resolver. Given user input, return the correct IANA timezone string (e.g. Europe/Paris, America/New_York). Reply with ONLY the IANA string, nothing else. If completely unresolvable, reply UNKNOWN.',
+        },
+        { role: 'user', content: `Timezone input: "${input}"` },
+      ],
+    });
+    if (!result.content) return null;
+    const tz = result.content.trim();
+    if (tz === 'UNKNOWN') return null;
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: tz });
+      return tz;
+    } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -358,37 +420,43 @@ export async function runCoachingOnboarding(
 
     // ── Question 1: Timezone ──────────────────────────────────────────────────
     await dm.send(
-      "What timezone are you in? (e.g., America/New_York, EST, London, Tokyo)",
+      "What timezone are you in? City, country, or abbreviation — whatever's easiest (e.g. Paris, EST, Tokyo, Brazil).",
     );
 
     let timezone = 'UTC';
     const tzResponse = await awaitCoachingResponse(dm, discordId);
-    if (tzResponse === null) {
+    if (tzResponse === null || /skip/i.test(tzResponse ?? '')) {
       await dm.send("No worries, we'll use UTC. Just tell me your timezone anytime to update it.");
-    } else if (/skip/i.test(tzResponse)) {
-      await dm.send("Got it, defaulting to UTC. Just tell me your timezone anytime to update it.");
     } else {
-      const resolved = resolveTimezone(tzResponse);
+      const resolved = resolveTimezoneStatic(tzResponse);
       if (resolved) {
         timezone = resolved;
         await dm.send(`Got it, ${timezone}.`);
       } else {
-        // One retry
-        await dm.send(
-          "Hmm, I didn't recognize that. Common options: America/New_York, America/Chicago, " +
-          "America/Los_Angeles, Europe/London, Europe/Berlin, Asia/Tokyo. Try again or say 'skip'.",
-        );
-        const retryResponse = await awaitCoachingResponse(dm, discordId);
-        if (retryResponse && !/skip/i.test(retryResponse)) {
-          const retryResolved = resolveTimezone(retryResponse);
-          if (retryResolved) {
-            timezone = retryResolved;
-            await dm.send(`Got it, ${timezone}.`);
-          } else {
-            await dm.send("No match — defaulting to UTC. Just tell me your timezone anytime to update it.");
-          }
+        // AI fallback — try to resolve naturally
+        await dm.send("Let me look that up...");
+        const aiResolved = await resolveTimezoneWithAI(db, tzResponse);
+        if (aiResolved) {
+          timezone = aiResolved;
+          await dm.send(`Got it, ${timezone}.`);
         } else {
-          await dm.send("Defaulting to UTC. Just tell me your timezone anytime to update it.");
+          // Ask for clarification once
+          await dm.send(
+            "I couldn't figure that one out. What's the nearest major city or country? Or say 'skip' to use UTC.",
+          );
+          const retryResponse = await awaitCoachingResponse(dm, discordId);
+          if (retryResponse && !/skip/i.test(retryResponse)) {
+            const retryStatic = resolveTimezoneStatic(retryResponse);
+            const retryFinal = retryStatic ?? await resolveTimezoneWithAI(db, retryResponse);
+            if (retryFinal) {
+              timezone = retryFinal;
+              await dm.send(`Got it, ${timezone}.`);
+            } else {
+              await dm.send("Couldn't match it — defaulting to UTC. Just tell me anytime to update it.");
+            }
+          } else {
+            await dm.send("Defaulting to UTC. Just tell me anytime to update it.");
+          }
         }
       }
     }
