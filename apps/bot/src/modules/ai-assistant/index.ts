@@ -36,6 +36,12 @@ import {
   PENDING_ACTION_TTL,
 } from './intent-executor.js';
 import { BrainstormManager } from './brainstorm.js';
+import {
+  isDecompositionRequest,
+  extractDecompositionGoalName,
+  runDecompositionFlow,
+  offerDecomposition,
+} from '../goals/decompose.js';
 
 const brainstormManager = new BrainstormManager();
 
@@ -108,6 +114,22 @@ const aiAssistantModule: Module = {
           if (Date.now() - pending.createdAt > PENDING_ACTION_TTL) {
             pendingActions.delete(account.memberId);
             // Fall through to normal processing
+          } else if (pending.tool === '_decompose_offer') {
+            // Decomposition offer: yes → run decomposition, no → dismiss
+            if (isConfirmation(message.content)) {
+              pendingActions.delete(account.memberId);
+              const goalId = pending.params.goalId as string;
+              const childTimeframe = pending.params.childTimeframe as string;
+              await offerDecomposition(client, db, account.memberId, message.author.id, goalId, childTimeframe);
+              return;
+            } else if (isDenial(message.content)) {
+              pendingActions.delete(account.memberId);
+              await message.reply('No worries, you can break it down later anytime.');
+              return;
+            } else {
+              // Not a yes/no -- clear decompose offer, process as new message
+              pendingActions.delete(account.memberId);
+            }
           } else if (isConfirmation(message.content)) {
             await executePendingAction(db, account.memberId, pending, message, client);
             pendingActions.delete(account.memberId);
@@ -120,6 +142,13 @@ const aiAssistantModule: Module = {
             // Neither yes nor no -- clear pending, process as new message
             pendingActions.delete(account.memberId);
           }
+        }
+
+        // Check for decomposition request (keyword-triggered, before LLM call)
+        if (isDecompositionRequest(message.content)) {
+          const goalHint = extractDecompositionGoalName(message.content);
+          await runDecompositionFlow(client, db, account.memberId, message.author.id, ctx.events, goalHint);
+          return;
         }
 
         // Show typing indicator
@@ -137,6 +166,23 @@ const aiAssistantModule: Module = {
               ? `${result.response}\n\n${openingMessage}`
               : openingMessage;
             await message.reply(response);
+            return;
+          }
+
+          // list_goals: execute immediately, no confirmation needed
+          if (result.toolCall.name === 'list_goals') {
+            await executePendingAction(
+              db,
+              account.memberId,
+              {
+                tool: result.toolCall.name,
+                params: result.toolCall.params,
+                confirmMessage: '',
+                createdAt: Date.now(),
+              },
+              message,
+              client,
+            );
             return;
           }
 

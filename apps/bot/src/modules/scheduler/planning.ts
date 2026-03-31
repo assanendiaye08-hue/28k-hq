@@ -47,12 +47,23 @@ const logger = winston.createLogger({
 /** Timeout for each response during planning session (5 minutes). */
 const PLANNING_TIMEOUT_MS = 5 * 60 * 1000;
 
+import { validateGoalDepth } from '../goals/hierarchy.js';
+
+/** Higher-level goal info for planning context. */
+interface HigherGoal {
+  id: string;
+  title: string;
+  timeframe: string | null;
+  depth: number;
+}
+
 /** Goal extracted from natural language by AI. */
 interface ExtractedGoal {
   title: string;
   type: 'measurable' | 'freetext';
   target?: number;
   unit?: string;
+  parentGoalIndex?: number | null;
 }
 
 /** Data collected for the weekly review summary. */
@@ -336,11 +347,67 @@ export async function runPlanningSession(
       await dm.send('Got it, appreciate the honesty.');
     }
 
-    // Step 2: Goals for this week
-    await dm.send(
-      "What are your goals for this week? You can set up to 5. Just tell me naturally, like " +
-      "'send 10 cold emails, finish the landing page, read 2 chapters of that book'.",
-    );
+    // Step 1.5: Show existing higher-level goals and suggest weekly focus
+    const higherGoals = await db.goal.findMany({
+      where: {
+        memberId,
+        status: { in: ['ACTIVE', 'EXTENDED'] },
+        timeframe: { in: ['YEARLY', 'QUARTERLY', 'MONTHLY'] },
+      },
+      orderBy: { deadline: 'asc' },
+    });
+
+    const higherGoalContext: HigherGoal[] = higherGoals.map((g) => ({
+      id: g.id,
+      title: g.title,
+      timeframe: g.timeframe,
+      depth: g.depth,
+    }));
+
+    // Step 2: Goals for this week (with higher-goal context if available)
+    if (higherGoalContext.length > 0) {
+      const goalList = higherGoalContext
+        .map((g, i) => `${i + 1}. [${g.timeframe}] ${g.title}`)
+        .join('\n');
+
+      // AI suggests weekly actions based on higher-level goals
+      let suggestions = '';
+      try {
+        const suggestResult = await callAI(db, {
+          memberId,
+          feature: 'planning',
+          messages: [
+            {
+              role: 'system',
+              content:
+                "Based on the member's higher-level goals, suggest 2-3 specific weekly actions " +
+                'they could take this week. Keep suggestions concrete and achievable in one week. ' +
+                'Format as a short numbered list. Be brief -- one line each.',
+            },
+            {
+              role: 'user',
+              content: `My active goals:\n${goalList}`,
+            },
+          ],
+        });
+        if (!suggestResult.degraded && suggestResult.content) {
+          suggestions = suggestResult.content;
+        }
+      } catch {
+        logger.warn('AI weekly suggestion generation failed, skipping suggestions');
+      }
+
+      await dm.send(
+        `Here are your bigger-picture goals:\n\n${goalList}\n\n` +
+        (suggestions ? `Based on these, here's what I'd suggest this week:\n${suggestions}\n\n` : '') +
+        'What are your goals for this week? You can adopt my suggestions, modify them, or set your own.',
+      );
+    } else {
+      await dm.send(
+        "What are your goals for this week? You can set up to 5. Just tell me naturally, like " +
+        "'send 10 cold emails, finish the landing page, read 2 chapters of that book'.",
+      );
+    }
 
     const goalsResponse = await awaitResponse(dm, discordId);
     if (goalsResponse === null) {
@@ -348,14 +415,26 @@ export async function runPlanningSession(
       return;
     }
 
-    // Parse goals from natural language using AI
-    const extractedGoals = await extractGoalsFromText(db, memberId, goalsResponse);
+    // Parse goals from natural language using AI (with higher-goal context)
+    const extractedGoals = await extractGoalsFromText(db, memberId, goalsResponse, higherGoalContext);
 
     // Calculate end of this week (Sunday 23:59 in member's timezone)
     const thisWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // Create Goal records
+    // Create Goal records with timeframe and parent linking
     for (const goal of extractedGoals) {
+      let parentId: string | undefined;
+      let depth = 0;
+
+      // Link to parent if AI identified one
+      if (goal.parentGoalIndex != null && higherGoalContext[goal.parentGoalIndex]) {
+        const parent = higherGoalContext[goal.parentGoalIndex];
+        if (validateGoalDepth(parent.depth)) {
+          parentId = parent.id;
+          depth = parent.depth + 1;
+        }
+      }
+
       await db.goal.create({
         data: {
           memberId,
@@ -365,6 +444,9 @@ export async function runPlanningSession(
           targetValue: goal.target ?? null,
           unit: goal.unit ?? null,
           deadline: thisWeekEnd,
+          timeframe: 'WEEKLY',
+          parentId,
+          depth,
         },
       });
     }
@@ -413,10 +495,14 @@ export async function runPlanningSession(
     // Step 4: Confirmation embed
     const goalsList = extractedGoals
       .map((g) => {
+        const parentLabel =
+          g.parentGoalIndex != null && higherGoalContext[g.parentGoalIndex]
+            ? ` -> ${higherGoalContext[g.parentGoalIndex].title}`
+            : '';
         if (g.type === 'measurable' && g.target && g.unit) {
-          return `- ${g.title} (0/${g.target} ${g.unit})`;
+          return `- ${g.title} (0/${g.target} ${g.unit})${parentLabel}`;
         }
-        return `- ${g.title}`;
+        return `- ${g.title}${parentLabel}`;
       })
       .join('\n');
 
@@ -493,21 +579,28 @@ async function sendTimeoutMessage(dm: DMChannel): Promise<void> {
 
 /**
  * Extract structured goals from natural language using AI.
+ * When higher-level goals are provided, AI attempts to match weekly goals to parents.
  * Falls back to a single free-text goal on failure.
  */
 async function extractGoalsFromText(
   db: ExtendedPrismaClient,
   memberId: string,
   text: string,
+  existingHigherGoals?: HigherGoal[],
 ): Promise<ExtractedGoal[]> {
   try {
+    const parentContext =
+      existingHigherGoals && existingHigherGoals.length > 0
+        ? `\n\nThe member has these higher-level goals:\n${existingHigherGoals.map((g, i) => `${i}: [${g.timeframe}] ${g.title}`).join('\n')}\n\nFor each extracted weekly goal, if it clearly contributes to one of these higher-level goals, set parentGoalIndex to the matching index number. Otherwise set it to null.`
+        : '';
+
     const result = await callAI(db, {
       memberId,
       feature: 'planning',
       messages: [
         {
           role: 'system',
-          content: `Extract goals from this text. For each goal, determine if it's measurable (has a number and unit) or free-text. Return as JSON array. Max 5 goals.`,
+          content: `Extract goals from this text. For each goal, determine if it's measurable (has a number and unit) or free-text. Return as JSON array. Max 5 goals.${parentContext}`,
         },
         {
           role: 'user',
@@ -531,8 +624,9 @@ async function extractGoalsFromText(
                     type: { type: 'string', enum: ['measurable', 'freetext'] },
                     target: { anyOf: [{ type: 'number' }, { type: 'null' }] },
                     unit: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+                    parentGoalIndex: { anyOf: [{ type: 'number' }, { type: 'null' }] },
                   },
-                  required: ['title', 'type', 'target', 'unit'],
+                  required: ['title', 'type', 'target', 'unit', 'parentGoalIndex'],
                   additionalProperties: false,
                 },
               },
@@ -556,10 +650,18 @@ async function extractGoalsFromText(
       return [{ title: text, type: 'freetext' }];
     }
 
-    // Validate and normalize goal types
+    // Validate and normalize goal types + parent index bounds
     for (const goal of goals) {
       const normalizedType = String(goal.type).toLowerCase();
       goal.type = (normalizedType === 'measurable' ? 'measurable' : 'freetext') as 'measurable' | 'freetext';
+
+      // Validate parentGoalIndex bounds
+      if (
+        goal.parentGoalIndex != null &&
+        (!existingHigherGoals || goal.parentGoalIndex < 0 || goal.parentGoalIndex >= existingHigherGoals.length)
+      ) {
+        goal.parentGoalIndex = null;
+      }
     }
 
     logger.debug(`Extracted ${goals.length} goals from planning text`);

@@ -97,6 +97,7 @@ export function buildGoalsCommand(): SlashCommandBuilder {
       .setRequired(false)
       .addChoices(
         { name: 'List (default)', value: 'list' },
+        { name: 'Grouped by timeframe', value: 'grouped' },
         { name: 'Tree', value: 'tree' },
       ),
   );
@@ -410,20 +411,80 @@ async function handleGoals(
     return;
   }
 
-  // List view (default): show top-level and standalone goals with child counts
+  if (view === 'grouped') {
+    // Grouped view: show ALL goals organized by timeframe
+    const allGoals = await db.goal.findMany({
+      where: {
+        memberId: account.memberId,
+        status: { in: ['ACTIVE', 'EXTENDED'] },
+      },
+      orderBy: { deadline: 'asc' },
+      include: {
+        parent: { select: { title: true } },
+        _count: { select: { children: true } },
+      },
+    });
+
+    if (allGoals.length === 0) {
+      await interaction.editReply({
+        embeds: [infoEmbed('No active goals', 'Tell Jarvis in a DM what you\'re working on.')],
+      });
+      return;
+    }
+
+    const embed = infoEmbed('Your Goals by Timeframe');
+
+    const timeframeOrder: Array<string | null> = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', null];
+    const timeframeLabels: Record<string, string> = {
+      YEARLY: 'Yearly',
+      QUARTERLY: 'Quarterly',
+      MONTHLY: 'Monthly',
+      WEEKLY: 'Weekly',
+    };
+
+    for (const tf of timeframeOrder) {
+      const group = allGoals.filter((g) => g.timeframe === tf);
+      if (group.length === 0) continue;
+
+      const label = tf ? timeframeLabels[tf] : 'Unclassified';
+      const lines = group.map((g) => {
+        const parentTag = g.parent ? ` (under: ${g.parent.title})` : '';
+        const childTag = g._count.children > 0 ? ` [${g._count.children} sub-goals]` : '';
+        const deadlineStr = isPast(g.deadline)
+          ? 'Overdue'
+          : formatDistanceToNow(g.deadline, { addSuffix: true });
+
+        if (g.type === 'MEASURABLE' && g.targetValue) {
+          return `${g.title}: ${g.currentValue}/${g.targetValue} ${g.unit ?? ''} | ${deadlineStr}${parentTag}${childTag}`;
+        }
+        return `${g.title} | ${deadlineStr}${parentTag}${childTag}`;
+      });
+
+      embed.addFields({
+        name: `${label} (${group.length})`,
+        value: lines.join('\n') || 'None',
+        inline: false,
+      });
+    }
+
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // List view (default): show top-level goals sorted by timeframe then deadline
   const goals = await db.goal.findMany({
     where: {
       memberId: account.memberId,
       status: { in: ['ACTIVE', 'EXTENDED'] },
       parentId: null, // Only top-level goals
     },
-    orderBy: { deadline: 'asc' },
+    orderBy: [{ deadline: 'asc' }],
     include: { _count: { select: { children: true } } },
   });
 
   if (goals.length === 0) {
     await interaction.editReply({
-      embeds: [infoEmbed('No active goals', 'Use /setgoal to create one.')],
+      embeds: [infoEmbed('No active goals', 'Tell Jarvis in a DM what you\'re working on.')],
     });
     return;
   }

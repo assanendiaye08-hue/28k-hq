@@ -1,16 +1,13 @@
 /**
  * AI-assisted goal decomposition -- DM conversation flow.
  *
- * Members DM Jarvis with natural language like "break down my yearly goal"
- * or "decompose Build a SaaS" to enter a guided flow:
+ * Two entry points:
+ * 1. runDecompositionFlow -- full guided flow (goal selection + timeframe + suggestions)
+ *    Triggered by keyword detection ("break down", "decompose", etc.) in DM handler.
+ * 2. offerDecomposition -- streamlined flow (skip selection, go straight to suggestions)
+ *    Called programmatically after goal creation to offer immediate breakdown.
  *
- * 1. Select goal to decompose (fuzzy match or numbered list)
- * 2. Choose sub-goal timeframe (quarterly, monthly, weekly)
- * 3. AI suggests 2-5 sub-goals with structured output
- * 4. Member approves, edits (remove/add), or cancels
- * 5. Approved sub-goals created in DB linked to parent
- *
- * Uses the same awaitMessages pattern as scheduler/planning.ts.
+ * Both share suggestAndCreateSubgoals() for the AI suggestion → approval → DB creation loop.
  */
 
 import {
@@ -134,7 +131,7 @@ interface SuggestedSubgoal {
 // ─── Timeframe Mapping ─────────────────────────────────────────────────────────
 
 /** Map parent timeframe to default child timeframe (one level down). */
-function getDefaultChildTimeframe(parentTimeframe: string | null): string {
+export function getDefaultChildTimeframe(parentTimeframe: string | null): string {
   switch (parentTimeframe) {
     case 'YEARLY':
       return 'QUARTERLY';
@@ -205,169 +202,29 @@ function formatSuggestionList(subgoals: SuggestedSubgoal[]): string {
   );
 }
 
-// ─── Main Decomposition Flow ───────────────────────────────────────────────────
+// ─── Shared: AI Suggest → Approve → Create ─────────────────────────────────────
+
+/** Minimal goal shape needed by the shared function. */
+interface DecomposeTarget {
+  id: string;
+  title: string;
+  description: string | null;
+  depth: number;
+}
 
 /**
- * Run the full goal decomposition DM conversation.
- *
- * @param client - Discord.js client
- * @param db - Extended Prisma client
- * @param memberId - The member's internal ID
- * @param discordId - The member's Discord user ID
- * @param events - Event bus
- * @param goalNameHint - Optional hint from extractDecompositionGoalName
+ * Shared core of decomposition: generate AI suggestions, let member edit/approve,
+ * create sub-goals in DB. Used by both runDecompositionFlow and offerDecomposition.
  */
-export async function runDecompositionFlow(
-  client: Client,
+async function suggestAndCreateSubgoals(
+  dm: DMChannel,
   db: ExtendedPrismaClient,
   memberId: string,
   discordId: string,
-  events: IEventBus,
-  goalNameHint: string | null,
+  goal: DecomposeTarget,
+  childTimeframe: string,
 ): Promise<void> {
-  // Open DM channel
-  let dm: DMChannel;
-  try {
-    const user = await client.users.fetch(discordId);
-    dm = await user.createDM();
-  } catch {
-    logger.warn(`Could not open DM with ${discordId} for decomposition`);
-    return;
-  }
-
-  // ─── Step 0: Find the goal to decompose ────────────────────────────────────
-
-  const activeGoals = await db.goal.findMany({
-    where: {
-      memberId,
-      status: { in: ['ACTIVE', 'EXTENDED'] },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (activeGoals.length === 0) {
-    await dm.send(
-      "You don't have any active goals to decompose. Set one with /setgoal first.",
-    );
-    return;
-  }
-
-  let selectedGoal: typeof activeGoals[number] | null = null;
-
-  // Try to match by hint
-  if (goalNameHint) {
-    const hintLower = goalNameHint.toLowerCase();
-
-    // Check if hint is a timeframe (YEARLY, QUARTERLY, etc.)
-    const timeframeHint = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY'].includes(
-      goalNameHint.toUpperCase(),
-    )
-      ? goalNameHint.toUpperCase()
-      : null;
-
-    if (timeframeHint) {
-      const matches = activeGoals.filter((g) => g.timeframe === timeframeHint);
-      if (matches.length === 1) {
-        selectedGoal = matches[0];
-      }
-    } else {
-      // Fuzzy match against goal titles
-      const matches = activeGoals.filter((g) =>
-        g.title.toLowerCase().includes(hintLower),
-      );
-      if (matches.length === 1) {
-        selectedGoal = matches[0];
-      }
-    }
-  }
-
-  if (!selectedGoal && activeGoals.length === 1) {
-    // Only one active goal -- suggest it
-    await dm.send(
-      `I'll break down '${activeGoals[0].title}' -- sound good? (yes/pick another)`,
-    );
-    const confirm = await awaitResponse(dm, discordId);
-    if (confirm === null) {
-      await dm.send('Timed out. You can restart this anytime.');
-      return;
-    }
-    if (/^(yes|yeah|yep|sure|ok|do it|go ahead)/i.test(confirm.trim())) {
-      selectedGoal = activeGoals[0];
-    } else {
-      await dm.send('No active goals to pick from besides that one. Try /setgoal to add more.');
-      return;
-    }
-  }
-
-  if (!selectedGoal && activeGoals.length > 1) {
-    // Present numbered list
-    const list = activeGoals
-      .map((g, i) => {
-        const tf = g.timeframe ? ` [${g.timeframe}]` : '';
-        return `${i + 1}. ${g.title}${tf}`;
-      })
-      .join('\n');
-
-    await dm.send(
-      `Which goal should I break down?\n\n${list}\n\nReply with the number.`,
-    );
-
-    const pick = await awaitResponse(dm, discordId);
-    if (pick === null) {
-      await dm.send('Timed out. You can restart this anytime.');
-      return;
-    }
-
-    const pickNum = parseInt(pick.trim(), 10);
-    if (pickNum >= 1 && pickNum <= activeGoals.length) {
-      selectedGoal = activeGoals[pickNum - 1];
-    } else {
-      // Try fuzzy match on their response
-      const fuzzy = activeGoals.find((g) =>
-        g.title.toLowerCase().includes(pick.toLowerCase().trim()),
-      );
-      if (fuzzy) {
-        selectedGoal = fuzzy;
-      } else {
-        await dm.send("Couldn't find that goal. Try again with /ask or say 'decompose' again.");
-        return;
-      }
-    }
-  }
-
-  if (!selectedGoal) {
-    await dm.send("Couldn't determine which goal to decompose. Try again.");
-    return;
-  }
-
-  // Validate depth
-  if (!validateGoalDepth(selectedGoal.depth)) {
-    await dm.send(
-      'This goal is already at the maximum nesting depth (4 levels).',
-    );
-    return;
-  }
-
-  // ─── Step 1: Ask about sub-goal timeframe ──────────────────────────────────
-
-  const defaultTimeframe = getDefaultChildTimeframe(selectedGoal.timeframe);
-
-  await dm.send(
-    `Let's break down '${selectedGoal.title}' into smaller goals.\n\n` +
-    `What timeframe should the sub-goals be? (quarterly, monthly, or weekly)`,
-  );
-
-  const timeframeResponse = await awaitResponse(dm, discordId);
-  let childTimeframe: string;
-
-  if (timeframeResponse === null) {
-    await dm.send('Timed out. You can restart this anytime.');
-    return;
-  }
-
-  childTimeframe = parseTimeframeInput(timeframeResponse, defaultTimeframe);
-
-  // ─── Step 2: Use AI to suggest sub-goals ───────────────────────────────────
+  // ─── AI suggestion ─────────────────────────────────────────────────────────
 
   const result = await callAI(db, {
     memberId,
@@ -379,7 +236,7 @@ export async function runDecompositionFlow(
       },
       {
         role: 'user',
-        content: `Break down this goal into sub-goals:\n\nGoal: ${selectedGoal.title}\nDescription: ${selectedGoal.description || 'No description'}\nTimeframe for sub-goals: ${childTimeframe}\n\nSuggest 2-5 specific sub-goals.`,
+        content: `Break down this goal into sub-goals:\n\nGoal: ${goal.title}\nDescription: ${goal.description || 'No description'}\nTimeframe for sub-goals: ${childTimeframe}\n\nSuggest 2-5 specific sub-goals.`,
       },
     ],
     responseFormat: {
@@ -414,7 +271,7 @@ export async function runDecompositionFlow(
 
   if (result.degraded || !result.content) {
     await dm.send(
-      "I couldn't generate suggestions right now. Try again later or create sub-goals manually with /setgoal and the parent option.",
+      "I couldn't generate suggestions right now. Try again later or tell me your sub-goals directly.",
     );
     return;
   }
@@ -425,37 +282,34 @@ export async function runDecompositionFlow(
     subgoals = parsed.subgoals.slice(0, 5); // Cap at 5
     if (subgoals.length === 0) {
       await dm.send(
-        "AI returned no suggestions. Try again or create sub-goals manually with /setgoal.",
+        "AI returned no suggestions. Try again or tell me your sub-goals directly.",
       );
       return;
     }
 
     // Validate and normalize each subgoal
     for (const sg of subgoals) {
-      // Normalize type to uppercase, must be MEASURABLE or FREETEXT
       const normalizedType = String(sg.type).toUpperCase();
       sg.type = (normalizedType === 'MEASURABLE' ? 'MEASURABLE' : 'FREETEXT') as 'MEASURABLE' | 'FREETEXT';
 
-      // Validate targetValue for MEASURABLE goals
       if (sg.type === 'MEASURABLE' && sg.targetValue != null) {
         sg.targetValue = Math.min(Math.max(1, Math.round(sg.targetValue)), 1000);
       } else if (sg.type === 'FREETEXT') {
         sg.targetValue = null;
       }
 
-      // Cap unit length
       if (sg.unit && sg.unit.length > 50) {
         sg.unit = sg.unit.slice(0, 50);
       }
     }
   } catch {
     await dm.send(
-      "I couldn't parse the AI suggestions. Try again later or create sub-goals manually.",
+      "I couldn't parse the AI suggestions. Try again later or tell me your sub-goals directly.",
     );
     return;
   }
 
-  // ─── Step 3: Present suggestions and let member approve/edit ───────────────
+  // ─── Present suggestions and let member approve/edit ──────────────────────
 
   await dm.send(formatSuggestionList(subgoals));
 
@@ -527,7 +381,7 @@ export async function runDecompositionFlow(
     return;
   }
 
-  // ─── Step 4: Create sub-goals in database ──────────────────────────────────
+  // ─── Create sub-goals in database ─────────────────────────────────────────
 
   const createdTitles: string[] = [];
 
@@ -542,9 +396,9 @@ export async function runDecompositionFlow(
         targetValue: sg.targetValue,
         unit: sg.unit,
         deadline,
-        parentId: selectedGoal.id,
+        parentId: goal.id,
         timeframe: childTimeframe as 'YEARLY' | 'QUARTERLY' | 'MONTHLY' | 'WEEKLY',
-        depth: selectedGoal.depth + 1,
+        depth: goal.depth + 1,
       },
     });
     createdTitles.push(sg.title);
@@ -553,10 +407,218 @@ export async function runDecompositionFlow(
   // Send confirmation
   const childList = createdTitles.map((t) => `- ${t}`).join('\n');
   await dm.send(
-    `Created ${createdTitles.length} sub-goals under "${selectedGoal.title}":\n${childList}\n\nUse /goals tree to see your full goal hierarchy.`,
+    `Created ${createdTitles.length} sub-goals under "${goal.title}":\n${childList}\n\nUse /goals tree to see your full goal hierarchy.`,
   );
 
   logger.info(
-    `[goals] Decomposed goal ${selectedGoal.id} into ${createdTitles.length} sub-goals for ${memberId}`,
+    `[goals] Decomposed goal ${goal.id} into ${createdTitles.length} sub-goals for ${memberId}`,
   );
+}
+
+// ─── Programmatic Decomposition (post-creation offer) ───────────────────────
+
+/**
+ * Streamlined decomposition entry point -- called programmatically after goal
+ * creation when the user confirms they want to break down a non-weekly goal.
+ *
+ * Skips goal selection and timeframe selection (both are already known).
+ * Goes straight to AI suggestion → user approval → creation.
+ */
+export async function offerDecomposition(
+  client: Client,
+  db: ExtendedPrismaClient,
+  memberId: string,
+  discordId: string,
+  goalId: string,
+  childTimeframe: string,
+): Promise<void> {
+  // Open DM channel
+  let dm: DMChannel;
+  try {
+    const user = await client.users.fetch(discordId);
+    dm = await user.createDM();
+  } catch {
+    logger.warn(`Could not open DM with ${discordId} for decomposition`);
+    return;
+  }
+
+  // Load the goal
+  const goal = await db.goal.findUnique({ where: { id: goalId } });
+  if (!goal || !['ACTIVE', 'EXTENDED'].includes(goal.status)) {
+    return;
+  }
+  if (!validateGoalDepth(goal.depth)) {
+    return;
+  }
+
+  await dm.send(`Breaking down "${goal.title}" into ${childTimeframe.toLowerCase()} steps...`);
+
+  await suggestAndCreateSubgoals(dm, db, memberId, discordId, goal, childTimeframe);
+}
+
+// ─── Full Decomposition Flow (keyword-triggered) ────────────────────────────
+
+/**
+ * Run the full goal decomposition DM conversation.
+ *
+ * @param client - Discord.js client
+ * @param db - Extended Prisma client
+ * @param memberId - The member's internal ID
+ * @param discordId - The member's Discord user ID
+ * @param events - Event bus
+ * @param goalNameHint - Optional hint from extractDecompositionGoalName
+ */
+export async function runDecompositionFlow(
+  client: Client,
+  db: ExtendedPrismaClient,
+  memberId: string,
+  discordId: string,
+  events: IEventBus,
+  goalNameHint: string | null,
+): Promise<void> {
+  // Open DM channel
+  let dm: DMChannel;
+  try {
+    const user = await client.users.fetch(discordId);
+    dm = await user.createDM();
+  } catch {
+    logger.warn(`Could not open DM with ${discordId} for decomposition`);
+    return;
+  }
+
+  // ─── Step 0: Find the goal to decompose ────────────────────────────────────
+
+  const activeGoals = await db.goal.findMany({
+    where: {
+      memberId,
+      status: { in: ['ACTIVE', 'EXTENDED'] },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (activeGoals.length === 0) {
+    await dm.send(
+      "You don't have any active goals to decompose. Tell me what you want to achieve and I'll create one.",
+    );
+    return;
+  }
+
+  let selectedGoal: typeof activeGoals[number] | null = null;
+
+  // Try to match by hint
+  if (goalNameHint) {
+    const hintLower = goalNameHint.toLowerCase();
+
+    // Check if hint is a timeframe (YEARLY, QUARTERLY, etc.)
+    const timeframeHint = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY'].includes(
+      goalNameHint.toUpperCase(),
+    )
+      ? goalNameHint.toUpperCase()
+      : null;
+
+    if (timeframeHint) {
+      const matches = activeGoals.filter((g) => g.timeframe === timeframeHint);
+      if (matches.length === 1) {
+        selectedGoal = matches[0];
+      }
+    } else {
+      // Fuzzy match against goal titles
+      const matches = activeGoals.filter((g) =>
+        g.title.toLowerCase().includes(hintLower),
+      );
+      if (matches.length === 1) {
+        selectedGoal = matches[0];
+      }
+    }
+  }
+
+  if (!selectedGoal && activeGoals.length === 1) {
+    // Only one active goal -- suggest it
+    await dm.send(
+      `I'll break down '${activeGoals[0].title}' -- sound good? (yes/pick another)`,
+    );
+    const confirm = await awaitResponse(dm, discordId);
+    if (confirm === null) {
+      await dm.send('Timed out. You can restart this anytime.');
+      return;
+    }
+    if (/^(yes|yeah|yep|sure|ok|do it|go ahead)/i.test(confirm.trim())) {
+      selectedGoal = activeGoals[0];
+    } else {
+      await dm.send('No active goals to pick from besides that one. Tell me a new goal to create one.');
+      return;
+    }
+  }
+
+  if (!selectedGoal && activeGoals.length > 1) {
+    // Present numbered list
+    const list = activeGoals
+      .map((g, i) => {
+        const tf = g.timeframe ? ` [${g.timeframe}]` : '';
+        return `${i + 1}. ${g.title}${tf}`;
+      })
+      .join('\n');
+
+    await dm.send(
+      `Which goal should I break down?\n\n${list}\n\nReply with the number.`,
+    );
+
+    const pick = await awaitResponse(dm, discordId);
+    if (pick === null) {
+      await dm.send('Timed out. You can restart this anytime.');
+      return;
+    }
+
+    const pickNum = parseInt(pick.trim(), 10);
+    if (pickNum >= 1 && pickNum <= activeGoals.length) {
+      selectedGoal = activeGoals[pickNum - 1];
+    } else {
+      // Try fuzzy match on their response
+      const fuzzy = activeGoals.find((g) =>
+        g.title.toLowerCase().includes(pick.toLowerCase().trim()),
+      );
+      if (fuzzy) {
+        selectedGoal = fuzzy;
+      } else {
+        await dm.send("Couldn't find that goal. Try again by saying 'break down' followed by the goal name.");
+        return;
+      }
+    }
+  }
+
+  if (!selectedGoal) {
+    await dm.send("Couldn't determine which goal to decompose. Try again.");
+    return;
+  }
+
+  // Validate depth
+  if (!validateGoalDepth(selectedGoal.depth)) {
+    await dm.send(
+      'This goal is already at the maximum nesting depth (4 levels).',
+    );
+    return;
+  }
+
+  // ─── Step 1: Ask about sub-goal timeframe ──────────────────────────────────
+
+  const defaultTimeframe = getDefaultChildTimeframe(selectedGoal.timeframe);
+
+  await dm.send(
+    `Let's break down '${selectedGoal.title}' into smaller goals.\n\n` +
+    `What timeframe should the sub-goals be? (quarterly, monthly, or weekly)`,
+  );
+
+  const timeframeResponse = await awaitResponse(dm, discordId);
+  let childTimeframe: string;
+
+  if (timeframeResponse === null) {
+    await dm.send('Timed out. You can restart this anytime.');
+    return;
+  }
+
+  childTimeframe = parseTimeframeInput(timeframeResponse, defaultTimeframe);
+
+  // ─── Steps 2-4: AI suggest → approve → create (shared) ─────────────────────
+
+  await suggestAndCreateSubgoals(dm, db, memberId, discordId, selectedGoal, childTimeframe);
 }

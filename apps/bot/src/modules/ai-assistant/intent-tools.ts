@@ -50,7 +50,8 @@ export const intentTools: ToolDefinition[] = [
       description:
         'Create a new goal when the user expresses wanting to achieve something specific. ' +
         'Look for phrases like "I want to", "my goal is", "I aim to", "I need to achieve". ' +
-        'Do NOT call this for casual mentions of wanting things or vague wishes without a clear objective.',
+        'Do NOT call this for casual mentions of wanting things or vague wishes without a clear objective. ' +
+        'Always infer the timeframe from the deadline context.',
       parameters: {
         type: 'object',
         properties: {
@@ -69,6 +70,22 @@ export const intentTools: ToolDefinition[] = [
           unit: {
             type: 'string',
             description: 'Unit of measurement (e.g., "emails", "pages", "commits")',
+          },
+          timeframe: {
+            type: 'string',
+            enum: ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY'],
+            description:
+              'Goal timeframe -- infer from context: "this quarter" or "by end of Q2" = QUARTERLY, ' +
+              '"this month" or "by end of April" = MONTHLY, "this week" or "by Friday" = WEEKLY, ' +
+              '"this year" or "by December" = YEARLY. If deadline spans multiple months use QUARTERLY. ' +
+              'If deadline is within 7 days use WEEKLY. If no clear signal, omit.',
+          },
+          parentGoalTitle: {
+            type: 'string',
+            description:
+              'Title of an existing higher-level goal this new goal contributes to. ' +
+              'Only set this when the user explicitly mentions connecting to an existing goal, ' +
+              'e.g. "under my revenue goal" or "as part of Build a SaaS". Use the goal title as-is.',
           },
         },
         required: ['title', 'deadline'],
@@ -145,6 +162,82 @@ export const intentTools: ToolDefinition[] = [
           },
         },
         required: ['topic'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'edit_goal',
+      description:
+        'Edit an existing goal when the user wants to change its title, deadline, or target. ' +
+        'Look for phrases like "change my goal", "update the deadline", "rename my goal", ' +
+        '"push back the deadline", "extend my goal". ' +
+        'Do NOT call this for creating new goals or updating progress.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goalTitle: {
+            type: 'string',
+            description: 'Current title or partial match of the goal to edit',
+          },
+          newTitle: {
+            type: 'string',
+            description: 'New title, only if the user wants to rename',
+          },
+          newDeadline: {
+            type: 'string',
+            description: 'New deadline in natural language, only if changing deadline',
+          },
+          newTarget: {
+            type: 'number',
+            description: 'New target value, only if changing the target',
+          },
+        },
+        required: ['goalTitle'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_goal',
+      description:
+        'Delete or archive a goal when the user explicitly wants to remove it. ' +
+        'Look for phrases like "delete my goal", "remove that goal", "cancel the goal", ' +
+        '"I don\'t want that goal anymore". ' +
+        'Do NOT call this for completing goals -- those should be marked complete, not deleted.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goalTitle: {
+            type: 'string',
+            description: 'Title or partial match of the goal to delete',
+          },
+        },
+        required: ['goalTitle'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_goals',
+      description:
+        'Show the user their current goals when they ask to see them. ' +
+        'Look for phrases like "show my goals", "what are my goals", "list my goals", ' +
+        '"how are my goals going", "goal status". ' +
+        'Do NOT call this for creating or editing goals.',
+      parameters: {
+        type: 'object',
+        properties: {
+          timeframe: {
+            type: 'string',
+            enum: ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', 'ALL'],
+            description: 'Filter by timeframe if the user specifies one, otherwise use ALL',
+          },
+        },
+        required: [],
       },
     },
   },

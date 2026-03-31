@@ -14,7 +14,7 @@
 import type { Message, Client } from 'discord.js';
 import type { ExtendedPrismaClient } from '@28k/db';
 import { TZDate } from '@date-fns/tz';
-import { startOfDay, format } from 'date-fns';
+import { startOfDay, format, isPast, formatDistanceToNow } from 'date-fns';
 import * as chrono from 'chrono-node';
 import { extractCategories } from '../checkin/ai-categories.js';
 import { updateStreak } from '../checkin/streak.js';
@@ -22,6 +22,8 @@ import { awardXP, calculateCheckinXP } from '@28k/shared';
 import { parseReminder } from '../reminders/parser.js';
 import { scheduleOneShot, scheduleRecurring } from '../reminders/scheduler.js';
 import { DiscordReminderDelivery } from '../reminders/delivery.js';
+import { validateGoalDepth } from '../goals/hierarchy.js';
+import { getDefaultChildTimeframe } from '../goals/decompose.js';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -74,6 +76,29 @@ export function isDenial(text: string): boolean {
   return DENY_PATTERNS.test(text.trim());
 }
 
+// ─── Timeframe Inference ────────────────────────────────────────────────────────
+
+/**
+ * Infer timeframe from deadline text and parsed deadline when AI doesn't provide one.
+ */
+function inferTimeframe(deadlineText: string, deadline: Date): string | null {
+  const lower = deadlineText.toLowerCase();
+
+  // Explicit signals from text
+  if (/this week|by friday|by sunday|this fri|next week/i.test(lower)) return 'WEEKLY';
+  if (/this month|end of month|by end of \w+/i.test(lower)) return 'MONTHLY';
+  if (/this quarter|end of q\d|by q\d|next quarter/i.test(lower)) return 'QUARTERLY';
+  if (/this year|end of year|by december|by dec|next year/i.test(lower)) return 'YEARLY';
+
+  // Heuristic from parsed deadline distance
+  const daysAway = Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (daysAway <= 7) return 'WEEKLY';
+  if (daysAway <= 31) return 'MONTHLY';
+  if (daysAway <= 93) return 'QUARTERLY';
+  if (daysAway <= 366) return 'YEARLY';
+  return null;
+}
+
 // ─── Confirmation Message Builder ───────────────────────────────────────────────
 
 /**
@@ -85,8 +110,11 @@ export function buildConfirmation(toolName: string, params: Record<string, unkno
     case 'log_checkin':
       return `Logging check-in: "${params.activity as string}". Sound right?`;
 
-    case 'create_goal':
-      return `Creating goal: "${params.title as string}" due ${params.deadline as string}. Confirm?`;
+    case 'create_goal': {
+      const tfLabel = params.timeframe ? ` [${params.timeframe as string}]` : '';
+      const parentLabel = params.parentGoalTitle ? ` (under: ${params.parentGoalTitle as string})` : '';
+      return `Creating goal${tfLabel}: "${params.title as string}" due ${params.deadline as string}${parentLabel}. Confirm?`;
+    }
 
     case 'track_commitment':
       return `Tracking: you'll "${params.what as string}" by ${params.by_when as string}. Got it?`;
@@ -97,8 +125,18 @@ export function buildConfirmation(toolName: string, params: Record<string, unkno
     }
 
     case 'start_brainstorm':
-      // Brainstorm doesn't need confirmation
       return `Starting brainstorm on: "${params.topic as string}"`;
+
+    case 'edit_goal': {
+      const changes: string[] = [];
+      if (params.newTitle) changes.push(`title -> "${params.newTitle as string}"`);
+      if (params.newDeadline) changes.push(`deadline -> ${params.newDeadline as string}`);
+      if (params.newTarget) changes.push(`target -> ${String(params.newTarget)}`);
+      return `Editing "${params.goalTitle as string}": ${changes.join(', ')}. Confirm?`;
+    }
+
+    case 'delete_goal':
+      return `Archiving goal: "${params.goalTitle as string}". This removes it and any sub-goals. Sure?`;
 
     default:
       return `Execute action "${toolName}"? (yes/no)`;
@@ -139,8 +177,19 @@ export async function executePendingAction(
         break;
 
       case 'start_brainstorm':
-        // Brainstorm is handled separately (Plan 03)
         await message.reply("Brainstorming mode isn't available yet.");
+        break;
+
+      case 'edit_goal':
+        await executeEditGoal(db, memberId, action.params, message);
+        break;
+
+      case 'delete_goal':
+        await executeDeleteGoal(db, memberId, action.params, message);
+        break;
+
+      case 'list_goals':
+        await executeListGoals(db, memberId, action.params, message);
         break;
 
       default:
@@ -214,7 +263,7 @@ async function executeCheckin(
 }
 
 /**
- * Create a goal. Parses deadline with chrono-node, creates Goal record.
+ * Create a goal with timeframe inference, parent linking, and decomposition offer.
  */
 async function executeCreateGoal(
   db: ExtendedPrismaClient,
@@ -235,11 +284,31 @@ async function executeCreateGoal(
   const parsed = chrono.parseDate(deadlineText, { instant: new Date(), timezone }, { forwardDate: true });
   const deadline = parsed ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // fallback: 7 days
 
+  // Resolve timeframe: prefer AI-provided, fallback to inference
+  const aiTimeframe = params.timeframe as string | undefined;
+  const resolvedTimeframe = aiTimeframe ?? inferTimeframe(deadlineText, deadline);
+
+  // Resolve parent goal if specified
+  let parentId: string | undefined;
+  let depth = 0;
+
+  if (params.parentGoalTitle) {
+    const parentHint = (params.parentGoalTitle as string).toLowerCase();
+    const activeGoals = await db.goal.findMany({
+      where: { memberId, status: { in: ['ACTIVE', 'EXTENDED'] } },
+    });
+    const match = activeGoals.find((g) => g.title.toLowerCase().includes(parentHint));
+    if (match && validateGoalDepth(match.depth)) {
+      parentId = match.id;
+      depth = match.depth + 1;
+    }
+  }
+
   // Determine goal type
   const goalType = target && unit ? 'MEASURABLE' : 'FREETEXT';
 
   // Create goal
-  await db.goal.create({
+  const goal = await db.goal.create({
     data: {
       memberId,
       title,
@@ -248,13 +317,201 @@ async function executeCreateGoal(
       targetValue: target,
       unit,
       deadline,
+      timeframe: resolvedTimeframe as 'YEARLY' | 'QUARTERLY' | 'MONTHLY' | 'WEEKLY' | undefined,
+      parentId,
+      depth,
     },
   });
 
   const formattedDeadline = format(deadline, "EEE, MMM d");
-  logger.info(`Goal created for ${memberId}: "${title}" due ${formattedDeadline}`);
+  const tfLabel = resolvedTimeframe ? ` [${resolvedTimeframe}]` : '';
+  logger.info(`Goal created for ${memberId}: "${title}"${tfLabel} due ${formattedDeadline}`);
 
-  await message.reply(`Goal set: "${title}" -- due ${formattedDeadline}.`);
+  await message.reply(`Goal set${tfLabel}: "${title}" -- due ${formattedDeadline}.`);
+
+  // Offer decomposition for non-weekly goals
+  if (resolvedTimeframe && resolvedTimeframe !== 'WEEKLY') {
+    const childTimeframe = getDefaultChildTimeframe(resolvedTimeframe);
+    const childLabel = childTimeframe.toLowerCase();
+
+    // Store as a decompose offer pending action
+    pendingActions.set(memberId, {
+      tool: '_decompose_offer',
+      params: { goalId: goal.id, childTimeframe },
+      confirmMessage: '',
+      createdAt: Date.now(),
+    });
+
+    await message.reply(
+      `Want me to break "${title}" down into ${childLabel} steps?`,
+    );
+  }
+}
+
+/**
+ * Edit an existing goal -- change title, deadline, or target.
+ */
+async function executeEditGoal(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  params: Record<string, unknown>,
+  message: Message,
+): Promise<void> {
+  const goalTitle = (params.goalTitle as string).toLowerCase();
+
+  // Find matching goal
+  const goals = await db.goal.findMany({
+    where: { memberId, status: { in: ['ACTIVE', 'EXTENDED'] } },
+  });
+  const match = goals.find((g) => g.title.toLowerCase().includes(goalTitle));
+
+  if (!match) {
+    await message.reply(`Couldn't find a goal matching "${params.goalTitle as string}". Say "show my goals" to see your active goals.`);
+    return;
+  }
+
+  const updates: Record<string, unknown> = {};
+  const changeDescriptions: string[] = [];
+
+  if (params.newTitle) {
+    updates.title = params.newTitle;
+    updates.description = params.newTitle;
+    changeDescriptions.push(`title -> "${params.newTitle as string}"`);
+  }
+
+  if (params.newDeadline) {
+    const schedule = await db.memberSchedule.findUnique({ where: { memberId } });
+    const timezone = schedule?.timezone ?? 'UTC';
+    const parsedDeadline = chrono.parseDate(
+      params.newDeadline as string,
+      { instant: new Date(), timezone },
+      { forwardDate: true },
+    );
+    if (parsedDeadline) {
+      updates.deadline = parsedDeadline;
+      changeDescriptions.push(`deadline -> ${format(parsedDeadline, 'EEE, MMM d')}`);
+    }
+  }
+
+  if (params.newTarget != null) {
+    updates.targetValue = Number(params.newTarget);
+    changeDescriptions.push(`target -> ${String(params.newTarget)}`);
+  }
+
+  if (Object.keys(updates).length === 0) {
+    await message.reply('No changes to make. Tell me what to change -- title, deadline, or target.');
+    return;
+  }
+
+  await db.goal.update({ where: { id: match.id }, data: updates });
+
+  logger.info(`Goal edited for ${memberId}: "${match.title}" -- ${changeDescriptions.join(', ')}`);
+  await message.reply(`Updated "${match.title}": ${changeDescriptions.join(', ')}.`);
+}
+
+/**
+ * Delete (archive) a goal by setting status to MISSED. Cascades to children.
+ */
+async function executeDeleteGoal(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  params: Record<string, unknown>,
+  message: Message,
+): Promise<void> {
+  const goalTitle = (params.goalTitle as string).toLowerCase();
+
+  const goals = await db.goal.findMany({
+    where: { memberId, status: { in: ['ACTIVE', 'EXTENDED'] } },
+  });
+  const match = goals.find((g) => g.title.toLowerCase().includes(goalTitle));
+
+  if (!match) {
+    await message.reply(`Couldn't find a goal matching "${params.goalTitle as string}".`);
+    return;
+  }
+
+  // Soft delete: set to MISSED
+  await db.goal.update({
+    where: { id: match.id },
+    data: { status: 'MISSED' },
+  });
+
+  // Also archive children
+  const archivedChildren = await db.goal.updateMany({
+    where: { parentId: match.id, status: { in: ['ACTIVE', 'EXTENDED'] } },
+    data: { status: 'MISSED' },
+  });
+
+  const childInfo = archivedChildren.count > 0 ? ` and ${archivedChildren.count} sub-goal(s)` : '';
+  logger.info(`Goal archived for ${memberId}: "${match.title}"${childInfo}`);
+  await message.reply(`Archived "${match.title}"${childInfo}.`);
+}
+
+/**
+ * List goals grouped by timeframe. No confirmation needed.
+ */
+async function executeListGoals(
+  db: ExtendedPrismaClient,
+  memberId: string,
+  params: Record<string, unknown>,
+  message: Message,
+): Promise<void> {
+  const timeframeFilter = params.timeframe as string | undefined;
+
+  const where: Record<string, unknown> = {
+    memberId,
+    status: { in: ['ACTIVE', 'EXTENDED'] },
+    parentId: null, // Top-level only
+  };
+
+  if (timeframeFilter && timeframeFilter !== 'ALL') {
+    where.timeframe = timeframeFilter;
+  }
+
+  const goals = await db.goal.findMany({
+    where,
+    orderBy: { deadline: 'asc' },
+    include: {
+      children: {
+        where: { status: { in: ['ACTIVE', 'EXTENDED'] } },
+        select: { id: true, title: true, status: true },
+      },
+    },
+  });
+
+  if (goals.length === 0) {
+    await message.reply("No active goals. Tell me what you want to achieve and I'll set one up.");
+    return;
+  }
+
+  // Group by timeframe
+  const grouped = new Map<string, typeof goals>();
+  for (const goal of goals) {
+    const key = goal.timeframe ?? 'Unset';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(goal);
+  }
+
+  const lines: string[] = [];
+  const timeframeOrder = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', 'Unset'];
+  for (const tf of timeframeOrder) {
+    const group = grouped.get(tf);
+    if (!group) continue;
+    lines.push(`**${tf === 'Unset' ? 'No timeframe' : tf}**`);
+    for (const g of group) {
+      const childInfo = g.children.length > 0 ? ` (${g.children.length} sub-goals)` : '';
+      const progress =
+        g.type === 'MEASURABLE' && g.targetValue
+          ? ` [${g.currentValue}/${g.targetValue} ${g.unit ?? ''}]`
+          : '';
+      const deadlineStr = isPast(g.deadline)
+        ? 'Overdue'
+        : formatDistanceToNow(g.deadline, { addSuffix: true });
+      lines.push(`  - ${g.title}${progress} | ${deadlineStr}${childInfo}`);
+    }
+  }
+
+  await message.reply(lines.join('\n'));
 }
 
 /**
@@ -284,8 +541,8 @@ async function executeSetReminder(
   parseText += `${timeText} to ${content}`;
 
   // Parse reminder
-  const parsed = parseReminder(parseText, timezone);
-  if (!parsed) {
+  const parsedReminder = parseReminder(parseText, timezone);
+  if (!parsedReminder) {
     // Fallback: try chrono directly
     const fireAt = chrono.parseDate(timeText, { instant: new Date(), timezone }, { forwardDate: true });
     if (!fireAt) {
@@ -314,33 +571,33 @@ async function executeSetReminder(
   }
 
   // Override content with the tool-extracted content (more reliable)
-  parsed.content = content;
+  parsedReminder.content = content;
 
   // Create reminder in DB
   const reminder = await db.reminder.create({
     data: {
       memberId,
-      content: parsed.content,
-      urgency: parsed.urgency,
-      fireAt: parsed.fireAt,
-      cronExpression: parsed.cronExpression,
-      status: parsed.isRecurring ? 'ACTIVE' : 'PENDING',
+      content: parsedReminder.content,
+      urgency: parsedReminder.urgency,
+      fireAt: parsedReminder.fireAt,
+      cronExpression: parsedReminder.cronExpression,
+      status: parsedReminder.isRecurring ? 'ACTIVE' : 'PENDING',
     },
   });
 
   // Schedule it
   const delivery = new DiscordReminderDelivery(client, db);
-  if (parsed.isRecurring) {
+  if (parsedReminder.isRecurring) {
     await scheduleRecurring(reminder, delivery, db, client);
   } else {
     scheduleOneShot(reminder, delivery, db, client);
   }
 
   // Reply with confirmation
-  if (parsed.fireAt) {
-    const fireTime = new TZDate(parsed.fireAt, timezone);
+  if (parsedReminder.fireAt) {
+    const fireTime = new TZDate(parsedReminder.fireAt, timezone);
     const timeDisplay = format(fireTime, "EEE, MMM d 'at' h:mm a");
-    if (parsed.isRecurring) {
+    if (parsedReminder.isRecurring) {
       await message.reply(`Recurring reminder set: "${content}" (${recurring ?? 'recurring'}). Next: ${timeDisplay}`);
     } else {
       await message.reply(`Reminder set: "${content}" -- ${timeDisplay}`);
