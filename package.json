@@ -1,6 +1,26 @@
 {
   "name": "28k-hq",
   "private": true,
+  "description": "A Discord server ecosystem that turns gamers into hustlers through gamification, an AI coach, and competitive leaderboards, with a native desktop companion app.",
+  "license": "MIT",
+  "author": "assanendiaye08-hue (https://github.com/assanendiaye08-hue)",
+  "homepage": "https://github.com/assanendiaye08-hue/28k-hq#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/assanendiaye08-hue/28k-hq.git"
+  },
+  "bugs": {
+    "url": "https://github.com/assanendiaye08-hue/28k-hq/issues"
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "productivity",
+    "gamification",
+    "tauri",
+    "ai-coach",
+    "pomodoro"
+  ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
