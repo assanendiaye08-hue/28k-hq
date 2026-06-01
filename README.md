@@ -170,7 +170,7 @@ pm2 start ecosystem.config.cjs   # starts 28k-bot and 28k-api
 Contributions are welcome. Open an issue to discuss a change, or send a pull request:
 
 1. Fork the repo and create a branch (`git checkout -b feature/your-feature`)
-2. Make your changes (`pnpm build` and `pnpm test` should pass)
+2. Make your changes and make sure the project builds (`pnpm build`)
 3. Commit and open a pull request against `main`
 
 ## Contributors
